@@ -1,4 +1,5 @@
 import { Container } from "@/components/layout/container";
+import { MobileNavigation } from "@/components/layout/mobile-navigation";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { siteConfig } from "@/config/site";
@@ -24,11 +25,18 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center">
-          <Button href="#product" size="sm" variant="secondary">
-            <span className="sm:hidden">Ver</span>
-            <span className="hidden sm:inline">Ver concepto</span>
+        <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <a
+            href="#final-cta"
+            className="hidden rounded-[0.7rem] px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-foreground xl:inline-flex"
+          >
+            Iniciar sesión
+          </a>
+          <Button href="#pricing" size="sm" variant="secondary">
+            <span className="sm:hidden">Crear</span>
+            <span className="hidden sm:inline">Crear gratis</span>
           </Button>
+          <MobileNavigation />
         </div>
       </Container>
     </header>

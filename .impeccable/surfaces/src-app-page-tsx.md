@@ -2,18 +2,22 @@
 version: 1
 slug: "src-app-page-tsx"
 primary_target: "src/app/page.tsx"
-related_targets: []
+related_targets:
+  - "src/components/sections/hero-section.tsx"
+  - "src/components/sections/product-preview.tsx"
+  - "src/components/sections/examples-section.tsx"
+  - "src/components/sections/pricing-section.tsx"
 ---
 
-# Home — Fase 1
+# Home — Fase 2
 
-- **Scope:** Página principal provisional de Crealy.
+- **Scope:** Landing page comercial completa de Crealy.
 - **Mode:** Persuade.
 - **Audience:** Creadores de contenido, emprendedores, dueños de negocio y community managers con el mismo peso.
-- **Job:** Entender en segundos que Crealy convertirá una idea en contenido visual mediante una experiencia breve y sencilla.
-- **Primary action:** Empezar a crear.
-- **Proof available:** Una demostración estática y explícitamente provisional del futuro flujo; no existen métricas, testimonios, precios ni resultados reales.
-- **Constraints:** Hero y navegación centrados; color principal `#DDF527`; fondo animado con miniaturas abstractas; información mínima; Next.js App Router, TypeScript estricto y Tailwind; sin funcionalidad futura.
+- **Job:** Entender en segundos qué crea Crealy, cómo sería el flujo y por qué reduce el trabajo necesario para publicar contenido.
+- **Primary action:** Crear gratis, con acceso anticipado como destino honesto mientras el producto no está disponible.
+- **Proof available:** Demostración estática del flujo y seis piezas visuales originales de ejemplo; no existen métricas, testimonios, precios ni resultados reales.
+- **Constraints:** Hero y navegación centrados; color principal `#DDF527`; fondo animado con miniaturas; contenido preciso; Next.js App Router, TypeScript estricto y Tailwind; sin simular funcionalidad futura.
 - **Direction:** “Mesa de pruebas creativas”. Superficie oscura, miniaturas como material principal y lima como señal de acción/selección.
-- **Memorable moment:** Filas lentas de piezas visuales pasan detrás del hero y desembocan en una mesa estática de prompt y resultados.
-- **Unresolved:** Contenido y estructura de las secciones comerciales de fases posteriores.
+- **Memorable moment:** Las miniaturas en movimiento del hero desembocan en una mesa estática de creación y reaparecen como una galería editorial de formatos reales.
+- **Unresolved:** Autenticación, generación real, captura de la lista de espera, límites, planes y precios.

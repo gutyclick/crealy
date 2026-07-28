@@ -17,11 +17,23 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: siteConfig.name,
-    template: `%s · ${siteConfig.name}`,
+    default: "Crealy | Crea contenido visual con inteligencia artificial",
+    template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
+  openGraph: {
+    type: "website",
+    locale: "es_PA",
+    siteName: siteConfig.name,
+    title: "Crealy | Crea contenido visual con inteligencia artificial",
+    description: siteConfig.description,
+  },
+  twitter: {
+    card: "summary",
+    title: "Crealy | Crea contenido visual con inteligencia artificial",
+    description: siteConfig.description,
+  },
 };
 
 export const viewport: Viewport = {

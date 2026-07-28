@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 
 type LogoProps = {
   className?: string;
+  compact?: boolean;
 };
 
-export function Logo({ className }: LogoProps) {
+export function Logo({ className, compact = false }: LogoProps) {
   return (
     <Link
       href="/"
@@ -22,9 +23,11 @@ export function Logo({ className }: LogoProps) {
       >
         <span className="size-2.5 rotate-45 rounded-[0.12rem] border-2 border-current" />
       </span>
-      <span>
-        Crealy<span className="text-brand">.</span>
-      </span>
+      {compact ? null : (
+        <span>
+          Crealy<span className="text-brand">.</span>
+        </span>
+      )}
     </Link>
   );
 }
