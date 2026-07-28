@@ -1,0 +1,175 @@
+{
+  "communities": {
+    "0": [
+      "codex_skills_ui_ux_pro_max_scripts_core",
+      "codex_skills_ui_ux_pro_max_scripts_core_detect_domain",
+      "codex_skills_ui_ux_pro_max_scripts_core_load_csv",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_160",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_166",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_191",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_213",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_235",
+      "codex_skills_ui_ux_pro_max_scripts_core_search",
+      "codex_skills_ui_ux_pro_max_scripts_core_search_csv",
+      "codex_skills_ui_ux_pro_max_scripts_core_search_stack",
+      "codex_skills_ui_ux_pro_max_scripts_search",
+      "codex_skills_ui_ux_pro_max_scripts_search_format_output",
+      "codex_skills_ui_ux_pro_max_scripts_search_rationale_31"
+    ],
+    "1": [
+      "codex_skills_ui_ux_pro_max_scripts_core_bm25",
+      "codex_skills_ui_ux_pro_max_scripts_core_bm25_fit",
+      "codex_skills_ui_ux_pro_max_scripts_core_bm25_init",
+      "codex_skills_ui_ux_pro_max_scripts_core_bm25_score",
+      "codex_skills_ui_ux_pro_max_scripts_core_bm25_tokenize",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_110",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_115",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_134",
+      "codex_skills_ui_ux_pro_max_scripts_core_rationale_97"
+    ],
+    "2": [
+      "codex_skills_ui_ux_pro_max_scripts_design_system_detect_page_type",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_format_page_override_md",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_generate_intelligent_overrides",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_1021",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_806",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_915"
+    ],
+    "3": [
+      "codex_skills_ui_ux_pro_max_scripts_design_system",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_format_ascii_box",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_format_markdown",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_generate_design_system",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_243",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_368",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_464"
+    ],
+    "4": [
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator_init",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator_load_reasoning",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_38",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_44"
+    ],
+    "5": [
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator_apply_reasoning",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator_find_reasoning_rule",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_65",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_89"
+    ],
+    "6": [
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator_extract_results",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator_generate",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_160",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_164"
+    ],
+    "7": [
+      "codex_skills_ui_ux_pro_max_scripts_design_system_format_master_md",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_persist_design_system",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_492",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_543"
+    ],
+    "8": [
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator_multi_domain_search",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_52"
+    ],
+    "9": [
+      "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator_select_best_match",
+      "codex_skills_ui_ux_pro_max_scripts_design_system_rationale_123"
+    ]
+  },
+  "cohesion": {
+    "0": 0.2087912087912088,
+    "1": 0.2777777777777778,
+    "2": 0.3333333333333333,
+    "3": 0.38095238095238093,
+    "4": 0.5,
+    "5": 0.5,
+    "6": 0.5,
+    "7": 0.5,
+    "8": 1.0,
+    "9": 1.0
+  },
+  "gods": [
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator",
+      "label": "DesignSystemGenerator",
+      "degree": 11
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_core_search",
+      "label": "search()",
+      "degree": 9
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_core_search_csv",
+      "label": "_search_csv()",
+      "degree": 8
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_design_system_generate_design_system",
+      "label": "generate_design_system()",
+      "degree": 8
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_core_bm25",
+      "label": "BM25",
+      "degree": 7
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_design_system_persist_design_system",
+      "label": "persist_design_system()",
+      "degree": 6
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_design_system_generate_intelligent_overrides",
+      "label": "_generate_intelligent_overrides()",
+      "degree": 5
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_core_search_stack",
+      "label": "search_stack()",
+      "degree": 4
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_design_system_format_page_override_md",
+      "label": "format_page_override_md()",
+      "degree": 4
+    },
+    {
+      "id": "codex_skills_ui_ux_pro_max_scripts_core_load_csv",
+      "label": "_load_csv()",
+      "degree": 3
+    }
+  ],
+  "surprises": [
+    {
+      "source": "_generate_intelligent_overrides()",
+      "target": "search()",
+      "source_files": [
+        ".codex/skills/ui-ux-pro-max/scripts/design_system.py",
+        ".codex/skills/ui-ux-pro-max/scripts/core.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `DesignSystemGenerator` connect `Community 4` to `Community 3`, `Community 5`, `Community 6`, `Community 8`, `Community 9`?",
+      "why": "High betweenness centrality (0.284) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `search()` connect `Community 0` to `Community 8`, `Community 2`, `Community 3`, `Community 6`?",
+      "why": "High betweenness centrality (0.257) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `_search_csv()` connect `Community 0` to `Community 1`?",
+      "why": "High betweenness centrality (0.180) - this node is a cross-community bridge."
+    }
+  ]
+}
