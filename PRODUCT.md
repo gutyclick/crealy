@@ -25,8 +25,9 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 ## Capabilities and Constraints
 
 - El producto futuro incluirá generación de imágenes con inteligencia artificial.
-- La Fase 2 establece una landing page comercial completa con demostraciones visuales, tipos de contenido, proceso, beneficios, ejemplos, comparativa, acceso anticipado y preguntas frecuentes.
+- La Fase 2 establece una landing page comercial completa con demostraciones visuales, tipos de contenido, proceso, precios provisionales, ejemplos, comparativa y preguntas frecuentes.
 - En esta fase no existen generación real, autenticación, cargas, editor, dashboard, pagos, persistencia, lista de espera funcional ni integraciones de inteligencia artificial.
+- La tabla de precios de la Fase 2 es una propuesta de lanzamiento con valores y límites provisionales.
 - La arquitectura debe permitir crecimiento por fases sin anticipar abstracciones o servicios que todavía no existen.
 
 ## Brand Commitments
@@ -40,7 +41,7 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 
 ## Evidence on Hand
 
-No existen todavía testimonios, clientes, métricas, precios, casos de estudio ni resultados generados por el producto. Las demostraciones y ejemplos visuales de la Fase 2 son conceptuales y no deben presentarse como contenido generado por una funcionalidad ya disponible.
+No existen todavía testimonios, clientes, métricas, precios definitivos, casos de estudio ni resultados generados por el producto. Las demostraciones, ejemplos visuales y precios de la Fase 2 son conceptuales y deben presentarse como propuestas sujetas a cambio.
 
 ## Product Principles
 

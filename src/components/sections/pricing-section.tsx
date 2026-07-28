@@ -1,51 +1,184 @@
-import { ArrowRight, Check } from "lucide-react";
+"use client";
+
+import { ArrowRight, Check, Coins, Sparkles } from "lucide-react";
+import { useState } from "react";
 
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
-import { earlyAccessFeatures } from "@/config/landing";
+import { pricingPlans } from "@/config/landing";
+import { cn } from "@/lib/utils";
+
+type BillingCycle = "monthly" | "yearly";
 
 export function PricingSection() {
+  const [billingCycle, setBillingCycle] =
+    useState<BillingCycle>("monthly");
+
   return (
     <section
       id="pricing"
       className="scroll-mt-24 border-y border-white/[0.07] bg-surface/35 py-24 sm:py-32"
     >
       <Container>
-        <div className="mx-auto grid max-w-5xl gap-10 rounded-2xl bg-surface-elevated p-6 sm:p-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <p className="text-sm font-medium text-brand">Acceso anticipado</p>
-            <h2 className="mt-3 text-balance text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
-              Conoce Crealy desde el principio.
-            </h2>
-            <p className="mt-4 max-w-md text-base leading-7 text-muted">
-              Los planes y límites se anunciarán antes del lanzamiento.
-            </p>
-            <Button href="#final-cta" size="lg" className="mt-7">
-              Unirme a la lista
-              <ArrowRight aria-hidden="true" className="size-4" />
-            </Button>
+        <div className="mx-auto max-w-6xl">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm font-medium text-brand">
+                Precios simples
+              </p>
+              <h2 className="mt-3 max-w-[12ch] text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-5xl">
+                Empieza gratis. Crece cuando lo necesites.
+              </h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted">
+                Todos los planes incluyen 7 días de prueba y tokens de
+                bienvenida para crear tus primeras piezas.
+              </p>
+            </div>
+
+            <div
+              role="group"
+              aria-label="Periodo de facturación"
+              className="inline-grid w-full grid-cols-2 rounded-[0.8rem] border border-white/10 bg-background p-1 sm:w-auto"
+            >
+              <button
+                type="button"
+                aria-pressed={billingCycle === "monthly"}
+                onClick={() => setBillingCycle("monthly")}
+                className={cn(
+                  "min-h-10 rounded-[0.7rem] px-5 text-sm font-semibold transition-colors",
+                  billingCycle === "monthly"
+                    ? "bg-white/10 text-foreground"
+                    : "text-muted hover:text-foreground",
+                )}
+              >
+                Mensual
+              </button>
+              <button
+                type="button"
+                aria-pressed={billingCycle === "yearly"}
+                onClick={() => setBillingCycle("yearly")}
+                className={cn(
+                  "min-h-10 rounded-[0.7rem] px-5 text-sm font-semibold transition-colors",
+                  billingCycle === "yearly"
+                    ? "bg-white/10 text-foreground"
+                    : "text-muted hover:text-foreground",
+                )}
+              >
+                Anual
+                <span className="ml-2 text-xs text-brand">−20%</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid sm:grid-cols-2">
-            {earlyAccessFeatures.map((feature, index) => (
-              <div
-                key={feature}
-                className={
-                  index === earlyAccessFeatures.length - 1
-                    ? "flex items-start gap-3 border-t border-brand/25 py-4 sm:col-span-2"
-                    : "flex items-start gap-3 border-t border-white/10 py-4 sm:pr-6"
-                }
-              >
-                <Check
-                  aria-hidden="true"
-                  className="mt-0.5 size-4 shrink-0 text-brand"
-                />
-                <span className="text-sm leading-6 text-white/72">
-                  {feature}
-                </span>
-              </div>
-            ))}
+          <div className="mt-12 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            {pricingPlans.map((plan) => {
+              const yearlySavings =
+                plan.monthlyPrice * 12 - plan.yearlyPrice;
+              const displayedPrice =
+                billingCycle === "monthly"
+                  ? plan.monthlyPrice
+                  : plan.yearlyPrice;
+
+              return (
+                <article
+                  key={plan.name}
+                  className={cn(
+                    "relative flex min-h-full flex-col rounded-2xl border p-6 sm:p-8",
+                    plan.featured
+                      ? "border-brand/45 bg-surface-elevated"
+                      : "border-white/10 bg-background",
+                  )}
+                >
+                  {plan.featured && (
+                    <span className="absolute right-5 top-5 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-brand-ink">
+                      Recomendado
+                    </span>
+                  )}
+
+                  <div className="pr-24">
+                    <h3 className="text-xl font-semibold tracking-[-0.025em] text-foreground">
+                      {plan.name}
+                    </h3>
+                    <p className="mt-3 max-w-md text-sm leading-6 text-muted">
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-8 flex items-end gap-2 border-b border-white/10 pb-7">
+                    <span className="pb-2 text-xl font-medium text-white/55">
+                      $
+                    </span>
+                    <span className="text-5xl font-semibold tracking-[-0.04em] text-foreground sm:text-6xl">
+                      {displayedPrice}
+                    </span>
+                    <span className="pb-2 text-sm text-muted">
+                      /{billingCycle === "monthly" ? "mes" : "año"}
+                    </span>
+                  </div>
+
+                  {billingCycle === "yearly" && (
+                    <p className="mt-3 text-sm font-medium text-brand">
+                      Ahorras ${yearlySavings} al año
+                    </p>
+                  )}
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <div className="flex items-center gap-3">
+                      <Sparkles
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-brand"
+                      />
+                      <span className="text-sm text-white/75">
+                        7 días de prueba
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Coins
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-brand"
+                      />
+                      <span className="text-sm text-white/75">
+                        {plan.trialTokens} tokens gratis
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="mt-7 text-sm font-semibold text-foreground">
+                    {plan.monthlyTokens} tokens cada mes
+                  </p>
+                  <ul className="mt-4 grid gap-3">
+                    {plan.features.map((feature) => (
+                      <li
+                        key={feature}
+                        className="flex items-start gap-3 text-sm leading-6 text-muted"
+                      >
+                        <Check
+                          aria-hidden="true"
+                          className="mt-1 size-4 shrink-0 text-brand"
+                        />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    href="#final-cta"
+                    size="lg"
+                    variant={plan.featured ? "primary" : "secondary"}
+                    className="mt-8 w-full"
+                  >
+                    Probar gratis 7 días
+                    <ArrowRight aria-hidden="true" className="size-4" />
+                  </Button>
+                </article>
+              );
+            })}
           </div>
+
+          <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-6 text-white/65">
+            Propuesta de precios de lanzamiento. Los valores y límites pueden
+            cambiar antes de la apertura.
+          </p>
         </div>
       </Container>
     </section>

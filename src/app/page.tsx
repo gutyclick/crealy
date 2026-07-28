@@ -1,6 +1,5 @@
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
-import { BenefitsSection } from "@/components/sections/benefits-section";
 import { ComparisonSection } from "@/components/sections/comparison-section";
 import { ContentTypesSection } from "@/components/sections/content-types-section";
 import { ExamplesSection } from "@/components/sections/examples-section";
@@ -27,10 +26,9 @@ export default function Home() {
         <ProductPreview />
         <ContentTypesSection />
         <HowItWorksSection />
-        <BenefitsSection />
+        <PricingSection />
         <ExamplesSection />
         <ComparisonSection />
-        <PricingSection />
         <FaqSection />
         <FinalCtaSection />
       </main>

@@ -51,26 +51,37 @@ export const creationSteps = [
   },
 ] as const;
 
-export const benefits = [
+export const pricingPlans = [
   {
-    title: "Empieza con una idea",
-    description:
-      "No necesitas preparar una composición ni buscar una plantilla antes de comenzar.",
+    name: "Creator",
+    description: "Para crear contenido con constancia y probar nuevas ideas.",
+    monthlyPrice: 12,
+    yearlyPrice: 115,
+    monthlyTokens: 120,
+    trialTokens: 30,
+    featured: false,
+    features: [
+      "Miniaturas, posts, banners y portadas",
+      "Historial de proyectos",
+      "Descargas en alta calidad",
+      "Uso comercial incluido",
+    ],
   },
   {
-    title: "Diseñado para ser simple",
-    description:
-      "Una experiencia enfocada en las decisiones importantes, sin paneles llenos de controles.",
-  },
-  {
-    title: "Diferentes formatos",
-    description:
-      "Prepara contenido para distintas plataformas desde un mismo flujo.",
-  },
-  {
-    title: "Resultados listos para usar",
-    description:
-      "Obtén una base visual sólida que puedas publicar o ajustar según tu necesidad.",
+    name: "Pro",
+    description: "Para marcas y equipos que necesitan producir más cada semana.",
+    monthlyPrice: 29,
+    yearlyPrice: 278,
+    monthlyTokens: 400,
+    trialTokens: 80,
+    featured: true,
+    features: [
+      "Todo lo incluido en Creator",
+      "Más tokens cada mes",
+      "Generaciones prioritarias",
+      "Hasta 3 miembros por espacio",
+      "Acceso anticipado a nuevas funciones",
+    ],
   },
 ] as const;
 
@@ -133,14 +144,6 @@ export const crealyFlow = [
   "Genera propuestas",
   "Elige el resultado",
   "Descarga y publica",
-] as const;
-
-export const earlyAccessFeatures = [
-  "Creación de diferentes formatos",
-  "Generación mediante inteligencia artificial",
-  "Historial de proyectos",
-  "Descarga de resultados",
-  "Nuevas funciones progresivamente",
 ] as const;
 
 export const faqs = [
