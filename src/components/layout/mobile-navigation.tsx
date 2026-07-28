@@ -42,7 +42,7 @@ export function MobileNavigation() {
             </a>
           ))}
           <a
-            href="#final-cta"
+            href="/login"
             onClick={() => setOpen(false)}
             className="mt-2 rounded-[0.7rem] px-3 py-3 text-sm font-medium text-muted transition-colors hover:bg-white/[0.05] hover:text-foreground"
           >

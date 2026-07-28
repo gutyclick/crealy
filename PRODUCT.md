@@ -28,6 +28,8 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 - La Fase 2 establece una landing page comercial completa con demostraciones visuales, tipos de contenido, proceso, precios provisionales, ejemplos, comparativa y preguntas frecuentes.
 - En esta fase no existen generación real, autenticación, cargas, editor, dashboard, pagos, persistencia, lista de espera funcional ni integraciones de inteligencia artificial.
 - La tabla de precios de la Fase 2 es una propuesta de lanzamiento con valores y límites provisionales.
+- La Fase 3 incorpora autenticación real con Supabase, confirmación de correo, recuperación de contraseña, perfil básico y un dashboard privado protegido.
+- La generación de imágenes, proyectos, almacenamiento, créditos y facturación siguen fuera de alcance.
 - La arquitectura debe permitir crecimiento por fases sin anticipar abstracciones o servicios que todavía no existen.
 
 ## Brand Commitments

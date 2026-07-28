@@ -25,7 +25,7 @@ export function FinalCtaSection() {
               complicada.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 min-[420px]:flex-row">
-              <Button href="#pricing" size="lg">
+              <Button href="/signup" size="lg">
                 Empezar a crear
                 <ArrowRight aria-hidden="true" className="size-4" />
               </Button>

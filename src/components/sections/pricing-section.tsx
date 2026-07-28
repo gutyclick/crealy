@@ -162,7 +162,7 @@ export function PricingSection() {
                   </ul>
 
                   <Button
-                    href="#final-cta"
+                    href="/signup"
                     size="lg"
                     variant={plan.featured ? "primary" : "secondary"}
                     className="mt-8 w-full"

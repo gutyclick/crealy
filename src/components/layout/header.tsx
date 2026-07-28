@@ -27,12 +27,12 @@ export function Header() {
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
           <a
-            href="#final-cta"
+            href="/login"
             className="hidden rounded-[0.7rem] px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-foreground xl:inline-flex"
           >
             Iniciar sesión
           </a>
-          <Button href="#pricing" size="sm" variant="secondary">
+          <Button href="/signup" size="sm" variant="secondary">
             <span className="sm:hidden">Crear</span>
             <span className="hidden sm:inline">Crear gratis</span>
           </Button>
