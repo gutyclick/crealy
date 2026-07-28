@@ -1,0 +1,218 @@
+@import "tailwindcss";
+
+:root {
+  --background: #080808;
+  --surface: #101010;
+  --surface-elevated: #151515;
+  --foreground: #f7f7f5;
+  --muted: #a3a3a3;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --brand: #ddf527;
+  --brand-hover: #e6f94f;
+  --brand-ink: #111400;
+  --focus: rgba(221, 245, 39, 0.72);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  color-scheme: dark;
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  text-underline-offset: 0.2em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.subtle-border {
+  border: 1px solid var(--border);
+}
+
+.brand-glow {
+  box-shadow:
+    0 18px 70px rgba(221, 245, 39, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.hero-vignette {
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(8, 8, 8, 0.18) 0%,
+      rgba(8, 8, 8, 0.58) 36%,
+      rgba(8, 8, 8, 0.95) 76%,
+      var(--background) 100%
+    ),
+    radial-gradient(
+      circle at 50% 32%,
+      rgba(8, 8, 8, 0.16) 0%,
+      rgba(8, 8, 8, 0.74) 58%,
+      rgba(8, 8, 8, 0.98) 100%
+    );
+}
+
+.thumbnail-track {
+  display: flex;
+  width: max-content;
+  gap: 1rem;
+  will-change: transform;
+  animation: thumbnail-marquee 38s linear infinite;
+}
+
+.thumbnail-track-reverse {
+  animation-direction: reverse;
+  animation-duration: 46s;
+}
+
+.thumbnail-proof {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: clamp(10rem, 17vw, 16rem);
+  flex: none;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  background: #131313;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+}
+
+.thumbnail-proof::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.08),
+    transparent 35%
+  );
+  pointer-events: none;
+}
+
+.proof-grid {
+  background:
+    linear-gradient(
+      90deg,
+      transparent 48%,
+      rgba(221, 245, 39, 0.8) 48% 52%,
+      transparent 52%
+    ),
+    linear-gradient(#1d1d1d, #0c0c0c);
+}
+
+.proof-orbit {
+  background:
+    radial-gradient(circle at 68% 50%, var(--brand) 0 18%, transparent 18.5%),
+    radial-gradient(
+      circle at 68% 50%,
+      transparent 0 30%,
+      #292929 30.5% 42%,
+      transparent 42.5%
+    ),
+    #111;
+}
+
+.proof-editorial {
+  background:
+    linear-gradient(100deg, var(--brand) 0 34%, transparent 34%),
+    linear-gradient(150deg, #f3f1e9 0 55%, #181818 55%);
+}
+
+.proof-signal {
+  background:
+    linear-gradient(
+      135deg,
+      transparent 0 45%,
+      var(--brand) 45% 57%,
+      transparent 57%
+    ),
+    #151515;
+}
+
+.proof-stacks {
+  background:
+    linear-gradient(
+      90deg,
+      #252525 0 24%,
+      transparent 24% 29%,
+      #3a3a3a 29% 62%,
+      transparent 62% 67%,
+      var(--brand) 67%
+    ),
+    #101010;
+}
+
+.proof-type {
+  background:
+    radial-gradient(circle at 85% 15%, var(--brand) 0 22%, transparent 22.5%),
+    #171717;
+}
+
+@keyframes thumbnail-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(calc(-50% - 0.5rem), 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .thumbnail-track {
+    transform: translateX(-8%);
+  }
+}

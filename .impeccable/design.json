@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-28T14:34:26.8580620-05:00",
+  "title": "Design System: Crealy",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Cinta Crealy",
+        "tonalRamp": ["#111400", "#768215", "#DDF527", "#E6F94F"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Negro de estudio",
+        "tonalRamp": ["#080808", "#101010", "#151515", "#292929"]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Papel luminoso",
+        "tonalRamp": ["#A3A3A3", "#D5D5D2", "#F7F7F5"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Declaración",
+        "purpose": "Titular principal centrado del hero."
+      },
+      "body": {
+        "displayName": "Lectura",
+        "purpose": "Copy breve, legible y con medida controlada."
+      },
+      "label": {
+        "displayName": "Producción",
+        "purpose": "Formatos y estados operativos."
+      }
+    },
+    "shadows": [
+      {
+        "name": "brand-glow",
+        "value": "0 18px 70px rgba(221, 245, 39, 0.08)",
+        "purpose": "Separación ambiental exclusiva de la vista de producto."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control",
+        "value": "200ms ease-out",
+        "purpose": "Hover y presión de controles."
+      },
+      {
+        "name": "proof-marquee",
+        "value": "38s linear infinite",
+        "purpose": "Desplazamiento ambiental de miniaturas en el hero."
+      }
+    ],
+    "breakpoints": [
+      { "name": "cta-row", "value": "420px" },
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal; solo una domina cada viewport.",
+      "html": "<button class=\"ds-btn-primary\">Explorar el concepto →</button>",
+      "css": ".ds-btn-primary { height: 48px; padding: 0 28px; border: 0; border-radius: 11px; background: #DDF527; color: #111400; font: 600 15px Geist, sans-serif; transition: background 200ms ease-out, transform 200ms ease-out; } .ds-btn-primary:hover { background: #E6F94F; transform: translateY(-2px); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción alternativa sin competir con el CTA principal.",
+      "html": "<button class=\"ds-btn-secondary\">Ver ejemplos</button>",
+      "css": ".ds-btn-secondary { height: 48px; padding: 0 28px; border: 1px solid rgba(255,255,255,.18); border-radius: 11px; background: rgba(255,255,255,.025); color: #F7F7F5; font: 600 15px Geist, sans-serif; } .ds-btn-secondary:hover { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.055); }"
+    },
+    {
+      "name": "Prompt Field",
+      "kind": "input",
+      "description": "Campo oscuro para expresar una intención visual.",
+      "html": "<div class=\"ds-prompt\">Convierte esta idea en una pieza visual…</div>",
+      "css": ".ds-prompt { min-height: 96px; padding: 12px 14px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: rgba(255,255,255,.025); color: rgba(255,255,255,.45); font: 400 14px/1.5 Geist, sans-serif; }"
+    },
+    {
+      "name": "Centered Navigation",
+      "kind": "nav",
+      "description": "Navegación discreta centrada entre marca y acciones.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\">Producto</a><a href=\"#\">Ejemplos</a><a href=\"#\">Precios</a></nav>",
+      "css": ".ds-nav { display: flex; gap: 4px; align-items: center; padding: 8px; background: #080808; } .ds-nav a { padding: 8px 14px; color: #A3A3A3; font: 500 14px Geist, sans-serif; text-decoration: none; border-radius: 8px; } .ds-nav a:hover { color: #F7F7F5; }"
+    },
+    {
+      "name": "Product Preview",
+      "kind": "custom",
+      "refersTo": "product-preview",
+      "description": "Marco del producto que combina prompt y formatos de salida.",
+      "html": "<section class=\"ds-preview\"><span class=\"ds-preview-dot\"></span><strong>Nuevo diseño</strong><div>POST · STORY · PORTADA</div></section>",
+      "css": ".ds-preview { padding: 20px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: #101010; color: #F7F7F5; box-shadow: 0 18px 70px rgba(221,245,39,.08); font: 500 13px Geist, sans-serif; } .ds-preview-dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #DDF527; } .ds-preview div { margin-top: 20px; padding: 28px; border-radius: 13px; background: #151515; color: #A3A3A3; font: 500 10px Geist Mono, monospace; letter-spacing: .12em; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La mesa de pruebas creativas",
+    "overview": "Crealy usa una mesa de producción oscura, una composición centrada y una señal lima para convertir una intención escrita en piezas visuales claras. La identidad combina precisión editorial con velocidad cotidiana.",
+    "keyCharacteristics": [
+      "Composición centrada y espaciosa",
+      "Superficies oscuras mate",
+      "Lima reservado para acciones",
+      "Miniaturas abstractas en movimiento lento"
+    ],
+    "rules": [
+      {
+        "name": "The Ready Signal Rule",
+        "body": "El verde solo comunica acción, selección o estado listo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Wide Statement Rule",
+        "body": "Los mensajes principales usan líneas amplias y deliberadas.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Until Useful Rule",
+        "body": "Una superficie permanece plana salvo que la separación aporte jerarquía.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Usar escala y espacio para crear jerarquía.",
+      "Mantener una única acción lima dominante.",
+      "Mostrar formatos visuales reconocibles."
+    ],
+    "donts": [
+      "Usar neón o gradientes decorativos.",
+      "Fabricar métricas o testimonios.",
+      "Copiar la composición o el copy de Thumbify."
+    ]
+  }
+}
