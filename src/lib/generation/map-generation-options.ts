@@ -16,9 +16,9 @@ const FORMAT_OUTPUTS: Record<
   }
 > = {
   "youtube-16-9": {
-    size: "2560x1440",
-    width: 2560,
-    height: 1440,
+    size: "1920x1088",
+    width: 1920,
+    height: 1080,
     aspectRatio: "16 / 9",
     safeArea: "Mantén texto y rostros dentro del 80% central.",
   },
@@ -90,6 +90,7 @@ export function mapGenerationOptions(
     finalSize: `${FORMAT_OUTPUTS[format].width}x${FORMAT_OUTPUTS[format].height}`,
     quality:
       format === "youtube-16-9" ||
+      format === "banner-3-1" ||
       format === "facebook-cover" ||
       format === "x-cover" ||
       format === "linkedin-cover"

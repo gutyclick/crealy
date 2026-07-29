@@ -17,10 +17,21 @@ export type GenerationFormat =
 
 export type GenerationStyle =
   | "auto"
+  | "viral"
+  | "gamer"
+  | "sports"
+  | "minimal"
+  | "professional"
+  | "podcast"
+  | "cinematic"
+  | "corporate"
+  | "educational"
+  | "technology"
+  | "luxury"
+  | "news"
+  // Historical values remain readable for queued and completed generations.
   | "photographic"
   | "illustration"
-  | "minimal"
-  | "cinematic"
   | "advertising";
 
 export type ColorPreference =

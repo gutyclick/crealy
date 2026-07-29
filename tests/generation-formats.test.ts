@@ -3,6 +3,10 @@ import test from "node:test";
 
 import { mapGenerationOptions } from "../src/lib/generation/map-generation-options";
 import { validateGenerationInput } from "../src/lib/generation/validate-generation-input";
+import {
+  GENERATION_CONTENT_TYPES,
+  GENERATION_STYLES,
+} from "../src/config/generation";
 
 const validInput = {
   clientRequestId: "3f1ac702-4a56-4c80-9f7c-ae48ce8b1193",
@@ -15,10 +19,10 @@ const validInput = {
   quality: "fast",
 };
 
-test("YouTube requests GPT Image 2 directly at 2560x1440 and forces high quality", () => {
+test("YouTube delivers a 1920x1080 thumbnail and forces high quality", () => {
   const output = mapGenerationOptions("youtube-16-9", "fast");
-  assert.equal(output.size, "2560x1440");
-  assert.equal(output.finalSize, "2560x1440");
+  assert.equal(output.size, "1920x1088");
+  assert.equal(output.finalSize, "1920x1080");
   assert.equal(output.quality, "high");
 
   const validated = validateGenerationInput(validInput);
@@ -53,4 +57,34 @@ test("custom palettes accept up to five unique hexadecimal colors", () => {
   });
   assert.equal(tooMany.success, false);
   if (!tooMany.success) assert.ok(tooMany.fields.customColors);
+});
+
+test("creation taxonomy exposes sizes after category and the requested style set", () => {
+  const covers = GENERATION_CONTENT_TYPES.find(
+    (item) => item.id === "social-cover",
+  );
+  assert.deepEqual(covers?.formats, [
+    "banner-3-1",
+    "facebook-cover",
+    "x-cover",
+    "linkedin-cover",
+  ]);
+  assert.deepEqual(
+    GENERATION_STYLES.map((style) => style.label),
+    [
+      "Automático",
+      "Viral",
+      "Gamer",
+      "Deportivo",
+      "Minimalista",
+      "Profesional",
+      "Podcast",
+      "Cinematográfico",
+      "Corporativo",
+      "Educativo",
+      "Tecnología",
+      "Lujo",
+      "Noticias",
+    ],
+  );
 });

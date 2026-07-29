@@ -273,8 +273,10 @@ export function GenerationForm({
           <legend className="text-sm font-semibold text-foreground">
             ¿Qué quieres crear?
           </legend>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {GENERATION_CONTENT_TYPES.map((item) => {
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {GENERATION_CONTENT_TYPES.filter(
+              (item) => !("legacy" in item && item.legacy),
+            ).map((item) => {
               const Icon = contentIcons[item.icon];
               const selected = contentType === item.id;
               return (
@@ -311,6 +313,41 @@ export function GenerationForm({
                 </label>
               );
             })}
+          </div>
+        </fieldset>
+
+        <fieldset className="mt-6">
+          <legend className="text-sm font-semibold text-foreground">
+            Elige el tamaño
+          </legend>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            Mostramos únicamente los tamaños compatibles con la categoría seleccionada.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {compatibleFormats.map((item) => (
+              <label
+                key={item.id}
+                className={cn(
+                  "cursor-pointer rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
+                  format === item.id
+                    ? "border-brand/65 bg-brand/[0.07] text-brand"
+                    : "border-white/12 text-muted hover:border-white/25 hover:text-foreground",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="format"
+                  value={item.id}
+                  checked={format === item.id}
+                  onChange={() => {
+                    setFormat(item.id);
+                    if (requiresHighQuality(item.id)) setQuality("high");
+                  }}
+                  className="sr-only"
+                />
+                {item.label}
+              </label>
+            ))}
           </div>
         </fieldset>
 
@@ -487,43 +524,11 @@ export function GenerationForm({
           </div>
         ) : null}
 
-        <fieldset className="mt-6">
-          <legend className="text-sm font-semibold text-foreground">
-            Formato
-          </legend>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {compatibleFormats.map((item) => (
-              <label
-                key={item.id}
-                className={cn(
-                  "cursor-pointer rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
-                  format === item.id
-                    ? "border-brand/65 bg-brand/[0.07] text-brand"
-                    : "border-white/12 text-muted hover:border-white/25 hover:text-foreground",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="format"
-                  value={item.id}
-                  checked={format === item.id}
-                  onChange={() => {
-                    setFormat(item.id);
-                    if (requiresHighQuality(item.id)) setQuality("high");
-                  }}
-                  className="sr-only"
-                />
-                {item.label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
         {highQualityRequired ? (
           <div className="mt-6 rounded-xl border border-brand/25 bg-brand/[0.055] px-4 py-3">
             <p className="text-sm font-semibold text-foreground">Alta calidad incluida</p>
             <p className="mt-1 text-xs leading-5 text-muted">
-              Las portadas se generan siempre en alta calidad para conservar detalle y texto.
+              Las miniaturas y portadas se generan siempre en alta calidad para conservar detalle y texto.
             </p>
           </div>
         ) : (

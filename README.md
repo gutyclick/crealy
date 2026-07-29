@@ -73,6 +73,7 @@ Ejecuta las migraciones en orden desde el SQL Editor:
 9. `supabase/migrations/20260729040000_harden_operations_and_telemetry.sql`
 10. `supabase/migrations/20260729050000_consolidate_formats_and_storage.sql`
 11. `supabase/migrations/20260729060000_correct_existing_upload_purpose.sql`
+12. `supabase/migrations/20260729070000_correct_creation_taxonomy.sql`
 
 La segunda migración crea `projects`, `generations`, restricciones, índices,
 RLS, la reserva atómica con límites y el bucket privado `generations`. La
@@ -115,7 +116,7 @@ La Image API devuelve una sola imagen PNG por solicitud. Con GPT Image 2,
 Crealy solicita tamaños arbitrarios válidos como cadenas `ANCHOxALTO` y
 entrega estas salidas:
 
-- YouTube 16:9 → `2560x1440`, solicitado directamente al modelo
+- Miniatura de YouTube → máster `1920x1088`, entrega `1920x1080`
 - 1:1 → `1024x1024`
 - 4:5 → `1024x1280`
 - 3:1 → `1536x512`
@@ -123,7 +124,7 @@ entrega estas salidas:
 - X → máster `1536x512`, entrega `1500x500`
 - LinkedIn → máster seguro 3:1, entrega `1584x396`
 
-YouTube y todas las portadas fuerzan calidad alta. Cuando las dimensiones
+Las miniaturas y todas las portadas fuerzan calidad alta. Cuando las dimensiones
 finales no son válidas para el proveedor (por ejemplo, LinkedIn 4:1), el
 prompt usa una zona segura central y el servidor recorta el máster sin
 estirar la imagen.

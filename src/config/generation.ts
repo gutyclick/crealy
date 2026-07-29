@@ -11,7 +11,7 @@ export const GENERATION_CONTENT_TYPES = [
     id: "youtube-thumbnail",
     label: "Miniatura",
     fullLabel: "Miniatura de YouTube",
-    description: "Portada 2K lista para YouTube, con lectura inmediata.",
+    description: "Miniatura Full HD para YouTube, con lectura inmediata.",
     icon: "monitor-play",
     example:
       "Una miniatura sobre productividad, con un escritorio moderno, contraste alto y espacio para un título grande.",
@@ -36,16 +36,17 @@ export const GENERATION_CONTENT_TYPES = [
     example:
       "Un banner publicitario para el lanzamiento de una aplicación de finanzas, moderno y con mucho espacio negativo.",
     formats: ["banner-3-1"],
+    legacy: true,
   },
   {
     id: "social-cover",
-    label: "Portada",
-    fullLabel: "Portada para redes",
-    description: "Una cabecera panorámica con lectura inmediata.",
+    label: "Portadas",
+    fullLabel: "Portada o banner",
+    description: "Banners y cabeceras adaptados a cada plataforma.",
     icon: "panels-top-left",
     example:
       "Una portada panorámica para un podcast de negocios, cinematográfica, sobria y con dos presentadores.",
-    formats: ["facebook-cover", "x-cover", "linkedin-cover"],
+    formats: ["banner-3-1", "facebook-cover", "x-cover", "linkedin-cover"],
   },
 ] as const satisfies ReadonlyArray<{
   id: ContentType;
@@ -55,12 +56,13 @@ export const GENERATION_CONTENT_TYPES = [
   icon: string;
   example: string;
   formats: readonly GenerationFormat[];
+  legacy?: boolean;
 }>;
 
 export const GENERATION_FORMATS = [
   {
     id: "youtube-16-9",
-    label: "YouTube · 2560 × 1440",
+    label: "YouTube · 1920 × 1080",
     shortLabel: "YouTube 16:9",
     contentType: "youtube-thumbnail",
   },
@@ -78,9 +80,9 @@ export const GENERATION_FORMATS = [
   },
   {
     id: "banner-3-1",
-    label: "Horizontal 3:1",
-    shortLabel: "3:1",
-    contentType: "banner",
+    label: "Banner panorámico · 1536 × 512",
+    shortLabel: "Banner 3:1",
+    contentType: "social-cover",
   },
   {
     id: "facebook-cover",
@@ -117,11 +119,18 @@ export const GENERATION_FORMATS = [
 
 export const GENERATION_STYLES = [
   { id: "auto", label: "Automático", example: "/images/examples/technology.webp" },
-  { id: "photographic", label: "Fotográfico", example: "/images/examples/fitness.webp" },
-  { id: "illustration", label: "Ilustración", example: "/images/examples/gaming.webp" },
+  { id: "viral", label: "Viral", example: "/images/examples/restaurant.webp" },
+  { id: "gamer", label: "Gamer", example: "/images/examples/gaming.webp" },
+  { id: "sports", label: "Deportivo", example: "/images/examples/fitness.webp" },
   { id: "minimal", label: "Minimalista", example: "/images/examples/productivity.webp" },
+  { id: "professional", label: "Profesional", example: "/images/examples/technology.webp" },
+  { id: "podcast", label: "Podcast", example: "/images/examples/podcast.webp" },
   { id: "cinematic", label: "Cinematográfico", example: "/images/examples/podcast.webp" },
-  { id: "advertising", label: "Publicitario", example: "/images/examples/restaurant.webp" },
+  { id: "corporate", label: "Corporativo", example: "/images/examples/technology.webp" },
+  { id: "educational", label: "Educativo", example: "/images/examples/productivity.webp" },
+  { id: "technology", label: "Tecnología", example: "/images/examples/technology.webp" },
+  { id: "luxury", label: "Lujo", example: "/images/examples/restaurant.webp" },
+  { id: "news", label: "Noticias", example: "/images/examples/fitness.webp" },
 ] as const satisfies ReadonlyArray<{
   id: GenerationStyle;
   label: string;
@@ -179,6 +188,7 @@ export function getFormatConfig(format: GenerationFormat) {
 export function requiresHighQuality(format: GenerationFormat) {
   return (
     format === "youtube-16-9" ||
+    format === "banner-3-1" ||
     format === "facebook-cover" ||
     format === "x-cover" ||
     format === "linkedin-cover"
