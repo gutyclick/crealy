@@ -219,6 +219,27 @@ a {
   clip-path: inset(0 0 0 0 round 1rem);
 }
 
+@keyframes edit-image-arrival {
+  from {
+    clip-path: inset(0 0 0 100%);
+    filter: blur(8px);
+  }
+  to {
+    clip-path: inset(0);
+    filter: blur(0);
+  }
+}
+
+.edit-image-arrival {
+  animation: edit-image-arrival 650ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edit-image-arrival {
+    animation: none;
+  }
+}
+
 @keyframes hero-rail-forward {
   to {
     transform: translate3d(calc(-50% - var(--rail-gap-half)), 0, 0);

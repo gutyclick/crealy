@@ -2,18 +2,18 @@
 version: 1
 slug: "src-app-dashboard-dashboard-page-tsx"
 primary_target: "src/app/(dashboard)/dashboard/page.tsx"
-related_targets: ["src/app/(dashboard)/layout.tsx","src/components/dashboard/dashboard-header.tsx","src/components/dashboard/dashboard-home.tsx"]
+related_targets: ["src/components/dashboard/dashboard-home.tsx","src/components/editing/recent-edit-sessions.tsx"]
 ---
 
-# Dashboard — Fase 4
+# Dashboard — Fase 5
 
 - **Scope:** Pantalla inicial del área privada de Crealy.
 - **Mode:** Operate.
-- **Audience:** Usuario autenticado que quiere crear o retomar contenido.
-- **Job:** Retomar una creación o iniciar una nueva pieza sin fricción.
-- **Primary task:** Entrar al generador y acceder a las creaciones recientes.
-- **Proof/content:** Identidad real, acceso activo a generación y biblioteca alimentada por datos privados.
-- **Constraints:** Validación en servidor, URLs firmadas, estado vacío honesto y responsive desde 320 px.
-- **Direction:** Mesa de trabajo sobria; la acción principal y las imágenes reales construyen la jerarquía.
-- **Memorable moment:** El bloque principal convierte la primera idea en una acción inmediata.
+- **Audience:** Usuario autenticado que quiere crear, editar o retomar contenido.
+- **Job:** Iniciar una pieza o retomar una generación o conversación reciente sin fricción.
+- **Primary task:** Elegir entre crear desde un brief y editar desde una imagen.
+- **Proof/content:** Identidad real, generación activa, sesiones de edición privadas y biblioteca alimentada por datos reales.
+- **Constraints:** Validación en servidor, URLs firmadas, estados vacíos honestos y responsive desde 320 px.
+- **Direction:** Mesa de trabajo sobria; las acciones principales y las imágenes reales construyen la jerarquía.
+- **Memorable moment:** Las ediciones recientes muestran el último estado visual y la instrucción que lo produjo.
 - **Unresolved:** Aplicación de migraciones y configuración de OpenAI en producción.

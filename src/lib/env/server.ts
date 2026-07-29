@@ -1,24 +1,47 @@
 import "server-only";
 
+import {
+  DEFAULT_RESPONSES_MODEL,
+  EDITING_DEFAULTS,
+} from "@/config/openai";
+
 const DEFAULT_IMAGE_MODEL = "gpt-image-2";
 const DEFAULT_DAILY_LIMIT = 10;
 const DEFAULT_COOLDOWN_SECONDS = 15;
 
 function readPositiveInteger(
-  name: "GENERATION_DAILY_LIMIT" | "GENERATION_COOLDOWN_SECONDS",
+  name:
+    | "GENERATION_DAILY_LIMIT"
+    | "GENERATION_COOLDOWN_SECONDS"
+    | "REFERENCE_IMAGE_MAX_MB"
+    | "REFERENCE_IMAGE_MAX_WIDTH"
+    | "REFERENCE_IMAGE_MAX_HEIGHT"
+    | "REFERENCE_IMAGE_MAX_PIXELS"
+    | "EDIT_DAILY_LIMIT"
+    | "EDIT_COOLDOWN_SECONDS"
+    | "EDIT_SESSION_VERSION_LIMIT",
   fallback: number,
+  maximum = 100_000_000,
 ) {
   const rawValue = process.env[name]?.trim();
   if (!rawValue) return fallback;
 
   const value = Number(rawValue);
-  if (!Number.isSafeInteger(value) || value < 1 || value > 86_400) {
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
     throw new Error(
       `[Crealy] ${name} debe ser un número entero positivo dentro del rango permitido.`,
     );
   }
 
   return value;
+}
+
+function readBoolean(name: string, fallback: boolean) {
+  const value = process.env[name]?.trim().toLowerCase();
+  if (!value) return fallback;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error(`[Crealy] ${name} debe ser true o false.`);
 }
 
 function readGenerationEnabled() {
@@ -52,10 +75,12 @@ export function getGenerationServerEnv() {
     dailyLimit: readPositiveInteger(
       "GENERATION_DAILY_LIMIT",
       DEFAULT_DAILY_LIMIT,
+      86_400,
     ),
     cooldownSeconds: readPositiveInteger(
       "GENERATION_COOLDOWN_SECONDS",
       DEFAULT_COOLDOWN_SECONDS,
+      86_400,
     ),
   };
 }
@@ -64,6 +89,72 @@ export function isGenerationAvailable() {
   try {
     const config = getGenerationServerEnv();
     return config.generationEnabled && Boolean(config.apiKey);
+  } catch {
+    return false;
+  }
+}
+
+export function getEditingServerEnv() {
+  const editingEnabled = readBoolean("OPENAI_EDITING_ENABLED", true);
+  const apiKey = process.env.OPENAI_API_KEY?.trim() || "";
+  const responsesModel =
+    process.env.OPENAI_RESPONSES_MODEL?.trim() || DEFAULT_RESPONSES_MODEL;
+
+  if (editingEnabled && !apiKey) {
+    throw new Error(
+      "[Crealy] Falta OPENAI_API_KEY para habilitar la edición.",
+    );
+  }
+
+  return {
+    apiKey,
+    editingEnabled,
+    responsesModel,
+    maxReferenceImageBytes:
+      readPositiveInteger(
+        "REFERENCE_IMAGE_MAX_MB",
+        EDITING_DEFAULTS.maxReferenceImageMb,
+        20,
+      ) *
+      1024 *
+      1024,
+    maxReferenceWidth: readPositiveInteger(
+      "REFERENCE_IMAGE_MAX_WIDTH",
+      EDITING_DEFAULTS.maxReferenceWidth,
+      16_384,
+    ),
+    maxReferenceHeight: readPositiveInteger(
+      "REFERENCE_IMAGE_MAX_HEIGHT",
+      EDITING_DEFAULTS.maxReferenceHeight,
+      16_384,
+    ),
+    maxReferencePixels: readPositiveInteger(
+      "REFERENCE_IMAGE_MAX_PIXELS",
+      EDITING_DEFAULTS.maxReferencePixels,
+      100_000_000,
+    ),
+    dailyLimit: readPositiveInteger(
+      "EDIT_DAILY_LIMIT",
+      EDITING_DEFAULTS.dailyLimit,
+      10_000,
+    ),
+    cooldownSeconds: readPositiveInteger(
+      "EDIT_COOLDOWN_SECONDS",
+      EDITING_DEFAULTS.cooldownSeconds,
+      86_400,
+    ),
+    sessionVersionLimit: readPositiveInteger(
+      "EDIT_SESSION_VERSION_LIMIT",
+      EDITING_DEFAULTS.sessionVersionLimit,
+      100,
+    ),
+  };
+}
+
+export function isEditingAvailable() {
+  try {
+    const config = getEditingServerEnv();
+    return config.editingEnabled && Boolean(config.apiKey);
   } catch {
     return false;
   }

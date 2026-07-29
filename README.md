@@ -26,6 +26,15 @@ OPENAI_IMAGE_MODEL=gpt-image-2
 OPENAI_GENERATION_ENABLED=true
 GENERATION_DAILY_LIMIT=10
 GENERATION_COOLDOWN_SECONDS=15
+OPENAI_RESPONSES_MODEL=gpt-5.6-sol
+OPENAI_EDITING_ENABLED=true
+REFERENCE_IMAGE_MAX_MB=10
+REFERENCE_IMAGE_MAX_WIDTH=8192
+REFERENCE_IMAGE_MAX_HEIGHT=8192
+REFERENCE_IMAGE_MAX_PIXELS=40000000
+EDIT_DAILY_LIMIT=20
+EDIT_COOLDOWN_SECONDS=12
+EDIT_SESSION_VERSION_LIMIT=20
 ```
 
 `OPENAI_API_KEY` es exclusivamente de servidor. No debe llevar el prefijo
@@ -37,11 +46,13 @@ Ejecuta las migraciones en orden desde el SQL Editor:
 
 1. `supabase/migrations/20260728000000_create_profiles.sql`
 2. `supabase/migrations/20260728010000_create_generation_pipeline.sql`
+3. `supabase/migrations/20260728020000_create_editing_pipeline.sql`
 
 La segunda migración crea `projects`, `generations`, restricciones, índices,
-RLS, la reserva atómica con límites y el bucket privado `generations`. El
-repositorio no incluye Supabase CLI, por lo que estos archivos no se consideran
-aplicados hasta ejecutarlos manualmente.
+RLS, la reserva atómica con límites y el bucket privado `generations`. La
+tercera añade cargas privadas, sesiones conversacionales, versiones, mensajes,
+restauración y límites atómicos. El repositorio no incluye Supabase CLI, por lo
+que estos archivos no se consideran aplicados hasta ejecutarlos manualmente.
 
 Verifica después:
 
@@ -66,6 +77,12 @@ npx supabase gen types typescript --project-id TU_PROJECT_ID > src/types/databas
 5. Comprueba la fila en `generations`, el objeto privado en Storage, la
    visualización mediante URL firmada y la descarga autenticada.
 
+Para probar la edición, abre `/edit`, carga una imagen PNG/JPEG/WebP o entra a
+una creación existente y pulsa **Editar imagen**. Crealy usa Responses API con
+la herramienta oficial de generación de imágenes. Los identificadores de
+continuidad permanecen en servidor y cada cambio produce una versión
+recuperable.
+
 La Image API devuelve una sola imagen PNG por solicitud. Crealy conserva el
 formato solicitado y lo mapea a estas salidas del modelo:
 
@@ -87,6 +104,13 @@ La interfaz usa `object-fit: contain`, por lo que nunca estira el resultado.
   usuario.
 - No existen reintentos automáticos, generación al cargar ni una segunda
   llamada para reescribir prompts.
+- `EDIT_DAILY_LIMIT`, `EDIT_COOLDOWN_SECONDS` y
+  `EDIT_SESSION_VERSION_LIMIT` controlan la edición conversacional.
+- `OPENAI_EDITING_ENABLED=false` detiene nuevas ediciones sin afectar la
+  biblioteca ni las descargas.
+- Sólo puede existir una edición activa por usuario. Si el contexto del
+  proveedor caduca, se reintenta una vez sin ese identificador y usando la
+  versión actual como referencia.
 
 Cada llamada real consume saldo de OpenAI, incluidas las realizadas desde
 Preview Deployments.

@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getSupabaseEnv } from "@/lib/env";
 import type { Database } from "@/types/database";
 
-const privateRoutes = ["/dashboard", "/create", "/generations"];
+const privateRoutes = ["/dashboard", "/create", "/edit", "/generations"];
 const guestOnlyRoutes = ["/login", "/signup", "/forgot-password"];
 
 function copyAuthCookies(source: NextResponse, target: NextResponse) {

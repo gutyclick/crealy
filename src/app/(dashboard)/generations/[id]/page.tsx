@@ -1,4 +1,4 @@
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, WandSparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,6 +8,7 @@ import { getContentTypeConfig, getFormatConfig } from "@/config/generation";
 import { requireUser } from "@/lib/auth/require-user";
 import { createClient } from "@/lib/supabase/server";
 import type { ContentType, GenerationFormat } from "@/types/generation";
+import { editGeneration } from "@/app/(dashboard)/edit/actions";
 
 export const metadata: Metadata = {
   title: "Detalle de creación",
@@ -104,13 +105,25 @@ export default async function GenerationDetailPage({
               </div>
             </dl>
             {imageUrl ? (
-              <a
-                href={`/api/generations/${data.id}/download`}
-                className="mt-7 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink hover:bg-[var(--brand-hover)]"
-              >
-                <Download aria-hidden="true" className="size-4" />
-                Descargar PNG
-              </a>
+              <div className="mt-7 grid gap-2">
+                <form action={editGeneration}>
+                  <input type="hidden" name="generationId" value={data.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink hover:bg-[var(--brand-hover)]"
+                  >
+                    <WandSparkles aria-hidden="true" className="size-4" />
+                    Editar imagen
+                  </button>
+                </form>
+                <a
+                  href={`/api/generations/${data.id}/download`}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-5 text-sm font-semibold text-foreground hover:bg-white/[0.05]"
+                >
+                  <Download aria-hidden="true" className="size-4" />
+                  Descargar PNG
+                </a>
+              </div>
             ) : null}
           </aside>
         </div>

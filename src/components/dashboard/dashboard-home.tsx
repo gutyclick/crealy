@@ -4,13 +4,17 @@ import Link from "next/link";
 import { GenerationGrid } from "@/components/generation/generation-grid";
 import { Container } from "@/components/layout/container";
 import type { GenerationListItem } from "@/types/generation";
+import type { RecentEditSession } from "@/types/editing";
+import { RecentEditSessions } from "@/components/editing/recent-edit-sessions";
 
 export function DashboardHome({
   firstName,
   recentGenerations,
+  recentEditSessions,
 }: {
   firstName?: string;
   recentGenerations: GenerationListItem[];
+  recentEditSessions: RecentEditSession[];
 }) {
   return (
     <main className="py-10 sm:py-14">
@@ -76,6 +80,7 @@ export function DashboardHome({
           </div>
           <GenerationGrid items={recentGenerations} compact />
         </section>
+        <RecentEditSessions sessions={recentEditSessions} />
       </Container>
     </main>
   );

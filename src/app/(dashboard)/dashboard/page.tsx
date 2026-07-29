@@ -3,6 +3,7 @@ import { DashboardHome } from "@/components/dashboard/dashboard-home";
 import { requireUser } from "@/lib/auth/require-user";
 import { listGenerations } from "@/lib/generation/list-generations";
 import { createClient } from "@/lib/supabase/server";
+import { listRecentEditSessions } from "@/lib/editing/get-edit-session";
 
 /*
 THESIS: El dashboard orienta la primera acción sin fingir un producto terminado ni llenar el espacio con datos falsos.
@@ -39,11 +40,13 @@ export default async function DashboardPage() {
     metadataName.split(/\s+/)[0] ||
     localEmailName;
   const recentGenerations = await listGenerations(user.id, 4);
+  const recentEditSessions = await listRecentEditSessions(user.id, 4);
 
   return (
     <DashboardHome
       firstName={firstName || undefined}
       recentGenerations={recentGenerations}
+      recentEditSessions={recentEditSessions}
     />
   );
 }

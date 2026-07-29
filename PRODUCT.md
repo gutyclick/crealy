@@ -25,11 +25,20 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 ## Capabilities and Constraints
 
 - La Fase 4 incorpora generación real de una imagen por solicitud mediante OpenAI Image API.
+- La Fase 5 incorpora edición conversacional mediante OpenAI Responses API:
+  permite partir de una generación o de un PNG/JPEG/WebP propio, pedir cambios
+  localizados, comparar resultados y restaurar cualquier versión como nueva
+  base.
 - La Fase 2 establece una landing page comercial completa con demostraciones visuales, tipos de contenido, proceso, precios provisionales, ejemplos, comparativa y preguntas frecuentes.
 - La tabla de precios de la Fase 2 es una propuesta de lanzamiento con valores y límites provisionales.
 - La Fase 3 incorpora autenticación real con Supabase, confirmación de correo, recuperación de contraseña, perfil básico y un dashboard privado protegido.
 - Los proyectos, generaciones e imágenes privadas persisten en PostgreSQL y Supabase Storage con RLS.
-- La edición de imágenes, créditos, pagos y facturación siguen fuera de alcance.
+- Las sesiones, mensajes, uploads y versiones se conservan de forma privada con
+  RLS, URLs firmadas, relaciones padre-hijo y archivado reversible.
+- La edición aplica límites diarios, cooldown, una sola operación activa por
+  usuario y un máximo configurable de versiones por sesión.
+- La edición manual por capas, máscaras, canvas, colaboración, sharing público,
+  créditos, pagos y facturación siguen fuera de alcance.
 - La arquitectura debe permitir crecimiento por fases sin anticipar abstracciones o servicios que todavía no existen.
 
 ## Brand Commitments
