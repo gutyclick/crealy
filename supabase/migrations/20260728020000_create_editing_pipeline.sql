@@ -351,7 +351,9 @@ create policy "Users create messages in their sessions"
     )
   );
 
-create or replace function public.create_edit_session_from_generation(
+drop function if exists public.create_edit_session_from_generation(uuid);
+
+create function public.create_edit_session_from_generation(
   p_generation_id uuid
 )
 returns table (created_session_id uuid, created_version_id uuid)
@@ -359,12 +361,19 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
-  selected_generation public.generations%rowtype;
-  selected_title text;
+  selected_generation record;
 begin
   if current_user_id is null then raise exception 'unauthorized'; end if;
 
-  select g, p.title into selected_generation, selected_title
+  select
+    g.id,
+    g.project_id,
+    g.mime_type,
+    g.width,
+    g.height,
+    g.completed_at,
+    p.title as project_title
+  into selected_generation
   from public.generations g
   join public.projects p on p.id = g.project_id
   where g.id = p_generation_id
@@ -380,7 +389,7 @@ begin
     user_id, project_id, source_generation_id, title
   ) values (
     current_user_id, selected_generation.project_id,
-    selected_generation.id, selected_title
+    selected_generation.id, selected_generation.project_title
   ) returning id into created_session_id;
 
   insert into public.edit_versions (
@@ -405,7 +414,9 @@ begin
 end;
 $$;
 
-create or replace function public.create_edit_session_from_upload(
+drop function if exists public.create_edit_session_from_upload(uuid, text);
+
+create function public.create_edit_session_from_upload(
   p_upload_id uuid,
   p_title text
 )
@@ -447,7 +458,11 @@ begin
 end;
 $$;
 
-create or replace function public.reserve_edit_version(
+drop function if exists public.reserve_edit_version(
+  uuid, uuid, uuid, text, text, boolean, integer, integer, integer
+);
+
+create function public.reserve_edit_version(
   p_session_id uuid,
   p_client_request_id uuid,
   p_base_version_id uuid,
@@ -543,7 +558,11 @@ begin
 end;
 $$;
 
-create or replace function public.complete_edit_version(
+drop function if exists public.complete_edit_version(
+  uuid, text, text, integer, integer, text, text
+);
+
+create function public.complete_edit_version(
   p_version_id uuid,
   p_storage_path text,
   p_mime_type text,
@@ -582,7 +601,9 @@ begin
 end;
 $$;
 
-create or replace function public.fail_edit_version(
+drop function if exists public.fail_edit_version(uuid, text);
+
+create function public.fail_edit_version(
   p_version_id uuid,
   p_error_code text
 )
@@ -598,7 +619,9 @@ begin
 end;
 $$;
 
-create or replace function public.restore_edit_version(
+drop function if exists public.restore_edit_version(uuid, uuid);
+
+create function public.restore_edit_version(
   p_session_id uuid,
   p_version_id uuid
 )
@@ -624,7 +647,9 @@ begin
 end;
 $$;
 
-create or replace function public.archive_edit_session(
+drop function if exists public.archive_edit_session(uuid, boolean);
+
+create function public.archive_edit_session(
   p_session_id uuid,
   p_archived boolean
 )
