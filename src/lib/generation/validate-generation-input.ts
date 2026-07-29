@@ -5,6 +5,7 @@ import {
   GENERATION_QUALITIES,
   GENERATION_STYLES,
   getContentTypeConfig,
+  requiresHighQuality,
 } from "@/config/generation";
 import type {
   ColorPreference,
@@ -157,9 +158,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     if (
       !Array.isArray(rawInput.customColors) ||
       rawInput.customColors.length < 1 ||
-      rawInput.customColors.length > 2
+      rawInput.customColors.length > 5
     ) {
-      fields.customColors = "Elige uno o dos colores personalizados.";
+      fields.customColors = "Elige entre uno y cinco colores personalizados.";
     } else {
       const normalizedColors = rawInput.customColors.map((color) =>
         typeof color === "string" ? color.trim().toUpperCase() : "",
@@ -189,7 +190,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       colorPreference: colorPreference as ColorPreference,
       ...(customColors ? { customColors } : {}),
       format: format as GenerationFormat,
-      quality: quality as GenerationQuality,
+      quality: requiresHighQuality(format as GenerationFormat)
+        ? "high"
+        : (quality as GenerationQuality),
       ...(normalizedReferenceIds
         ? { referenceUploadIds: normalizedReferenceIds }
         : {}),

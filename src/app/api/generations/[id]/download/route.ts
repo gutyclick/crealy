@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 
@@ -37,11 +38,8 @@ export async function GET(_request: Request, { params }: RouteContext) {
     );
   }
 
-  const { data: file, error } = await supabase.storage
-    .from("generations")
-    .download(generation.storage_path);
-
-  if (error || !file) {
+  const file = await getPrivateStorage().get(generation.storage_path);
+  if (!file) {
     return NextResponse.json(
       { error: "No pudimos descargar la imagen." },
       { status: 500 },
@@ -57,7 +55,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     .replace(/[^a-z0-9-]/gi, "");
   const filename = `crealy-${typeName || "imagen"}-${date}.png`;
 
-  return new Response(file, {
+  return new Response(new Uint8Array(file), {
     headers: {
       "Content-Type": generation.mime_type || "image/png",
       "Content-Disposition": `attachment; filename="${filename}"`,

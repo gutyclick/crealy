@@ -11,7 +11,7 @@ export const GENERATION_CONTENT_TYPES = [
     id: "youtube-thumbnail",
     label: "Miniatura",
     fullLabel: "Miniatura de YouTube",
-    description: "Una imagen horizontal pensada para captar atención.",
+    description: "Portada 2K lista para YouTube, con lectura inmediata.",
     icon: "monitor-play",
     example:
       "Una miniatura sobre productividad, con un escritorio moderno, contraste alto y espacio para un título grande.",
@@ -45,7 +45,7 @@ export const GENERATION_CONTENT_TYPES = [
     icon: "panels-top-left",
     example:
       "Una portada panorámica para un podcast de negocios, cinematográfica, sobria y con dos presentadores.",
-    formats: ["social-cover-panorama"],
+    formats: ["facebook-cover", "x-cover", "linkedin-cover"],
   },
 ] as const satisfies ReadonlyArray<{
   id: ContentType;
@@ -60,8 +60,8 @@ export const GENERATION_CONTENT_TYPES = [
 export const GENERATION_FORMATS = [
   {
     id: "youtube-16-9",
-    label: "Horizontal 16:9",
-    shortLabel: "16:9",
+    label: "YouTube · 2560 × 1440",
+    shortLabel: "YouTube 16:9",
     contentType: "youtube-thumbnail",
   },
   {
@@ -83,26 +83,50 @@ export const GENERATION_FORMATS = [
     contentType: "banner",
   },
   {
-    id: "social-cover-panorama",
-    label: "Horizontal panorámico",
-    shortLabel: "12:5",
+    id: "facebook-cover",
+    label: "Facebook · 1648 × 624",
+    shortLabel: "Facebook",
     contentType: "social-cover",
+  },
+  {
+    id: "x-cover",
+    label: "X · 1500 × 500",
+    shortLabel: "X",
+    contentType: "social-cover",
+  },
+  {
+    id: "linkedin-cover",
+    label: "LinkedIn · 1584 × 396",
+    shortLabel: "LinkedIn",
+    contentType: "social-cover",
+  },
+  {
+    id: "social-cover-panorama",
+    label: "Portada anterior · 1536 × 640",
+    shortLabel: "Portada anterior",
+    contentType: "social-cover",
+    legacy: true,
   },
 ] as const satisfies ReadonlyArray<{
   id: GenerationFormat;
   label: string;
   shortLabel: string;
   contentType: ContentType;
+  legacy?: boolean;
 }>;
 
 export const GENERATION_STYLES = [
-  { id: "auto", label: "Automático" },
-  { id: "photographic", label: "Fotográfico" },
-  { id: "illustration", label: "Ilustración" },
-  { id: "minimal", label: "Minimalista" },
-  { id: "cinematic", label: "Cinematográfico" },
-  { id: "advertising", label: "Publicitario" },
-] as const satisfies ReadonlyArray<{ id: GenerationStyle; label: string }>;
+  { id: "auto", label: "Automático", example: "/images/examples/technology.webp" },
+  { id: "photographic", label: "Fotográfico", example: "/images/examples/fitness.webp" },
+  { id: "illustration", label: "Ilustración", example: "/images/examples/gaming.webp" },
+  { id: "minimal", label: "Minimalista", example: "/images/examples/productivity.webp" },
+  { id: "cinematic", label: "Cinematográfico", example: "/images/examples/podcast.webp" },
+  { id: "advertising", label: "Publicitario", example: "/images/examples/restaurant.webp" },
+] as const satisfies ReadonlyArray<{
+  id: GenerationStyle;
+  label: string;
+  example: string;
+}>;
 
 export const GENERATION_COLORS = [
   { id: "auto", label: "Automático" },
@@ -135,7 +159,7 @@ export const DEFAULT_GENERATION_VALUES = {
   format: "youtube-16-9",
   style: "auto",
   colorPreference: "auto",
-  quality: "fast",
+  quality: "high",
 } as const satisfies {
   contentType: ContentType;
   format: GenerationFormat;
@@ -150,4 +174,13 @@ export function getContentTypeConfig(contentType: ContentType) {
 
 export function getFormatConfig(format: GenerationFormat) {
   return GENERATION_FORMATS.find((item) => item.id === format)!;
+}
+
+export function requiresHighQuality(format: GenerationFormat) {
+  return (
+    format === "youtube-16-9" ||
+    format === "facebook-cover" ||
+    format === "x-cover" ||
+    format === "linkedin-cover"
+  );
 }

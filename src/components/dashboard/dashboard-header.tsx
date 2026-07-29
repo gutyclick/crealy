@@ -1,4 +1,4 @@
-import { ChevronDown, Coins, LogOut } from "lucide-react";
+import { ChevronDown, Coins, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 
 import { signOut } from "@/app/(auth)/actions";
@@ -75,6 +75,13 @@ export function DashboardHeader({
               </p>
               <p className="mt-0.5 truncate text-xs text-muted">{email}</p>
             </div>
+            <Link
+              href="/settings/profile"
+              className="mt-1 flex min-h-11 w-full items-center gap-3 rounded-[0.7rem] px-3 text-sm font-medium text-white/72 transition-colors hover:bg-white/[0.05] hover:text-foreground"
+            >
+              <Settings aria-hidden="true" className="size-4" />
+              Configuración
+            </Link>
             <form action={signOut}>
               <button
                 type="submit"

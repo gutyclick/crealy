@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { resolveVersionSource } from "@/lib/editing/resolve-version-source";
 import { createClient } from "@/lib/supabase/server";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 export async function GET(
   _request: Request,
@@ -30,15 +31,13 @@ export async function GET(
     return new NextResponse("No encontrada.", { status: 404 });
   }
 
-  const { data, error } = await supabase.storage
-    .from("generations")
-    .download(source.storagePath);
-  if (error || !data) {
+  const data = await getPrivateStorage().get(source.storagePath);
+  if (!data) {
     return new NextResponse("No pudimos descargar la imagen.", { status: 500 });
   }
 
   const filename = `crealy-version-${versionId.slice(0, 8)}.${source.mimeType === "image/jpeg" ? "jpg" : source.mimeType?.split("/")[1] || "png"}`;
-  return new NextResponse(await data.arrayBuffer(), {
+  return new NextResponse(new Uint8Array(data), {
     headers: {
       "Content-Type": source.mimeType || "application/octet-stream",
       "Content-Disposition": `attachment; filename="${filename}"`,

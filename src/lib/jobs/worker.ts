@@ -17,8 +17,7 @@ import { getOperationsConfig } from "@/lib/operations/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { JobRecord } from "@/types/jobs";
 import type { GenerationInput } from "@/types/generation";
-
-const BUCKET = "generations";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 async function recordOutput(jobId: string, buffer: Buffer) {
   const admin = createAdminClient();
@@ -45,9 +44,8 @@ async function completeExistingGenerationFile(
   startedAt: number,
 ) {
   const admin = createAdminClient();
-  const { data } = await admin.storage.from(BUCKET).download(storagePath);
-  if (!data || !generation.credit_reservation_id) return false;
-  const buffer = Buffer.from(await data.arrayBuffer());
+  const buffer = await getPrivateStorage().get(storagePath);
+  if (!buffer || !generation.credit_reservation_id) return false;
   const metadata = inspectImage(buffer);
   await recordOutput(job.id, buffer);
   const { error } = await admin.rpc("complete_generation_job_internal", {
@@ -130,7 +128,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .update({
       status: "processing",
       enhanced_prompt: enhancedPrompt,
-      output_size: outputOptions.size,
+      output_size: outputOptions.finalSize,
       model: config.imageModel,
       error_code: null,
     })
@@ -140,16 +138,11 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   if (processingError) throw processingError;
 
   const generated = await generateImage(input, enhancedPrompt, references);
-  const { error: uploadError } = await admin.storage
-    .from(BUCKET)
-    .upload(storagePath, generated.imageBuffer, {
-      contentType: generated.mimeType,
-      cacheControl: "3600",
-      upsert: false,
+  await getPrivateStorage()
+    .put(storagePath, generated.imageBuffer, generated.mimeType)
+    .catch(() => {
+      throw new Error("storage_upload_failed");
     });
-  if (uploadError && !uploadError.message.toLowerCase().includes("exist")) {
-    throw new Error("storage_upload_failed");
-  }
   await recordOutput(job.id, generated.imageBuffer);
 
   const { error: completeError } = await admin.rpc(
@@ -229,11 +222,8 @@ async function processEdit(job: JobRecord, startedAt: number) {
     .in("status", ["pending", "processing"]);
   if (processingError) throw processingError;
 
-  const { data: sourceBlob, error: downloadError } = await admin.storage
-    .from(BUCKET)
-    .download(source.storagePath);
-  if (downloadError || !sourceBlob) throw new Error("source_download_failed");
-  const sourceBuffer = Buffer.from(await sourceBlob.arrayBuffer());
+  const sourceBuffer = await getPrivateStorage().get(source.storagePath);
+  if (!sourceBuffer) throw new Error("source_download_failed");
   if (sourceBuffer.length > config.maxReferenceImageBytes) {
     throw new Error("source_too_large");
   }
@@ -248,12 +238,12 @@ async function processEdit(job: JobRecord, startedAt: number) {
   }
 
   const storagePath = `${version.user_id}/edits/${version.session_id}/${version.id}.png`;
-  const { data: existing } = await admin.storage.from(BUCKET).download(storagePath);
+  const existing = await getPrivateStorage().get(storagePath);
   let outputBuffer: Buffer;
   let outputModel = config.responsesModel;
   let providerResponseId: string | null = null;
   if (existing) {
-    outputBuffer = Buffer.from(await existing.arrayBuffer());
+    outputBuffer = existing;
   } else {
     const generated = await editImage({
       imageBuffer: sourceBuffer,
@@ -269,16 +259,11 @@ async function processEdit(job: JobRecord, startedAt: number) {
     outputBuffer = generated.buffer;
     outputModel = generated.model;
     providerResponseId = generated.providerResponseId;
-    const { error: uploadError } = await admin.storage
-      .from(BUCKET)
-      .upload(storagePath, outputBuffer, {
-        contentType: "image/png",
-        cacheControl: "3600",
-        upsert: false,
+    await getPrivateStorage()
+      .put(storagePath, outputBuffer, "image/png")
+      .catch(() => {
+        throw new Error("storage_upload_failed");
       });
-    if (uploadError && !uploadError.message.toLowerCase().includes("exist")) {
-      throw new Error("storage_upload_failed");
-    }
   }
 
   const output = inspectImage(outputBuffer);
@@ -387,17 +372,39 @@ export async function processQueuedJob(jobId: string) {
 
 export async function maintainQueue() {
   const admin = createAdminClient();
-  const [published, recovered, expiredRateLimits] = await Promise.all([
+  const [published, recovered, expiredRateLimits, expiredUploads] = await Promise.all([
     admin.rpc("publish_job_outbox_internal", { p_limit: 100 }),
     admin.rpc("recover_stuck_jobs_internal", { p_limit: 100 }),
     admin
       .from("rate_limit_counters")
       .delete({ count: "exact" })
       .lt("expires_at", new Date().toISOString()),
+    admin.rpc("list_expired_uploads_internal", { p_limit: 100 }),
   ]);
+
+  let cleanedUploads = 0;
+  for (const upload of expiredUploads.data ?? []) {
+    try {
+      await getPrivateStorage().remove(upload.storage_path);
+      await admin
+        .from("generation_references")
+        .delete()
+        .eq("upload_id", upload.upload_id);
+      const { error } = await admin
+        .from("user_uploads")
+        .delete()
+        .eq("id", upload.upload_id);
+      if (!error) cleanedUploads += 1;
+    } catch {
+      logger.warn("storage.expired_cleanup_failed", {
+        uploadId: upload.upload_id,
+      });
+    }
+  }
   return {
     published: published.data ?? 0,
     recovered: recovered.data ?? 0,
     expiredRateLimits: expiredRateLimits.count ?? 0,
+    cleanedUploads,
   };
 }

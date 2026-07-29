@@ -39,14 +39,31 @@ export default async function DashboardPage() {
     profile?.full_name?.trim().split(/\s+/)[0] ||
     metadataName.split(/\s+/)[0] ||
     localEmailName;
-  const recentGenerations = await listGenerations(user.id, 4);
-  const recentEditSessions = await listRecentEditSessions(user.id, 4);
+  const [recentGenerations, recentEditSessions, activeJobsResult] =
+    await Promise.all([
+      listGenerations(user.id, 4),
+      listRecentEditSessions(user.id, 4),
+      supabase
+        .from("jobs")
+        .select("id, job_type, status, resource_id, created_at")
+        .eq("user_id", user.id)
+        .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
+        .order("created_at", { ascending: false })
+        .limit(5),
+    ]);
 
   return (
     <DashboardHome
       firstName={firstName || undefined}
       recentGenerations={recentGenerations}
       recentEditSessions={recentEditSessions}
+      activeJobs={(activeJobsResult.data ?? []).map((job) => ({
+        id: job.id,
+        type: job.job_type,
+        status: job.status,
+        resourceId: job.resource_id,
+        createdAt: job.created_at,
+      }))}
     />
   );
 }

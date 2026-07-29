@@ -7,6 +7,7 @@ import {
   getFormatConfig,
 } from "@/config/generation";
 import type { GenerationInput } from "@/types/generation";
+import { mapGenerationOptions } from "@/lib/generation/map-generation-options";
 
 const TYPE_DIRECTIONS: Record<GenerationInput["contentType"], string> = {
   "youtube-thumbnail":
@@ -30,6 +31,7 @@ export function buildImagePrompt(input: GenerationInput) {
   const type = getContentTypeConfig(input.contentType);
   const format = getFormatConfig(input.format);
   const style = getOptionLabel(GENERATION_STYLES, input.style);
+  const output = mapGenerationOptions(input.format, input.quality);
   const colors =
     input.colorPreference === "custom"
       ? input.customColors?.join(" y ")
@@ -65,6 +67,8 @@ export function buildImagePrompt(input: GenerationInput) {
     "",
     "Dirección visual:",
     `- Formato solicitado: ${format.label}.`,
+    `- Entrega final: ${output.width} × ${output.height} píxeles.`,
+    `- Guía de zona segura: ${output.safeArea}`,
     `- Estilo: ${style}.`,
     `- Preferencia de color: ${colors || "Automático"}.`,
     "- Jerarquía visual clara y sujeto principal bien definido.",

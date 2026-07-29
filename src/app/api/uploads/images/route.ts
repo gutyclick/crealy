@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getEditingServerEnv } from "@/lib/env/server";
 import { inspectImage, safeUploadName } from "@/lib/editing/image-metadata";
 import { createClient } from "@/lib/supabase/server";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -138,15 +139,10 @@ export async function POST(request: Request) {
 
   const uploadId = crypto.randomUUID();
   const storagePath = `${user.id}/uploads/${uploadId}.${metadata.extension}`;
-  const { error: storageError } = await supabase.storage
-    .from("generations")
-    .upload(storagePath, buffer, {
-      contentType: metadata.mimeType,
-      cacheControl: "3600",
-      upsert: false,
-    });
-
-  if (storageError) {
+  const storage = getPrivateStorage();
+  try {
+    await storage.put(storagePath, buffer, metadata.mimeType);
+  } catch {
     return NextResponse.json(
       { code: "storage_error", error: "No pudimos guardar la imagen." },
       { status: 500 },
@@ -165,12 +161,14 @@ export async function POST(request: Request) {
       file_size: file.size,
       width: metadata.width,
       height: metadata.height,
+      purpose: "edit",
+      expires_at: null,
     })
     .select("id")
     .single();
 
   if (uploadError || !upload) {
-    await supabase.storage.from("generations").remove([storagePath]);
+    await storage.remove(storagePath).catch(() => undefined);
     return NextResponse.json(
       { code: "storage_error", error: "No pudimos registrar la imagen." },
       { status: 500 },
@@ -183,7 +181,7 @@ export async function POST(request: Request) {
   );
 
   if (sessionError || !sessionRows?.[0]) {
-    await supabase.storage.from("generations").remove([storagePath]);
+    await storage.remove(storagePath).catch(() => undefined);
     await supabase.from("user_uploads").delete().eq("id", upload.id);
     return NextResponse.json(
       { code: "session_error", error: "No pudimos iniciar la edición." },

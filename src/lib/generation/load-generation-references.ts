@@ -6,6 +6,7 @@ import { inspectImage } from "@/lib/editing/image-metadata";
 import type { getEditingServerEnv } from "@/lib/env/server";
 import type { Database } from "@/types/database";
 import type { GenerationReferenceImage } from "@/types/generation";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 export async function loadGenerationReferences(
   supabase: SupabaseClient<Database>,
@@ -30,12 +31,8 @@ export async function loadGenerationReferences(
       const upload = byId.get(uploadId);
       if (!upload) throw new Error("reference_not_found");
 
-      const { data, error: downloadError } = await supabase.storage
-        .from("generations")
-        .download(upload.storage_path);
-      if (downloadError || !data) throw new Error("reference_download_failed");
-
-      const buffer = Buffer.from(await data.arrayBuffer());
+      const buffer = await getPrivateStorage().get(upload.storage_path);
+      if (!buffer) throw new Error("reference_download_failed");
       const metadata = inspectImage(buffer);
       if (
         buffer.length !== upload.file_size ||

@@ -1,6 +1,7 @@
 import "server-only";
 
 import OpenAI from "openai";
+import sharp from "sharp";
 
 import { EDIT_OUTPUT_MODEL } from "@/config/openai";
 import { getEditingServerEnv } from "@/lib/env/server";
@@ -52,7 +53,7 @@ async function requestEdit({
         action: "edit",
         model: EDIT_OUTPUT_MODEL,
         output_format: "png",
-        quality: "medium",
+        quality: "high",
         size,
       },
     ],
@@ -62,13 +63,14 @@ async function requestEdit({
 }
 
 function outputSize(width: number, height: number) {
-  const maxEdge = 1536;
+  const maxEdge = 2560;
   const scale = Math.min(1, maxEdge / Math.max(width, height));
   const scaledWidth = Math.max(256, Math.round((width * scale) / 16) * 16);
   const scaledHeight = Math.max(256, Math.round((height * scale) / 16) * 16);
   const ratio = scaledWidth / scaledHeight;
 
-  if (ratio > 3 || ratio < 1 / 3) return "auto";
+  if (ratio > 3) return "1536x512";
+  if (ratio < 1 / 3) return "512x1536";
   return `${scaledWidth}x${scaledHeight}`;
 }
 
@@ -119,8 +121,14 @@ export async function editImage({
     throw new Error("missing_image_output");
   }
 
+  let buffer = Buffer.from(output.result, "base64");
+  buffer = await sharp(buffer)
+    .resize(width, height, { fit: "cover", position: "centre" })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+
   return {
-    buffer: Buffer.from(output.result, "base64"),
+    buffer,
     providerResponseId: response.id,
     model: getEditingServerEnv().responsesModel,
   };

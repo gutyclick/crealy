@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { inspectImage, safeUploadName } from "@/lib/editing/image-metadata";
 import { getEditingServerEnv } from "@/lib/env/server";
 import { createClient } from "@/lib/supabase/server";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -85,22 +86,20 @@ export async function POST(request: Request) {
     }
   }
 
-  const { data: storedFile, error: downloadError } = await supabase.storage
-    .from("generations")
-    .download(storagePath);
-  if (downloadError || !storedFile) {
+  const storage = getPrivateStorage();
+  const buffer = await storage.get(storagePath).catch(() => null);
+  if (!buffer) {
     return NextResponse.json(
       { code: "storage_error", error: "No encontramos la imagen subida." },
       { status: 404 },
     );
   }
 
-  const buffer = Buffer.from(await storedFile.arrayBuffer());
   let metadata: ReturnType<typeof inspectImage>;
   try {
     metadata = inspectImage(buffer);
   } catch {
-    await supabase.storage.from("generations").remove([storagePath]);
+    await storage.remove(storagePath).catch(() => undefined);
     return NextResponse.json(
       { code: "unsupported_image", error: "El archivo no es una imagen válida." },
       { status: 415 },
@@ -117,7 +116,7 @@ export async function POST(request: Request) {
     metadata.height > config.maxReferenceHeight ||
     metadata.width * metadata.height > config.maxReferencePixels
   ) {
-    await supabase.storage.from("generations").remove([storagePath]);
+    await storage.remove(storagePath).catch(() => undefined);
     return NextResponse.json(
       {
         code: "invalid_upload",
@@ -136,9 +135,14 @@ export async function POST(request: Request) {
     file_size: buffer.length,
     width: metadata.width,
     height: metadata.height,
+    purpose: body.purpose,
+    expires_at:
+      body.purpose === "reference"
+        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        : null,
   });
   if (insertError && !insertError.message.includes("duplicate")) {
-    await supabase.storage.from("generations").remove([storagePath]);
+    await storage.remove(storagePath).catch(() => undefined);
     return NextResponse.json(
       { code: "storage_error", error: "No pudimos registrar la imagen." },
       { status: 500 },

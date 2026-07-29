@@ -1,6 +1,7 @@
 import "server-only";
 
 import { toFile } from "openai";
+import sharp from "sharp";
 
 import { getGenerationServerEnv } from "@/lib/env/server";
 import { GenerationError, mapOpenAIError } from "@/lib/generation/generation-errors";
@@ -11,7 +12,8 @@ import type {
   GenerationReferenceImage,
 } from "@/types/generation";
 
-const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_PROVIDER_IMAGE_BYTES = 40 * 1024 * 1024;
+const MAX_STORED_IMAGE_BYTES = 20 * 1024 * 1024;
 const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 ]);
@@ -65,16 +67,31 @@ export async function generateImage(
       );
     }
 
-    const imageBuffer = Buffer.from(encodedImage, "base64");
+    let imageBuffer = Buffer.from(encodedImage, "base64");
     if (
       imageBuffer.length === 0 ||
-      imageBuffer.length > MAX_IMAGE_BYTES ||
+      imageBuffer.length > MAX_PROVIDER_IMAGE_BYTES ||
       !imageBuffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)
     ) {
       throw new GenerationError(
         "invalid_provider_response",
         502,
         "No pudimos procesar la imagen recibida.",
+      );
+    }
+
+    imageBuffer = await sharp(imageBuffer)
+      .resize(output.width, output.height, {
+        fit: "cover",
+        position: "centre",
+      })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+    if (imageBuffer.length > MAX_STORED_IMAGE_BYTES) {
+      throw new GenerationError(
+        "invalid_provider_response",
+        502,
+        "La imagen final supera el límite seguro de almacenamiento.",
       );
     }
 

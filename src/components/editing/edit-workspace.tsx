@@ -597,7 +597,7 @@ export function EditWorkspace({
                 ? "Procesando versión…"
                 : loading
                   ? "Preparando versión…"
-                  : "Aplicar cambio"}
+                  : "Aplicar cambios"}
               {!loading ? <Send aria-hidden="true" className="size-4" /> : null}
             </button>
           </div>

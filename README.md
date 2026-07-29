@@ -68,6 +68,11 @@ Ejecuta las migraciones en orden desde el SQL Editor:
 4. `supabase/migrations/20260728030000_add_generation_references.sql`
 5. `supabase/migrations/20260729000000_add_billing_and_credits.sql`
 6. `supabase/migrations/20260729010000_harden_financial_writes.sql`
+7. `supabase/migrations/20260729020000_add_financial_write_boundaries.sql`
+8. `supabase/migrations/20260729030000_add_durable_jobs_and_operations.sql`
+9. `supabase/migrations/20260729040000_harden_operations_and_telemetry.sql`
+10. `supabase/migrations/20260729050000_consolidate_formats_and_storage.sql`
+11. `supabase/migrations/20260729060000_correct_existing_upload_purpose.sql`
 
 La segunda migración crea `projects`, `generations`, restricciones, índices,
 RLS, la reserva atómica con límites y el bucket privado `generations`. La
@@ -106,16 +111,22 @@ la herramienta oficial de generación de imágenes. Los identificadores de
 continuidad permanecen en servidor y cada cambio produce una versión
 recuperable.
 
-La Image API devuelve una sola imagen PNG por solicitud. Crealy conserva el
-formato solicitado y lo mapea a estas salidas del modelo:
+La Image API devuelve una sola imagen PNG por solicitud. Con GPT Image 2,
+Crealy solicita tamaños arbitrarios válidos como cadenas `ANCHOxALTO` y
+entrega estas salidas:
 
-- 16:9 → `1536x864`
+- YouTube 16:9 → `2560x1440`, solicitado directamente al modelo
 - 1:1 → `1024x1024`
 - 4:5 → `1024x1280`
 - 3:1 → `1536x512`
-- 12:5 → `1536x640`
+- Facebook → `1648x624`
+- X → máster `1536x512`, entrega `1500x500`
+- LinkedIn → máster seguro 3:1, entrega `1584x396`
 
-La interfaz usa `object-fit: contain`, por lo que nunca estira el resultado.
+YouTube y todas las portadas fuerzan calidad alta. Cuando las dimensiones
+finales no son válidas para el proveedor (por ejemplo, LinkedIn 4:1), el
+prompt usa una zona segura central y el servidor recorta el máster sin
+estirar la imagen.
 
 En `/create`, el usuario puede añadir hasta cuatro referencias PNG/JPEG/WebP.
 Los bytes se suben directamente a Supabase mediante una URL firmada temporal,
@@ -198,6 +209,20 @@ stripe trigger invoice.paid
 
 Cada llamada real consume saldo de OpenAI, incluidas las realizadas desde
 Preview Deployments.
+
+## Almacenamiento privado
+
+`STORAGE_PROVIDER=supabase` conserva el comportamiento actual. Para Cloudflare
+R2 configura `STORAGE_PROVIDER=r2`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY` y `R2_BUCKET_NAME`. El bucket debe ser privado y su CORS
+debe permitir `PUT` desde el dominio de Crealy. El navegador recibe únicamente
+una URL firmada temporal; las credenciales permanecen en el servidor.
+
+Las referencias de generación caducan a los 30 días. El mantenimiento diario
+elimina primero el objeto y después su registro, pero conserva archivos usados
+como fuente de una sesión de edición o de un trabajo activo. Configura también
+una regla de lifecycle de R2 como defensa adicional, nunca como única fuente de
+verdad.
 
 ## Vercel
 

@@ -7,9 +7,11 @@ import {
   LoaderCircle,
   MonitorPlay,
   PanelsTopLeft,
+  Plus,
   RectangleHorizontal,
   RefreshCw,
   Sparkles,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -28,6 +30,7 @@ import {
   GENERATION_STYLES,
   getContentTypeConfig,
   getFormatConfig,
+  requiresHighQuality,
 } from "@/config/generation";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
@@ -103,12 +106,15 @@ export function GenerationForm({
   const currentType = getContentTypeConfig(contentType);
   const compatibleFormats = useMemo(
     () =>
-      GENERATION_FORMATS.filter((item) =>
-        currentType.formats.some((formatId) => formatId === item.id),
+      GENERATION_FORMATS.filter(
+        (item) =>
+          !("legacy" in item && item.legacy) &&
+          currentType.formats.some((formatId) => formatId === item.id),
       ),
     [currentType],
   );
   const currentFormat = getFormatConfig(format);
+  const highQualityRequired = requiresHighQuality(format);
   const aspectRatio =
     format === "youtube-16-9"
       ? "16 / 9"
@@ -116,14 +122,19 @@ export function GenerationForm({
         ? "1 / 1"
         : format === "social-portrait"
           ? "4 / 5"
-          : format === "banner-3-1"
+          : format === "banner-3-1" || format === "x-cover"
             ? "3 / 1"
-            : "12 / 5";
+            : format === "facebook-cover"
+              ? "206 / 78"
+              : format === "linkedin-cover"
+                ? "4 / 1"
+                : "12 / 5";
 
   function selectContentType(nextType: ContentType) {
     const config = getContentTypeConfig(nextType);
     setContentType(nextType);
     setFormat(config.formats[0]);
+    setQuality(requiresHighQuality(config.formats[0]) ? "high" : "fast");
     setProjectId(undefined);
     if (result.status === "completed") setResult({ status: "idle" });
     setFieldErrors({});
@@ -365,23 +376,45 @@ export function GenerationForm({
           </p>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-semibold text-foreground">
-            Estilo
-            <select
-              value={style}
-              onChange={(event) =>
-                setStyle(event.target.value as GenerationStyle)
-              }
-              className="mt-3 h-12 w-full rounded-xl border border-white/12 bg-background px-3 text-sm font-normal text-foreground outline-none focus:border-brand/65"
-            >
-              {GENERATION_STYLES.map((item) => (
-                <option key={item.id} value={item.id}>
+        <fieldset className="mt-6">
+          <legend className="text-sm font-semibold text-foreground">
+            Estilo visual
+          </legend>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {GENERATION_STYLES.map((item) => (
+              <label
+                key={item.id}
+                className={cn(
+                  "group relative cursor-pointer overflow-hidden rounded-xl border has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
+                  style === item.id
+                    ? "border-brand/70"
+                    : "border-white/10 hover:border-white/25",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="style"
+                  value={item.id}
+                  checked={style === item.id}
+                  onChange={() => setStyle(item.id)}
+                  className="sr-only"
+                />
+                {/* Static references let the user understand the direction before spending credits. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.example}
+                  alt=""
+                  className="aspect-[16/10] w-full object-cover opacity-70 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-90"
+                />
+                <span className="absolute inset-x-0 bottom-0 bg-black/75 px-3 py-2 text-xs font-semibold text-white">
                   {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="mt-6">
           <label className="text-sm font-semibold text-foreground">
             Color
             <select
@@ -401,28 +434,56 @@ export function GenerationForm({
         </div>
 
         {colorPreference === "custom" ? (
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {customColors.map((color, index) => (
-              <label
-                key={index}
-                className="flex h-12 items-center gap-3 rounded-xl border border-white/12 bg-background px-3 text-xs font-medium text-muted"
+          <div className="mt-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {customColors.map((color, index) => (
+                <div
+                  key={`${index}-${color}`}
+                  className="flex h-12 items-center gap-2 rounded-xl border border-white/12 bg-background px-3 text-xs font-medium text-muted"
+                >
+                  <input
+                    type="color"
+                    aria-label={`Color personalizado ${index + 1}`}
+                    value={color}
+                    onChange={(event) =>
+                      setCustomColors((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? event.target.value : item,
+                        ),
+                      )
+                    }
+                    className="size-7 cursor-pointer rounded border-0 bg-transparent p-0"
+                  />
+                  <span className="min-w-0 flex-1 truncate">{color.toUpperCase()}</span>
+                  {customColors.length > 1 ? (
+                    <button
+                      type="button"
+                      aria-label={`Quitar color ${index + 1}`}
+                      onClick={() =>
+                        setCustomColors((current) =>
+                          current.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                      className="grid size-7 place-items-center rounded-lg hover:bg-white/[0.07] hover:text-foreground"
+                    >
+                      <X aria-hidden="true" className="size-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            {customColors.length < 5 ? (
+              <button
+                type="button"
+                onClick={() => setCustomColors((current) => [...current, "#FFFFFF"])}
+                className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/12 px-3 text-xs font-semibold text-muted hover:border-white/25 hover:text-foreground"
               >
-                <input
-                  type="color"
-                  aria-label={`Color personalizado ${index + 1}`}
-                  value={color}
-                  onChange={(event) =>
-                    setCustomColors((current) =>
-                      current.map((item, itemIndex) =>
-                        itemIndex === index ? event.target.value : item,
-                      ),
-                    )
-                  }
-                  className="size-7 cursor-pointer rounded border-0 bg-transparent p-0"
-                />
-                {color.toUpperCase()}
-              </label>
-            ))}
+                <Plus aria-hidden="true" className="size-4" />
+                Añadir color ({customColors.length}/5)
+              </button>
+            ) : (
+              <p className="mt-3 text-xs text-muted">Paleta completa · 5 colores</p>
+            )}
           </div>
         ) : null}
 
@@ -446,7 +507,10 @@ export function GenerationForm({
                   name="format"
                   value={item.id}
                   checked={format === item.id}
-                  onChange={() => setFormat(item.id)}
+                  onChange={() => {
+                    setFormat(item.id);
+                    if (requiresHighQuality(item.id)) setQuality("high");
+                  }}
                   className="sr-only"
                 />
                 {item.label}
@@ -455,6 +519,14 @@ export function GenerationForm({
           </div>
         </fieldset>
 
+        {highQualityRequired ? (
+          <div className="mt-6 rounded-xl border border-brand/25 bg-brand/[0.055] px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">Alta calidad incluida</p>
+            <p className="mt-1 text-xs leading-5 text-muted">
+              Las portadas se generan siempre en alta calidad para conservar detalle y texto.
+            </p>
+          </div>
+        ) : (
         <fieldset className="mt-6">
           <legend className="text-sm font-semibold text-foreground">
             Calidad
@@ -488,6 +560,7 @@ export function GenerationForm({
             ))}
           </div>
         </fieldset>
+        )}
 
         <button
           type="submit"

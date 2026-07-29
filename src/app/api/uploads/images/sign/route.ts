@@ -6,6 +6,7 @@ import {
   RATE_LIMITS,
 } from "@/lib/operations/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
 
@@ -126,21 +127,21 @@ export async function POST(request: Request) {
   const extension =
     MIME_EXTENSIONS[body.mimeType as keyof typeof MIME_EXTENSIONS];
   const path = `${user.id}/uploads/${uploadId}.${extension}`;
-  const { data, error } = await supabase.storage
-    .from("generations")
-    .createSignedUploadUrl(path, { upsert: false });
-
-  if (error || !data?.token) {
+  try {
+    const intent = await getPrivateStorage().signUpload(
+      path,
+      body.mimeType,
+      10 * 60,
+    );
+    return NextResponse.json({
+      uploadId,
+      ...intent,
+      extension,
+    });
+  } catch {
     return NextResponse.json(
       { code: "storage_error", error: "No pudimos preparar la subida." },
       { status: 500 },
     );
   }
-
-  return NextResponse.json({
-    uploadId,
-    path,
-    token: data.token,
-    extension,
-  });
 }

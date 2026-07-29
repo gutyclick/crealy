@@ -9,6 +9,10 @@ export type GenerationFormat =
   | "social-square"
   | "social-portrait"
   | "banner-3-1"
+  | "facebook-cover"
+  | "x-cover"
+  | "linkedin-cover"
+  // Kept so existing database rows remain readable.
   | "social-cover-panorama";
 
 export type GenerationStyle =

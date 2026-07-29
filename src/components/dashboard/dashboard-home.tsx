@@ -1,4 +1,4 @@
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight, Clock3, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { GenerationGrid } from "@/components/generation/generation-grid";
@@ -11,10 +11,18 @@ export function DashboardHome({
   firstName,
   recentGenerations,
   recentEditSessions,
+  activeJobs,
 }: {
   firstName?: string;
   recentGenerations: GenerationListItem[];
   recentEditSessions: RecentEditSession[];
+  activeJobs: Array<{
+    id: string;
+    type: string;
+    status: string;
+    resourceId: string;
+    createdAt: string;
+  }>;
 }) {
   return (
     <main className="py-10 sm:py-14">
@@ -54,6 +62,43 @@ export function DashboardHome({
               <ArrowUpRight aria-hidden="true" className="size-4" />
             </Link>
           </div>
+        </section>
+
+        <section aria-labelledby="active-jobs-title" className="mt-10">
+          <div className="mb-5">
+            <h2 id="active-jobs-title" className="text-xl font-semibold text-foreground">
+              Trabajos en curso
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              Puedes cerrar la pestaña; el trabajo continúa en segundo plano.
+            </p>
+          </div>
+          {activeJobs.length ? (
+            <div className="divide-y divide-white/10 border-y border-white/10">
+              {activeJobs.map((job) => (
+                <Link
+                  key={job.id}
+                  href={job.type === "generation" ? `/generations/${job.resourceId}?job=${job.id}` : "/edit"}
+                  className="flex min-h-16 items-center gap-4 py-3 text-sm hover:text-brand"
+                >
+                  <Clock3 aria-hidden="true" className="size-4 shrink-0 text-brand" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-foreground">
+                      {job.type === "generation" ? "Creando diseño" : "Aplicando cambios"}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted">
+                      {job.status === "retry_scheduled" ? "Reintento programado" : "Procesando de forma segura"}
+                    </span>
+                  </span>
+                  <ArrowUpRight aria-hidden="true" className="size-4 text-muted" />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="border-y border-white/10 py-6 text-sm text-muted">
+              No tienes trabajos pendientes.
+            </div>
+          )}
         </section>
 
         <section aria-labelledby="recent-projects-title" className="mt-10">

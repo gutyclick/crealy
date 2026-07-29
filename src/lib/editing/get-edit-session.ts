@@ -8,6 +8,7 @@ import type {
   EditVersionView,
   RecentEditSession,
 } from "@/types/editing";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
@@ -47,10 +48,10 @@ export async function getEditSession(userId: string, sessionId: string) {
       const source = await resolveVersionSource(supabase, row);
       let imageUrl: string | null = null;
       if (source?.storagePath) {
-        const { data: signed } = await supabase.storage
-          .from("generations")
-          .createSignedUrl(source.storagePath, SIGNED_URL_TTL_SECONDS);
-        imageUrl = signed?.signedUrl ?? null;
+        imageUrl = await getPrivateStorage().signDownload(
+          source.storagePath,
+          SIGNED_URL_TTL_SECONDS,
+        );
       }
       return {
         id: row.id,
@@ -129,10 +130,10 @@ export async function listRecentEditSessions(
       if (current) {
         const source = await resolveVersionSource(supabase, current);
         if (source?.storagePath) {
-          const { data: signed } = await supabase.storage
-            .from("generations")
-            .createSignedUrl(source.storagePath, SIGNED_URL_TTL_SECONDS);
-          imageUrl = signed?.signedUrl ?? null;
+          imageUrl = await getPrivateStorage().signDownload(
+            source.storagePath,
+            SIGNED_URL_TTL_SECONDS,
+          );
         }
       }
 

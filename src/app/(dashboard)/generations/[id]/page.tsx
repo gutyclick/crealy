@@ -10,6 +10,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { createClient } from "@/lib/supabase/server";
 import type { ContentType, GenerationFormat } from "@/types/generation";
 import { editGeneration } from "@/app/(dashboard)/edit/actions";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 export const metadata: Metadata = {
   title: "Detalle de creación",
@@ -50,10 +51,10 @@ export default async function GenerationDetailPage({
 
   let imageUrl: string | null = null;
   if (data.status === "completed" && data.storage_path) {
-    const { data: signed } = await supabase.storage
-      .from("generations")
-      .createSignedUrl(data.storage_path, 60 * 60);
-    imageUrl = signed?.signedUrl ?? null;
+    imageUrl = await getPrivateStorage().signDownload(
+      data.storage_path,
+      60 * 60,
+    );
   }
 
   const project = data.projects as unknown as { title: string } | null;

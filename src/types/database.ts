@@ -171,6 +171,8 @@ export type Database = {
           file_size: number;
           width: number;
           height: number;
+          purpose: string;
+          expires_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -182,11 +184,15 @@ export type Database = {
           file_size: number;
           width: number;
           height: number;
+          purpose?: string;
+          expires_at?: string | null;
           created_at?: string;
         };
         Update: {
           storage_path?: string;
           original_filename?: string;
+          purpose?: string;
+          expires_at?: string | null;
         };
         Relationships: [];
       };
@@ -1027,6 +1033,13 @@ export type Database = {
           p_monthly_budget_usd: number | null;
         };
         Returns: undefined;
+      };
+      list_expired_uploads_internal: {
+        Args: { p_limit?: number };
+        Returns: {
+          upload_id: string;
+          storage_path: string;
+        }[];
       };
       create_generation_job_internal: {
         Args: {

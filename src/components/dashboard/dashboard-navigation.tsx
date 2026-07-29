@@ -10,7 +10,7 @@ const items = [
   { href: "/create", label: "Crear" },
   { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
-  { href: "/settings/billing", label: "Facturación", hideOnMobile: true },
+  { href: "/settings/profile", label: "Cuenta", hideOnMobile: true },
 ] as const;
 
 export function DashboardNavigation() {

@@ -7,6 +7,7 @@ import type {
   GenerationListItem,
   GenerationStatus,
 } from "@/types/generation";
+import { getPrivateStorage } from "@/lib/storage/provider";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
@@ -45,10 +46,10 @@ export async function listGenerations(
       let imageUrl: string | null = null;
 
       if (item.status === "completed" && item.storage_path) {
-        const { data: signed } = await supabase.storage
-          .from("generations")
-          .createSignedUrl(item.storage_path, SIGNED_URL_TTL_SECONDS);
-        imageUrl = signed?.signedUrl ?? null;
+        imageUrl = await getPrivateStorage().signDownload(
+          item.storage_path,
+          SIGNED_URL_TTL_SECONDS,
+        );
       }
 
       return {

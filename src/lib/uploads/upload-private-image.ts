@@ -8,9 +8,15 @@ export type UploadPurpose = "edit" | "reference";
 type SignedUpload = {
   uploadId: string;
   path: string;
-  token: string;
   extension: string;
-};
+} & (
+  | { provider: "supabase"; token: string }
+  | {
+      provider: "r2";
+      uploadUrl: string;
+      headers: Record<string, string>;
+    }
+);
 
 type FinalizedUpload = {
   uploadId: string;
@@ -40,19 +46,32 @@ export async function uploadPrivateImage(
     throw new Error(signed.error || "No pudimos preparar la subida.");
   }
 
-  const supabase = createClient();
-  const { error: uploadError } = await supabase.storage
-    .from("generations")
-    .uploadToSignedUrl(signed.path, signed.token, file, {
-      contentType: file.type,
-      cacheControl: "3600",
+  if (signed.provider === "r2") {
+    const uploadResponse = await fetch(signed.uploadUrl, {
+      method: "PUT",
+      headers: signed.headers,
+      body: file,
     });
-  if (uploadError) {
-    throw new Error(
-      uploadError.message.includes("maximum allowed size")
-        ? "La imagen supera el límite permitido."
-        : "La conexión se interrumpió durante la subida. Inténtalo otra vez.",
-    );
+    if (!uploadResponse.ok) {
+      throw new Error(
+        "La conexión se interrumpió durante la subida. Inténtalo otra vez.",
+      );
+    }
+  } else {
+    const supabase = createClient();
+    const { error: uploadError } = await supabase.storage
+      .from("generations")
+      .uploadToSignedUrl(signed.path, signed.token, file, {
+        contentType: file.type,
+        cacheControl: "3600",
+      });
+    if (uploadError) {
+      throw new Error(
+        uploadError.message.includes("maximum allowed size")
+          ? "La imagen supera el límite permitido."
+          : "La conexión se interrumpió durante la subida. Inténtalo otra vez.",
+      );
+    }
   }
 
   const finalizeResponse = await fetch("/api/uploads/images/finalize", {
@@ -74,4 +93,3 @@ export async function uploadPrivateImage(
   }
   return finalized;
 }
-
