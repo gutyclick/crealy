@@ -119,7 +119,7 @@ entrega estas salidas:
 - 1:1 → `1024x1024`
 - 4:5 → `1024x1280`
 - 3:1 → `1536x512`
-- Facebook → `1648x624`
+- Facebook → máster `1712x640`, entrega 2× `1702x630`
 - X → máster `1536x512`, entrega `1500x500`
 - LinkedIn → máster seguro 3:1, entrega `1584x396`
 

@@ -84,7 +84,7 @@ export const GENERATION_FORMATS = [
   },
   {
     id: "facebook-cover",
-    label: "Facebook · 1648 × 624",
+    label: "Facebook · 1702 × 630",
     shortLabel: "Facebook",
     contentType: "social-cover",
   },

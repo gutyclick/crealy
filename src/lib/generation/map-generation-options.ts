@@ -44,10 +44,10 @@ const FORMAT_OUTPUTS: Record<
     safeArea: "Reserva los extremos para fondos, no para información esencial.",
   },
   "facebook-cover": {
-    size: "1648x624",
-    width: 1648,
-    height: 624,
-    aspectRatio: "206 / 78",
+    size: "1712x640",
+    width: 1702,
+    height: 630,
+    aspectRatio: "851 / 315",
     safeArea:
       "Mantén texto y rostros en el centro; la foto de perfil cubre parte del lado izquierdo y Facebook puede recortar según la pantalla.",
   },

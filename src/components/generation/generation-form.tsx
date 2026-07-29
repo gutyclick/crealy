@@ -125,7 +125,7 @@ export function GenerationForm({
           : format === "banner-3-1" || format === "x-cover"
             ? "3 / 1"
             : format === "facebook-cover"
-              ? "206 / 78"
+              ? "851 / 315"
               : format === "linkedin-cover"
                 ? "4 / 1"
                 : "12 / 5";

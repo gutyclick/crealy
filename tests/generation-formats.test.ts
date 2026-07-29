@@ -27,6 +27,11 @@ test("YouTube requests GPT Image 2 directly at 2560x1440 and forces high quality
 });
 
 test("platform covers expose exact final dimensions without incompatible provider sizes", () => {
+  const facebook = mapGenerationOptions("facebook-cover", "fast");
+  assert.equal(facebook.size, "1712x640");
+  assert.equal(facebook.finalSize, "1702x630");
+  assert.equal(facebook.quality, "high");
+
   const x = mapGenerationOptions("x-cover", "fast");
   assert.equal(x.size, "1536x512");
   assert.equal(x.finalSize, "1500x500");
