@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  Check,
   Download,
   Image as ImageIcon,
   LoaderCircle,
@@ -14,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -32,12 +34,15 @@ import {
   getFormatConfig,
   requiresHighQuality,
 } from "@/config/generation";
+import { COVER_PLATFORMS, PLATFORM_COVERS } from "@/config/content-formats";
+import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
 import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
 import type {
   ColorPreference,
   ContentType,
+  CoverPlatform,
   GenerationErrorResponse,
   GenerationFormat,
   GenerationQuality,
@@ -62,17 +67,22 @@ type ResultState =
 export function GenerationForm({
   available,
   maxReferenceFileMb,
+  initialContentType,
 }: {
   available: boolean;
   maxReferenceFileMb: number;
+  initialContentType?: ContentType;
 }) {
   const router = useRouter();
   const [contentType, setContentType] = useState<ContentType>(
-    DEFAULT_GENERATION_VALUES.contentType,
+    initialContentType ?? DEFAULT_GENERATION_VALUES.contentType,
   );
   const [format, setFormat] = useState<GenerationFormat>(
-    DEFAULT_GENERATION_VALUES.format,
+    initialContentType
+      ? getContentTypeConfig(initialContentType).formats[0]
+      : DEFAULT_GENERATION_VALUES.format,
   );
+  const [coverPlatform, setCoverPlatform] = useState<CoverPlatform>("youtube");
   const [description, setDescription] = useState("");
   const [primaryText, setPrimaryText] = useState("");
   const [style, setStyle] = useState<GenerationStyle>(
@@ -82,6 +92,8 @@ export function GenerationForm({
     DEFAULT_GENERATION_VALUES.colorPreference,
   );
   const [customColors, setCustomColors] = useState(["#DDF527", "#10110D"]);
+  const [hexDrafts, setHexDrafts] = useState(["#DDF527", "#10110D"]);
+  const [showSafeArea, setShowSafeArea] = useState(false);
   const [quality, setQuality] = useState<GenerationQuality>(
     DEFAULT_GENERATION_VALUES.quality,
   );
@@ -115,25 +127,13 @@ export function GenerationForm({
   );
   const currentFormat = getFormatConfig(format);
   const highQualityRequired = requiresHighQuality(format);
-  const aspectRatio =
-    format === "youtube-16-9"
-      ? "16 / 9"
-      : format === "social-square"
-        ? "1 / 1"
-        : format === "social-portrait"
-          ? "4 / 5"
-          : format === "banner-3-1" || format === "x-cover"
-            ? "3 / 1"
-            : format === "facebook-cover"
-              ? "851 / 315"
-              : format === "linkedin-cover"
-                ? "4 / 1"
-                : "12 / 5";
+  const aspectRatio = `${currentFormat.exportWidth} / ${currentFormat.exportHeight}`;
 
   function selectContentType(nextType: ContentType) {
     const config = getContentTypeConfig(nextType);
     setContentType(nextType);
     setFormat(config.formats[0]);
+    if (nextType === "social-cover") setCoverPlatform("youtube");
     setQuality(requiresHighQuality(config.formats[0]) ? "high" : "fast");
     setProjectId(undefined);
     if (result.status === "completed") setResult({ status: "idle" });
@@ -192,6 +192,8 @@ export function GenerationForm({
           clientRequestId: crypto.randomUUID(),
           projectId,
           contentType,
+          coverPlatform:
+            contentType === "social-cover" ? coverPlatform : undefined,
           description,
           primaryText: primaryText.trim() || undefined,
           style,
@@ -318,13 +320,24 @@ export function GenerationForm({
 
         <fieldset className="mt-6">
           <legend className="text-sm font-semibold text-foreground">
-            Elige el tamaño
+            {contentType === "social-cover"
+              ? "Elige la plataforma"
+              : "Elige el tamaño"}
           </legend>
           <p className="mt-1 text-xs leading-5 text-muted">
-            Mostramos únicamente los tamaños compatibles con la categoría seleccionada.
+            {contentType === "social-cover"
+              ? "Aplicamos las dimensiones y zonas seguras propias de cada red."
+              : "Mostramos únicamente los tamaños compatibles con la categoría seleccionada."}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {compatibleFormats.map((item) => (
+            {(contentType === "social-cover"
+              ? COVER_PLATFORMS.map((platform) => ({
+                  ...getFormatConfig(platform.format),
+                  platform: platform.id,
+                  label: platform.description,
+                }))
+              : compatibleFormats
+            ).map((item) => (
               <label
                 key={item.id}
                 className={cn(
@@ -341,6 +354,7 @@ export function GenerationForm({
                   checked={format === item.id}
                   onChange={() => {
                     setFormat(item.id);
+                    if ("platform" in item) setCoverPlatform(item.platform);
                     if (requiresHighQuality(item.id)) setQuality("high");
                   }}
                   className="sr-only"
@@ -417,36 +431,43 @@ export function GenerationForm({
           <legend className="text-sm font-semibold text-foreground">
             Estilo visual
           </legend>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
             {GENERATION_STYLES.map((item) => (
-              <label
+              <button
+                type="button"
                 key={item.id}
+                aria-pressed={style === item.id}
+                onClick={() => setStyle(item.id)}
                 className={cn(
-                  "group relative cursor-pointer overflow-hidden rounded-xl border has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
+                  "group relative min-w-44 snap-start overflow-hidden rounded-xl border text-left outline-none focus-visible:ring-2 focus-visible:ring-brand sm:min-w-0",
                   style === item.id
                     ? "border-brand/70"
                     : "border-white/10 hover:border-white/25",
                 )}
               >
-                <input
-                  type="radio"
-                  name="style"
-                  value={item.id}
-                  checked={style === item.id}
-                  onChange={() => setStyle(item.id)}
-                  className="sr-only"
-                />
-                {/* Static references let the user understand the direction before spending credits. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.example}
-                  alt=""
-                  className="aspect-[16/10] w-full object-cover opacity-70 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-90"
-                />
-                <span className="absolute inset-x-0 bottom-0 bg-black/75 px-3 py-2 text-xs font-semibold text-white">
-                  {item.label}
+                <span className="relative block aspect-[16/10] overflow-hidden bg-[radial-gradient(circle_at_25%_25%,rgba(221,245,39,.24),transparent_40%),linear-gradient(135deg,#20231a,#080906)]">
+                  {item.previewAsset ? (
+                    <Image
+                      src={item.previewAsset}
+                      alt={`Ejemplo de estilo ${item.label}`}
+                      fill
+                      sizes="(max-width: 640px) 176px, 220px"
+                      className="object-cover opacity-75 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-95"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 grid place-items-center text-2xl text-brand">✦</span>
+                  )}
                 </span>
-              </label>
+                <span className="block bg-black/80 px-3 py-2.5">
+                  <span className="flex items-center justify-between gap-2 text-xs font-semibold text-white">
+                    {item.label}
+                    {style === item.id ? <Check aria-hidden="true" className="size-3.5 text-brand" /> : null}
+                  </span>
+                  <span className="mt-1 block text-[11px] leading-4 text-white/55">
+                    {item.description}
+                  </span>
+                </span>
+              </button>
             ))}
           </div>
         </fieldset>
@@ -475,32 +496,79 @@ export function GenerationForm({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {customColors.map((color, index) => (
                 <div
-                  key={`${index}-${color}`}
-                  className="flex h-12 items-center gap-2 rounded-xl border border-white/12 bg-background px-3 text-xs font-medium text-muted"
+                  key={index}
+                  className="flex min-h-12 items-center gap-2 rounded-xl border border-white/12 bg-background px-3 text-xs font-medium text-muted"
                 >
                   <input
                     type="color"
                     aria-label={`Color personalizado ${index + 1}`}
                     value={color}
                     onChange={(event) =>
-                      setCustomColors((current) =>
+                      {
+                        setCustomColors((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? event.target.value.toUpperCase() : item,
+                        ),
+                        );
+                        setHexDrafts((current) =>
+                          current.map((item, itemIndex) =>
+                            itemIndex === index ? event.target.value.toUpperCase() : item,
+                          ),
+                        );
+                      }
+                    }
+                    className="size-7 cursor-pointer rounded border-0 bg-transparent p-0"
+                  />
+                  <input
+                    value={hexDrafts[index] ?? color}
+                    aria-label={`Hexadecimal del color ${index + 1}`}
+                    maxLength={7}
+                    onChange={(event) =>
+                      setHexDrafts((current) =>
                         current.map((item, itemIndex) =>
                           itemIndex === index ? event.target.value : item,
                         ),
                       )
                     }
-                    className="size-7 cursor-pointer rounded border-0 bg-transparent p-0"
+                    onBlur={() => {
+                      const normalized = normalizeHexColor(hexDrafts[index] ?? "");
+                      if (!normalized) {
+                        setFieldErrors((current) => ({
+                          ...current,
+                          customColors: "Usa #RGB o #RRGGBB.",
+                        }));
+                        return;
+                      }
+                      setCustomColors((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? normalized : item,
+                        ),
+                      );
+                      setHexDrafts((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? normalized : item,
+                        ),
+                      );
+                      setFieldErrors((current) => {
+                        const next = { ...current };
+                        delete next.customColors;
+                        return next;
+                      });
+                    }}
+                    className="min-w-0 flex-1 bg-transparent font-mono text-xs uppercase text-foreground outline-none"
                   />
-                  <span className="min-w-0 flex-1 truncate">{color.toUpperCase()}</span>
                   {customColors.length > 1 ? (
                     <button
                       type="button"
                       aria-label={`Quitar color ${index + 1}`}
-                      onClick={() =>
+                      onClick={() => {
                         setCustomColors((current) =>
                           current.filter((_, itemIndex) => itemIndex !== index),
-                        )
-                      }
+                        );
+                        setHexDrafts((current) =>
+                          current.filter((_, itemIndex) => itemIndex !== index),
+                        );
+                      }}
                       className="grid size-7 place-items-center rounded-lg hover:bg-white/[0.07] hover:text-foreground"
                     >
                       <X aria-hidden="true" className="size-3.5" />
@@ -512,7 +580,10 @@ export function GenerationForm({
             {customColors.length < 5 ? (
               <button
                 type="button"
-                onClick={() => setCustomColors((current) => [...current, "#FFFFFF"])}
+                onClick={() => {
+                  setCustomColors((current) => [...current, "#FFFFFF"]);
+                  setHexDrafts((current) => [...current, "#FFFFFF"]);
+                }}
                 className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/12 px-3 text-xs font-semibold text-muted hover:border-white/25 hover:text-foreground"
               >
                 <Plus aria-hidden="true" className="size-4" />
@@ -521,6 +592,9 @@ export function GenerationForm({
             ) : (
               <p className="mt-3 text-xs text-muted">Paleta completa · 5 colores</p>
             )}
+            <p className="mt-2 text-xs text-muted" aria-live="polite">
+              {fieldErrors.customColors ?? `${customColors.length} de 5 colores seleccionados.`}
+            </p>
           </div>
         ) : null}
 
@@ -528,7 +602,9 @@ export function GenerationForm({
           <div className="mt-6 rounded-xl border border-brand/25 bg-brand/[0.055] px-4 py-3">
             <p className="text-sm font-semibold text-foreground">Alta calidad incluida</p>
             <p className="mt-1 text-xs leading-5 text-muted">
-              Las miniaturas y portadas se generan siempre en alta calidad para conservar detalle y texto.
+              {contentType === "social-cover"
+                ? "Las portadas se generan en alta calidad para conservar detalles y texto."
+                : "Este formato se genera en alta calidad para conservar detalle y texto."}
             </p>
           </div>
         ) : (
@@ -618,6 +694,17 @@ export function GenerationForm({
               {quality === "fast" ? "Borrador rápido" : "Alta calidad"}
             </span>
           </div>
+          {format === "youtube-cover" && result.status === "completed" ? (
+            <button
+              type="button"
+              aria-pressed={showSafeArea}
+              onClick={() => setShowSafeArea((current) => !current)}
+              className="mb-3 inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/12 px-3 text-xs font-semibold text-muted hover:border-white/25 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              <span aria-hidden="true" className="size-2 rounded-full bg-brand" />
+              {showSafeArea ? "Ocultar área segura" : "Mostrar área segura"}
+            </button>
+          ) : null}
 
           <div
             style={{ aspectRatio }}
@@ -631,13 +718,32 @@ export function GenerationForm({
               className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(221,245,39,0.07),transparent_45%)]"
             />
             {result.status === "completed" ? (
-              // Signed Supabase URLs vary by project, so this remains a native image.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={result.imageUrl}
-                alt={`Diseño generado: ${description}`}
-                className="relative size-full object-contain"
-              />
+              <>
+                {/* Signed URLs vary by provider, so this remains a native image. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={result.imageUrl}
+                  alt={`Diseño generado: ${description}`}
+                  className="relative size-full object-contain"
+                />
+                {format === "youtube-cover" && showSafeArea ? (
+                  <div
+                    aria-label="Área visible en todos los dispositivos"
+                    className="pointer-events-none absolute border-2 border-brand"
+                    style={{
+                      left: `${(PLATFORM_COVERS.youtube.safeArea.x / PLATFORM_COVERS.youtube.exportWidth) * 100}%`,
+                      top: `${(PLATFORM_COVERS.youtube.safeArea.y / PLATFORM_COVERS.youtube.exportHeight) * 100}%`,
+                      width: `${(PLATFORM_COVERS.youtube.safeArea.width / PLATFORM_COVERS.youtube.exportWidth) * 100}%`,
+                      height: `${(PLATFORM_COVERS.youtube.safeArea.height / PLATFORM_COVERS.youtube.exportHeight) * 100}%`,
+                      boxShadow: "0 0 0 100vmax rgba(0,0,0,.48)",
+                    }}
+                  >
+                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-black/80 px-3 py-1 text-[10px] font-semibold text-white">
+                      Visible en todos los dispositivos
+                    </span>
+                  </div>
+                ) : null}
+              </>
             ) : result.status === "loading" ? (
               <div className="relative max-w-sm px-8 text-center">
                 <div className="generation-orbit mx-auto grid size-16 place-items-center rounded-2xl border border-brand/25 bg-brand/[0.06]">

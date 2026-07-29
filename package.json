@@ -13,6 +13,8 @@
     "ops:credits": "tsx scripts/ops/reconcile-credits.ts",
     "ops:storage": "tsx scripts/ops/reconcile-storage.ts",
     "ops:billing": "tsx scripts/ops/inspect-billing.ts"
+    ,"storage:migrate-to-r2": "tsx scripts/migrate-storage-to-r2.ts",
+    "image:probe": "tsx scripts/probe-gpt-image-2.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1097.0",

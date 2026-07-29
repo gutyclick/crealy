@@ -11,6 +11,7 @@ import { buildImagePrompt } from "@/lib/generation/build-image-prompt";
 import { generateImage } from "@/lib/generation/generate-image";
 import { loadGenerationReferences } from "@/lib/generation/load-generation-references";
 import { mapGenerationOptions } from "@/lib/generation/map-generation-options";
+import { createPreview } from "@/lib/image-processing/create-preview";
 import { classifyJobError } from "@/lib/jobs/retry-policy";
 import { logger } from "@/lib/observability/logger";
 import { getOperationsConfig } from "@/lib/operations/config";
@@ -18,6 +19,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { JobRecord } from "@/types/jobs";
 import type { GenerationInput } from "@/types/generation";
 import { getPrivateStorage } from "@/lib/storage/provider";
+import { generationAssetPath } from "@/lib/storage/storage-paths";
 
 async function recordOutput(jobId: string, buffer: Buffer) {
   const admin = createAdminClient();
@@ -62,6 +64,51 @@ async function completeExistingGenerationFile(
     p_duration_ms: Date.now() - startedAt,
   });
   if (error) throw error;
+  const previewBuffer = await createPreview(buffer);
+  const previewPath = generationAssetPath({
+    userId: generation.user_id,
+    projectId: generation.project_id,
+    generationId: generation.id,
+    preview: true,
+  });
+  const provider = getPrivateStorage();
+  await provider.put(previewPath, previewBuffer, "image/webp");
+  const [{ data: originalAsset }, { data: previewAsset }] = await Promise.all([
+    admin.from("assets").upsert({
+      user_id: generation.user_id,
+      kind: "generated_original",
+      storage_provider: provider.name,
+      bucket: provider.bucket,
+      storage_key: storagePath,
+      mime_type: metadata.mimeType,
+      file_size_bytes: buffer.length,
+      width: metadata.width,
+      height: metadata.height,
+      content_sha256: createHash("sha256").update(buffer).digest("hex"),
+      status: "active",
+    }, { onConflict: "storage_key" }).select("id").single(),
+    admin.from("assets").upsert({
+      user_id: generation.user_id,
+      kind: "preview",
+      storage_provider: provider.name,
+      bucket: provider.bucket,
+      storage_key: previewPath,
+      mime_type: "image/webp",
+      file_size_bytes: previewBuffer.length,
+      content_sha256: createHash("sha256").update(previewBuffer).digest("hex"),
+      status: "active",
+    }, { onConflict: "storage_key" }).select("id").single(),
+  ]);
+  if (originalAsset && previewAsset) {
+    await admin.from("generations").update({
+      asset_id: originalAsset.id,
+      preview_asset_id: previewAsset.id,
+      provider_width: metadata.width,
+      provider_height: metadata.height,
+      export_width: metadata.width,
+      export_height: metadata.height,
+    }).eq("id", generation.id).eq("user_id", generation.user_id);
+  }
   return true;
 }
 
@@ -70,7 +117,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   const { data: generation, error } = await admin
     .from("generations")
     .select(
-      "id, user_id, project_id, status, user_prompt, content_type, requested_format, style, quality, primary_text, color_preference, custom_colors, credit_reservation_id",
+      "id, user_id, project_id, status, user_prompt, content_type, cover_platform, requested_format, style, quality, primary_text, color_preference, custom_colors, credit_reservation_id",
     )
     .eq("id", job.resource_id)
     .eq("user_id", job.user_id)
@@ -79,7 +126,11 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   if (!generation.credit_reservation_id) throw new Error("credit_reservation_missing");
 
   const config = getGenerationServerEnv();
-  const storagePath = `${generation.user_id}/${generation.project_id}/${generation.id}.png`;
+  const storagePath = generationAssetPath({
+    userId: generation.user_id,
+    projectId: generation.project_id,
+    generationId: generation.id,
+  });
   if (
     await completeExistingGenerationFile(
       job,
@@ -96,6 +147,8 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     clientRequestId: job.idempotency_key.replace("generation:", ""),
     projectId: generation.project_id,
     contentType: generation.content_type as GenerationInput["contentType"],
+    coverPlatform:
+      (generation.cover_platform as GenerationInput["coverPlatform"]) ?? undefined,
     description: generation.user_prompt,
     primaryText: generation.primary_text ?? undefined,
     style: generation.style as GenerationInput["style"],
@@ -143,6 +196,69 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .catch(() => {
       throw new Error("storage_upload_failed");
     });
+  const previewBuffer = await createPreview(generated.imageBuffer);
+  const previewPath = generationAssetPath({
+    userId: generation.user_id,
+    projectId: generation.project_id,
+    generationId: generation.id,
+    preview: true,
+  });
+  await getPrivateStorage().put(previewPath, previewBuffer, "image/webp");
+  const retentionDays = Number(process.env.FREE_ASSET_RETENTION_DAYS || 30);
+  const previewRetentionDays = Number(process.env.PREVIEW_RETENTION_DAYS || 180);
+  const originalExpiresAt = new Date(
+    Date.now() + retentionDays * 86_400_000,
+  ).toISOString();
+  const previewExpiresAt = new Date(
+    Date.now() + previewRetentionDays * 86_400_000,
+  ).toISOString();
+  const provider = getPrivateStorage();
+  const [{ data: originalAsset, error: originalAssetError }, { data: previewAsset, error: previewAssetError }] =
+    await Promise.all([
+      admin
+        .from("assets")
+        .upsert(
+          {
+            user_id: generation.user_id,
+            kind: "generated_original",
+            storage_provider: provider.name,
+            bucket: provider.bucket,
+            storage_key: storagePath,
+            mime_type: generated.mimeType,
+            file_size_bytes: generated.imageBuffer.length,
+            width: generated.exportWidth,
+            height: generated.exportHeight,
+            content_sha256: createHash("sha256").update(generated.imageBuffer).digest("hex"),
+            status: "active",
+            expires_at: originalExpiresAt,
+          },
+          { onConflict: "storage_key" },
+        )
+        .select("id")
+        .single(),
+      admin
+        .from("assets")
+        .upsert(
+          {
+            user_id: generation.user_id,
+            kind: "preview",
+            storage_provider: provider.name,
+            bucket: provider.bucket,
+            storage_key: previewPath,
+            mime_type: "image/webp",
+            file_size_bytes: previewBuffer.length,
+            content_sha256: createHash("sha256").update(previewBuffer).digest("hex"),
+            status: "active",
+            expires_at: previewExpiresAt,
+          },
+          { onConflict: "storage_key" },
+        )
+        .select("id")
+        .single(),
+    ]);
+  if (originalAssetError || previewAssetError || !originalAsset || !previewAsset) {
+    throw originalAssetError || previewAssetError || new Error("asset_metadata_failed");
+  }
   await recordOutput(job.id, generated.imageBuffer);
 
   const { error: completeError } = await admin.rpc(
@@ -162,6 +278,21 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     },
   );
   if (completeError) throw completeError;
+  const { error: metadataError } = await admin
+    .from("generations")
+    .update({
+      asset_id: originalAsset.id,
+      preview_asset_id: previewAsset.id,
+      provider_width: generated.providerWidth,
+      provider_height: generated.providerHeight,
+      export_width: generated.exportWidth,
+      export_height: generated.exportHeight,
+      size_fallback_used: generated.sizeFallbackUsed,
+      size_fallback_reason: generated.sizeFallbackReason,
+    })
+    .eq("id", generation.id)
+    .eq("user_id", generation.user_id);
+  if (metadataError) throw metadataError;
 }
 
 async function processEdit(job: JobRecord, startedAt: number) {
@@ -282,6 +413,50 @@ async function processEdit(job: JobRecord, startedAt: number) {
     p_duration_ms: Date.now() - startedAt,
   });
   if (completeError) throw completeError;
+  const previewBuffer = await createPreview(outputBuffer);
+  const previewPath = `${version.user_id}/edits/${version.session_id}/previews/${version.id}.webp`;
+  const provider = getPrivateStorage();
+  await provider.put(previewPath, previewBuffer, "image/webp");
+  const expiresAt = new Date(
+    Date.now() + Number(process.env.FREE_ASSET_RETENTION_DAYS || 30) * 86_400_000,
+  ).toISOString();
+  const previewExpiresAt = new Date(
+    Date.now() + Number(process.env.PREVIEW_RETENTION_DAYS || 180) * 86_400_000,
+  ).toISOString();
+  const [{ data: asset }, { data: previewAsset }] = await Promise.all([
+    admin.from("assets").upsert({
+      user_id: version.user_id,
+      kind: "edited_original",
+      storage_provider: provider.name,
+      bucket: provider.bucket,
+      storage_key: storagePath,
+      mime_type: output.mimeType,
+      file_size_bytes: outputBuffer.length,
+      width: output.width,
+      height: output.height,
+      content_sha256: createHash("sha256").update(outputBuffer).digest("hex"),
+      status: "active",
+      expires_at: expiresAt,
+    }, { onConflict: "storage_key" }).select("id").single(),
+    admin.from("assets").upsert({
+      user_id: version.user_id,
+      kind: "preview",
+      storage_provider: provider.name,
+      bucket: provider.bucket,
+      storage_key: previewPath,
+      mime_type: "image/webp",
+      file_size_bytes: previewBuffer.length,
+      content_sha256: createHash("sha256").update(previewBuffer).digest("hex"),
+      status: "active",
+      expires_at: previewExpiresAt,
+    }, { onConflict: "storage_key" }).select("id").single(),
+  ]);
+  if (asset && previewAsset) {
+    await admin.from("edit_versions").update({
+      asset_id: asset.id,
+      preview_asset_id: previewAsset.id,
+    }).eq("id", version.id).eq("user_id", version.user_id);
+  }
 }
 
 export async function processQueuedJob(jobId: string) {
@@ -401,10 +576,47 @@ export async function maintainQueue() {
       });
     }
   }
+  const now = new Date();
+  const { data: toExpire } = await admin
+    .from("assets")
+    .select("id")
+    .in("status", ["active", "uploading"])
+    .is("pinned_at", null)
+    .lt("expires_at", now.toISOString())
+    .limit(100);
+  const expiredAssetIds = (toExpire ?? []).map((asset) => asset.id);
+  if (expiredAssetIds.length) {
+    await admin.from("assets").update({ status: "expired" }).in("id", expiredAssetIds);
+  }
+  const graceDays = Number(process.env.DELETION_GRACE_PERIOD_DAYS || 7);
+  const deletionCutoff = new Date(now.getTime() - graceDays * 86_400_000).toISOString();
+  const { data: toDelete } = await admin
+    .from("assets")
+    .select("id, storage_key")
+    .eq("status", "expired")
+    .is("pinned_at", null)
+    .lt("updated_at", deletionCutoff)
+    .limit(100);
+  let cleanedAssets = 0;
+  for (const asset of toDelete ?? []) {
+    await admin.from("assets").update({ status: "deleting" }).eq("id", asset.id).eq("status", "expired");
+    try {
+      await getPrivateStorage().remove(asset.storage_key);
+      await admin.from("assets").update({
+        status: "deleted",
+        deleted_at: new Date().toISOString(),
+      }).eq("id", asset.id);
+      cleanedAssets += 1;
+    } catch {
+      await admin.from("assets").update({ status: "expired" }).eq("id", asset.id);
+    }
+  }
   return {
     published: published.data ?? 0,
     recovered: recovered.data ?? 0,
     expiredRateLimits: expiredRateLimits.count ?? 0,
     cleanedUploads,
+    expiredAssets: expiredAssetIds.length,
+    cleanedAssets,
   };
 }

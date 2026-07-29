@@ -80,6 +80,7 @@ export function getGenerationServerEnv() {
     apiKey,
     imageModel,
     generationEnabled,
+    fourKEnabled: readBoolean("FOUR_K_GENERATION_ENABLED", false),
     dailyLimit: readPositiveInteger(
       "GENERATION_DAILY_LIMIT",
       DEFAULT_DAILY_LIMIT,

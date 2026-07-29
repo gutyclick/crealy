@@ -4,8 +4,11 @@ export type ContentType =
   | "banner"
   | "social-cover";
 
+export type CoverPlatform = "youtube" | "facebook" | "x" | "linkedin";
+
 export type GenerationFormat =
   | "youtube-16-9"
+  | "youtube-cover"
   | "social-square"
   | "social-portrait"
   | "banner-3-1"
@@ -16,7 +19,7 @@ export type GenerationFormat =
   | "social-cover-panorama";
 
 export type GenerationStyle =
-  | "auto"
+  | "automatic"
   | "viral"
   | "gamer"
   | "sports"
@@ -29,6 +32,8 @@ export type GenerationStyle =
   | "technology"
   | "luxury"
   | "news"
+  // Historical value remains readable for queued and completed generations.
+  | "auto"
   // Historical values remain readable for queued and completed generations.
   | "photographic"
   | "illustration"
@@ -42,12 +47,15 @@ export type ColorPreference =
   | "cool"
   | "custom";
 
+export type ColorMode = "automatic" | "preset" | "custom";
+
 export type GenerationQuality = "fast" | "high";
 
 export type GenerationInput = {
   clientRequestId: string;
   projectId?: string;
   contentType: ContentType;
+  coverPlatform?: CoverPlatform;
   description: string;
   primaryText?: string;
   style: GenerationStyle;
@@ -104,6 +112,7 @@ export type GenerationListItem = {
   projectId: string;
   projectTitle: string;
   contentType: ContentType;
+  coverPlatform: CoverPlatform | null;
   format: GenerationFormat;
   status: GenerationStatus;
   imageUrl: string | null;

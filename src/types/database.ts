@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      assets: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: string;
+          storage_provider: string;
+          bucket: string;
+          storage_key: string;
+          mime_type: string;
+          file_size_bytes: number;
+          width: number | null;
+          height: number | null;
+          content_sha256: string | null;
+          status: string;
+          expires_at: string | null;
+          pinned_at: string | null;
+          deleted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind: string;
+          storage_provider: string;
+          bucket: string;
+          storage_key: string;
+          mime_type: string;
+          file_size_bytes: number;
+          width?: number | null;
+          height?: number | null;
+          content_sha256?: string | null;
+          status?: string;
+          expires_at?: string | null;
+          pinned_at?: string | null;
+          deleted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["assets"]["Insert"]>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -41,6 +83,7 @@ export type Database = {
           content_type: string;
           created_at: string;
           updated_at: string;
+          preview_asset_id: string | null;
         };
         Insert: {
           id?: string;
@@ -49,6 +92,7 @@ export type Database = {
           content_type: string;
           created_at?: string;
           updated_at?: string;
+          preview_asset_id?: string | null;
         };
         Update: {
           id?: string;
@@ -57,6 +101,7 @@ export type Database = {
           content_type?: string;
           created_at?: string;
           updated_at?: string;
+          preview_asset_id?: string | null;
         };
         Relationships: [];
       };
@@ -70,6 +115,7 @@ export type Database = {
           user_prompt: string;
           enhanced_prompt: string | null;
           content_type: string;
+          cover_platform: string | null;
           requested_format: string;
           output_size: string | null;
           style: string;
@@ -90,6 +136,14 @@ export type Database = {
           credit_cost: number | null;
           created_at: string;
           completed_at: string | null;
+          asset_id: string | null;
+          preview_asset_id: string | null;
+          provider_width: number | null;
+          provider_height: number | null;
+          export_width: number | null;
+          export_height: number | null;
+          size_fallback_used: boolean;
+          size_fallback_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -100,6 +154,7 @@ export type Database = {
           user_prompt: string;
           enhanced_prompt?: string | null;
           content_type: string;
+          cover_platform?: string | null;
           requested_format: string;
           output_size?: string | null;
           style: string;
@@ -120,6 +175,14 @@ export type Database = {
           credit_cost?: number | null;
           created_at?: string;
           completed_at?: string | null;
+          asset_id?: string | null;
+          preview_asset_id?: string | null;
+          provider_width?: number | null;
+          provider_height?: number | null;
+          export_width?: number | null;
+          export_height?: number | null;
+          size_fallback_used?: boolean;
+          size_fallback_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -130,6 +193,7 @@ export type Database = {
           user_prompt?: string;
           enhanced_prompt?: string | null;
           content_type?: string;
+          cover_platform?: string | null;
           requested_format?: string;
           output_size?: string | null;
           style?: string;
@@ -150,6 +214,14 @@ export type Database = {
           credit_cost?: number | null;
           created_at?: string;
           completed_at?: string | null;
+          asset_id?: string | null;
+          preview_asset_id?: string | null;
+          provider_width?: number | null;
+          provider_height?: number | null;
+          export_width?: number | null;
+          export_height?: number | null;
+          size_fallback_used?: boolean;
+          size_fallback_reason?: string | null;
         };
         Relationships: [
           {
@@ -174,6 +246,7 @@ export type Database = {
           purpose: string;
           expires_at: string | null;
           created_at: string;
+          asset_id: string | null;
         };
         Insert: {
           id?: string;
@@ -187,12 +260,14 @@ export type Database = {
           purpose?: string;
           expires_at?: string | null;
           created_at?: string;
+          asset_id?: string | null;
         };
         Update: {
           storage_path?: string;
           original_filename?: string;
           purpose?: string;
           expires_at?: string | null;
+          asset_id?: string | null;
         };
         Relationships: [];
       };
@@ -257,6 +332,8 @@ export type Database = {
           credit_cost: number | null;
           created_at: string;
           completed_at: string | null;
+          asset_id: string | null;
+          preview_asset_id: string | null;
         };
         Insert: {
           id?: string;
@@ -282,6 +359,8 @@ export type Database = {
           credit_cost?: number | null;
           created_at?: string;
           completed_at?: string | null;
+          asset_id?: string | null;
+          preview_asset_id?: string | null;
         };
         Update: {
           status?: string;
@@ -297,6 +376,8 @@ export type Database = {
           credit_transaction_id?: string | null;
           credit_cost?: number | null;
           completed_at?: string | null;
+          asset_id?: string | null;
+          preview_asset_id?: string | null;
         };
         Relationships: [];
       };

@@ -7,9 +7,12 @@ import {
   getContentTypeConfig,
   requiresHighQuality,
 } from "@/config/generation";
+import { PLATFORM_COVERS } from "@/config/content-formats";
+import { validateColorPalette } from "@/lib/colors/validate-color-palette";
 import type {
   ColorPreference,
   ContentType,
+  CoverPlatform,
   GenerationFormat,
   GenerationInput,
   GenerationQuality,
@@ -18,7 +21,6 @@ import type {
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const HEX_PATTERN = /^#[0-9a-f]{6}$/i;
 
 const CONTENT_TYPES = new Set<ContentType>(
   GENERATION_CONTENT_TYPES.map((item) => item.id),
@@ -34,6 +36,9 @@ const COLORS = new Set<ColorPreference>(
 );
 const QUALITIES = new Set<GenerationQuality>(
   GENERATION_QUALITIES.map((item) => item.id),
+);
+const COVER_PLATFORMS = new Set<CoverPlatform>(
+  Object.keys(PLATFORM_COVERS) as CoverPlatform[],
 );
 
 type ValidationResult =
@@ -62,6 +67,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       ? rawInput.primaryText.trim()
       : "";
   const contentType = rawInput.contentType;
+  const coverPlatform = rawInput.coverPlatform;
   const format = rawInput.format;
   const style = rawInput.style;
   const colorPreference = rawInput.colorPreference;
@@ -101,6 +107,25 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     )
   ) {
     fields.format = "El formato no es compatible con el tipo seleccionado.";
+  }
+
+  if (contentType === "social-cover") {
+    if (
+      typeof coverPlatform !== "string" ||
+      !COVER_PLATFORMS.has(coverPlatform as CoverPlatform)
+    ) {
+      fields.coverPlatform = "Elige la plataforma de la portada.";
+    } else if (
+      typeof format === "string" &&
+      PLATFORM_COVERS[coverPlatform as CoverPlatform].format !== format
+    ) {
+      fields.format = "El tamaño no corresponde a la plataforma seleccionada.";
+    }
+    if (quality !== "high") {
+      fields.quality = "Las portadas solo se generan en calidad alta.";
+    }
+  } else if (coverPlatform !== undefined) {
+    fields.coverPlatform = "La plataforma solo aplica a portadas.";
   }
 
   if (typeof style !== "string" || !STYLES.has(style as GenerationStyle)) {
@@ -155,23 +180,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
 
   let customColors: string[] | undefined;
   if (colorPreference === "custom") {
-    if (
-      !Array.isArray(rawInput.customColors) ||
-      rawInput.customColors.length < 1 ||
-      rawInput.customColors.length > 5
-    ) {
-      fields.customColors = "Elige entre uno y cinco colores personalizados.";
-    } else {
-      const normalizedColors = rawInput.customColors.map((color) =>
-        typeof color === "string" ? color.trim().toUpperCase() : "",
-      );
-
-      if (normalizedColors.some((color) => !HEX_PATTERN.test(color))) {
-        fields.customColors = "Usa colores hexadecimales como #DDF527.";
-      } else {
-        customColors = [...new Set(normalizedColors)];
-      }
-    }
+    const palette = validateColorPalette(rawInput.customColors);
+    if (!palette.success) fields.customColors = palette.error;
+    else customColors = palette.colors;
   }
 
   if (Object.keys(fields).length > 0) {
@@ -184,6 +195,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       clientRequestId: clientRequestId as string,
       ...(typeof projectId === "string" ? { projectId } : {}),
       contentType: contentType as ContentType,
+      ...(contentType === "social-cover"
+        ? { coverPlatform: coverPlatform as CoverPlatform }
+        : {}),
       description,
       ...(primaryText ? { primaryText } : {}),
       style: style as GenerationStyle,

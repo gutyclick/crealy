@@ -6,7 +6,9 @@ import {
   RATE_LIMITS,
 } from "@/lib/operations/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getPrivateStorage } from "@/lib/storage/provider";
+import { uploadAssetPath } from "@/lib/storage/storage-paths";
 
 export const runtime = "nodejs";
 
@@ -124,21 +126,44 @@ export async function POST(request: Request) {
   }
 
   const uploadId = crypto.randomUUID();
+  const assetId = crypto.randomUUID();
   const extension =
     MIME_EXTENSIONS[body.mimeType as keyof typeof MIME_EXTENSIONS];
-  const path = `${user.id}/uploads/${uploadId}.${extension}`;
+  const path = uploadAssetPath({ userId: user.id, uploadId, extension });
+  const storage = getPrivateStorage();
   try {
-    const intent = await getPrivateStorage().signUpload(
+    const { error: assetError } = await createAdminClient().from("assets").insert({
+      id: assetId,
+      user_id: user.id,
+      kind: "user_upload",
+      storage_provider: storage.name,
+      bucket: storage.bucket,
+      storage_key: path,
+      mime_type: body.mimeType,
+      file_size_bytes: body.fileSize,
+      status: "uploading",
+      expires_at: new Date(
+        Date.now() + Number(process.env.UPLOAD_UNUSED_RETENTION_HOURS || 24) * 3_600_000,
+      ).toISOString(),
+    });
+    if (assetError) throw assetError;
+    const intent = await storage.signUpload(
       path,
       body.mimeType,
       10 * 60,
     );
     return NextResponse.json({
       uploadId,
+      assetId,
       ...intent,
       extension,
     });
   } catch {
+    await createAdminClient()
+      .from("assets")
+      .update({ status: "failed" })
+      .eq("id", assetId)
+      .eq("user_id", user.id);
     return NextResponse.json(
       { code: "storage_error", error: "No pudimos preparar la subida." },
       { status: 500 },

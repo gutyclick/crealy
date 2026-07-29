@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { updatePassword } from "@/app/(dashboard)/settings/actions";
+import { closeOtherSessions, updatePassword } from "@/app/(dashboard)/settings/actions";
+import { MfaSettings } from "@/components/auth/mfa-settings";
 import { Container } from "@/components/layout/container";
 import { requireUser } from "@/lib/auth/require-user";
 
@@ -9,7 +10,7 @@ export const metadata: Metadata = { title: "Seguridad | Crealy" };
 export default async function SecurityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; sessionsClosed?: string; error?: string }>;
 }) {
   const user = await requireUser("/settings/security");
   const params = await searchParams;
@@ -33,11 +34,24 @@ export default async function SecurityPage({
                 <input name="confirmation" type="password" minLength={8} required autoComplete="new-password" className="mt-3 h-12 w-full rounded-xl border border-white/12 bg-surface px-4 outline-none focus:border-brand/60" />
               </label>
             </div>
+            <label className="mt-5 flex min-h-10 items-center gap-3 text-sm text-muted">
+              <input name="closeOtherSessions" type="checkbox" className="size-4 accent-[#DDF527]" />
+              Cerrar otras sesiones después del cambio
+            </label>
             {params.saved ? <p role="status" className="mt-4 text-sm text-brand">Contraseña actualizada.</p> : null}
             {params.error ? <p role="alert" className="mt-4 text-sm text-red-300">{params.error}</p> : null}
             <button className="mt-6 min-h-11 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink hover:bg-[var(--brand-hover)]">
               Actualizar contraseña
             </button>
+          </form>
+          <MfaSettings />
+          <form action={closeOtherSessions} className="border-b border-white/10 py-8">
+            <h2 className="text-lg font-semibold">Sesiones</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Cierra todas las demás sesiones y conserva la actual. Los tokens ya emitidos pueden seguir activos hasta su expiración.
+            </p>
+            {params.sessionsClosed ? <p role="status" className="mt-4 text-sm text-brand">Las otras sesiones se cerraron.</p> : null}
+            <button className="mt-5 min-h-11 rounded-xl border border-white/15 px-4 text-sm font-semibold hover:bg-white/[0.05]">Cerrar otras sesiones</button>
           </form>
         </div>
       </Container>

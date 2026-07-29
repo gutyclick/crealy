@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { listGenerations } from "@/lib/generation/list-generations";
 import { createClient } from "@/lib/supabase/server";
 import { listRecentEditSessions } from "@/lib/editing/get-edit-session";
+import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 
 /*
 THESIS: El dashboard orienta la primera acción sin fingir un producto terminado ni llenar el espacio con datos falsos.
@@ -39,9 +40,9 @@ export default async function DashboardPage() {
     profile?.full_name?.trim().split(/\s+/)[0] ||
     metadataName.split(/\s+/)[0] ||
     localEmailName;
-  const [recentGenerations, recentEditSessions, activeJobsResult] =
+  const [recentGenerations, recentEditSessions, activeJobsResult, billing] =
     await Promise.all([
-      listGenerations(user.id, 4),
+      listGenerations(user.id, 8),
       listRecentEditSessions(user.id, 4),
       supabase
         .from("jobs")
@@ -50,6 +51,7 @@ export default async function DashboardPage() {
         .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
         .order("created_at", { ascending: false })
         .limit(5),
+      getUserBillingState(user.id).catch(() => null),
     ]);
 
   return (
@@ -64,6 +66,8 @@ export default async function DashboardPage() {
         resourceId: job.resource_id,
         createdAt: job.created_at,
       }))}
+      plan={billing?.effectivePlan.key ?? "free"}
+      credits={billing?.credits.available ?? 0}
     />
   );
 }

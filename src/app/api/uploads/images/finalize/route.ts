@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { inspectImage, safeUploadName } from "@/lib/editing/image-metadata";
 import { getEditingServerEnv } from "@/lib/env/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getPrivateStorage } from "@/lib/storage/provider";
 
 export const runtime = "nodejs";
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as
     | {
         uploadId?: unknown;
+        assetId?: unknown;
         extension?: unknown;
         originalFilename?: unknown;
         purpose?: unknown;
@@ -46,6 +48,8 @@ export async function POST(request: Request) {
     !body ||
     typeof body.uploadId !== "string" ||
     !UUID_PATTERN.test(body.uploadId) ||
+    typeof body.assetId !== "string" ||
+    !UUID_PATTERN.test(body.assetId) ||
     typeof body.extension !== "string" ||
     !EXTENSIONS.has(body.extension) ||
     typeof body.originalFilename !== "string" ||
@@ -59,7 +63,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const storagePath = `${user.id}/uploads/${body.uploadId}.${body.extension}`;
+  const admin = createAdminClient();
+  const { data: pendingAsset } = await admin
+    .from("assets")
+    .select("id, storage_key, mime_type, file_size_bytes, status")
+    .eq("id", body.assetId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!pendingAsset || !["uploading", "active"].includes(pendingAsset.status)) {
+    return NextResponse.json(
+      { code: "invalid_upload", error: "La subida firmada ya no es válida." },
+      { status: 400 },
+    );
+  }
+  const storagePath = pendingAsset.storage_key;
   const { data: existing } = await supabase
     .from("user_uploads")
     .select("id")
@@ -87,6 +104,19 @@ export async function POST(request: Request) {
   }
 
   const storage = getPrivateStorage();
+  const storedObject = await storage.head(storagePath).catch(() => null);
+  if (
+    !storedObject ||
+    storedObject.size < 1 ||
+    storedObject.size > config.maxReferenceImageBytes ||
+    (storedObject.contentType && storedObject.contentType !== pendingAsset.mime_type)
+  ) {
+    await admin.from("assets").update({ status: "failed" }).eq("id", pendingAsset.id);
+    return NextResponse.json(
+      { code: "storage_error", error: "El archivo subido no coincide con la autorización." },
+      { status: 400 },
+    );
+  }
   const buffer = await storage.get(storagePath).catch(() => null);
   if (!buffer) {
     return NextResponse.json(
@@ -126,6 +156,23 @@ export async function POST(request: Request) {
     );
   }
 
+  const { error: assetUpdateError } = await admin
+    .from("assets")
+    .update({
+      status: "active",
+      mime_type: metadata.mimeType,
+      file_size_bytes: buffer.length,
+      width: metadata.width,
+      height: metadata.height,
+    })
+    .eq("id", pendingAsset.id)
+    .eq("user_id", user.id);
+  if (assetUpdateError) {
+    return NextResponse.json(
+      { code: "storage_error", error: "No pudimos activar el archivo." },
+      { status: 500 },
+    );
+  }
   const { error: insertError } = await supabase.from("user_uploads").insert({
     id: body.uploadId,
     user_id: user.id,
@@ -136,6 +183,7 @@ export async function POST(request: Request) {
     width: metadata.width,
     height: metadata.height,
     purpose: body.purpose,
+    asset_id: pendingAsset.id,
     expires_at:
       body.purpose === "reference"
         ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()

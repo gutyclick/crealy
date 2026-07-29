@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { updateProfile } from "@/app/(dashboard)/settings/actions";
+import { updateEmail, updateProfile } from "@/app/(dashboard)/settings/actions";
 import { Container } from "@/components/layout/container";
 import { requireUser } from "@/lib/auth/require-user";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Perfil | Crealy" };
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; emailPending?: string; error?: string }>;
 }) {
   const user = await requireUser("/settings/profile");
   const supabase = await createClient();
@@ -43,12 +43,27 @@ export default async function ProfilePage({
               defaultValue={profile?.full_name ?? ""}
               className="mt-3 h-12 w-full rounded-xl border border-white/12 bg-surface px-4 outline-none focus:border-brand/60"
             />
-            <p className="mt-5 text-sm text-muted">{user.email}</p>
+            <p className="mt-5 text-sm text-muted">
+              Correo actual: <span className="text-foreground">{user.email}</span>{" "}
+              <span className="text-brand">
+                {user.email_confirmed_at ? "· Verificado" : "· No verificado"}
+              </span>
+            </p>
             {params.saved ? <p role="status" className="mt-4 text-sm text-brand">Perfil actualizado.</p> : null}
             {params.error ? <p role="alert" className="mt-4 text-sm text-red-300">{params.error}</p> : null}
             <button className="mt-6 min-h-11 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink hover:bg-[var(--brand-hover)]">
               Guardar perfil
             </button>
+          </form>
+          <form action={updateEmail} className="border-b border-white/10 py-8">
+            <h2 className="text-lg font-semibold">Cambiar correo</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              El cambio queda pendiente hasta completar la confirmación oficial de Supabase.
+            </p>
+            <label htmlFor="email" className="mt-5 block text-sm font-semibold">Correo nuevo</label>
+            <input id="email" name="email" type="email" required autoComplete="email" className="mt-3 h-12 w-full rounded-xl border border-white/12 bg-surface px-4 outline-none focus:border-brand/60" />
+            {params.emailPending ? <p role="status" className="mt-4 text-sm text-brand">Revisa tu correo actual y el nuevo para confirmar el cambio.</p> : null}
+            <button className="mt-5 min-h-11 rounded-xl border border-white/15 px-5 text-sm font-semibold hover:bg-white/[0.05]">Solicitar cambio</button>
           </form>
         </div>
       </Container>

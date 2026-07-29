@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 
 import { getSafeRedirect } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getStripeClient } from "@/lib/stripe/client";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -28,6 +30,24 @@ export async function GET(request: Request) {
     return NextResponse.redirect(
       new URL("/login?error=auth_callback", requestUrl.origin),
     );
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.email && process.env.STRIPE_SECRET_KEY?.trim()) {
+    try {
+      const { data: customer } = await createAdminClient()
+        .from("billing_customers")
+        .select("stripe_customer_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (customer) {
+        await getStripeClient().customers.update(customer.stripe_customer_id, {
+          email: user.email,
+        });
+      }
+    } catch {
+      // Auth confirmation must not fail if a downstream billing sync is unavailable.
+    }
   }
 
   const cookieStore = await cookies();

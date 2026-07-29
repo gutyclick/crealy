@@ -4,6 +4,48 @@ Plataforma en Next.js para convertir un brief breve en una pieza visual
 generada con OpenAI, guardada de forma privada en Supabase y disponible desde
 una biblioteca personal.
 
+## GPT Image 2 y formatos
+
+Crealy usa `gpt-image-2` y solicita el tamaño final directamente. Las miniaturas
+de YouTube son 1920 × 1080; las portadas de canal de YouTube son 2560 × 1440
+con zona segura central de 1235 × 338. X exporta 1500 × 500, LinkedIn
+1584 × 396 y Facebook se limita en esta fase a portada de página o perfil.
+Todas las portadas fuerzan calidad alta. La respuesta se inspecciona y guarda
+dimensiones reales del proveedor y de exportación. Si OpenAI rechaza una
+dimensión flexible, se reintenta una sola vez con el formato compatible más
+cercano y se registra el motivo; `sharp` solo adapta ese fallback y crea previews.
+4K permanece oculto con `FOUR_K_GENERATION_ENABLED=false` y no se ha certificado.
+
+Los estilos visuales viven en `src/config/visual-styles.ts`, con ejemplos locales
+en `public/styles`. El modo Automático usa reglas deterministas y no consume una
+segunda llamada. Las paletas personalizadas aceptan de uno a cinco valores
+`#RGB` o `#RRGGBB`.
+
+## Cuenta y almacenamiento privado
+
+Configuración incluye perfil, cambio de correo confirmado por Supabase, cambio
+de contraseña, cierre de otras sesiones, TOTP, Stripe Customer Portal y gestión
+de archivos. Supabase Auth no ofrece códigos de recuperación TOTP; se recomienda
+un segundo factor como respaldo.
+
+Los objetos nuevos usan la abstracción en `src/lib/storage`. Configura
+`OBJECT_STORAGE_PROVIDER=r2` y las variables privadas `R2_*`; nunca uses
+`NEXT_PUBLIC_` en credenciales. Los originales y previews WebP se registran en
+`public.assets`, tienen cuotas, expiración, período de gracia y enlaces firmados.
+La base de datos es la fuente de verdad.
+
+Para migrar sin borrar el origen:
+
+```bash
+npm run storage:migrate-to-r2 -- --dry-run
+npm run storage:migrate-to-r2 -- --execute
+```
+
+En Cloudflare R2 configura lifecycle para `temporary/`,
+`uploads/unattached/` y multipart incompletos. Estas reglas son un respaldo:
+el mantenimiento de Crealy debe seguir actualizando `active → expired →
+deleting → deleted`.
+
 ## Desarrollo
 
 ```bash

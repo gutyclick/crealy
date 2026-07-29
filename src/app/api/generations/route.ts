@@ -271,6 +271,14 @@ export async function POST(request: Request) {
   if (error || !data?.[0]) return reservationError(error?.message ?? "");
 
   const queued = data[0];
+  if (input.coverPlatform) {
+    const { error: platformError } = await admin
+      .from("generations")
+      .update({ cover_platform: input.coverPlatform })
+      .eq("id", queued.generation_id)
+      .eq("user_id", user.id);
+    if (platformError) return reservationError(platformError.message);
+  }
   await admin
     .from("jobs")
     .update({ max_attempts: operations.maxAttempts })

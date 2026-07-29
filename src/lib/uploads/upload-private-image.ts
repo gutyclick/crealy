@@ -7,6 +7,7 @@ export type UploadPurpose = "edit" | "reference";
 
 type SignedUpload = {
   uploadId: string;
+  assetId: string;
   path: string;
   extension: string;
 } & (
@@ -79,6 +80,7 @@ export async function uploadPrivateImage(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       uploadId: signed.uploadId,
+      assetId: signed.assetId,
       extension: signed.extension,
       originalFilename: file.name,
       purpose,

@@ -26,6 +26,15 @@ import type {
 } from "@/types/editing";
 import type { QueuedEditResponse } from "@/types/jobs";
 
+type EditorSubmitState =
+  | "idle"
+  | "submitting"
+  | "queued"
+  | "processing"
+  | "saving"
+  | "completed"
+  | "failed";
+
 function shortTime(value: string) {
   return new Intl.DateTimeFormat("es", {
     hour: "2-digit",
@@ -65,6 +74,9 @@ export function EditWorkspace({
     "before" | "after"
   >("after");
   const [loading, setLoading] = useState(false);
+  const [submitState, setSubmitState] = useState<EditorSubmitState>(
+    initialPendingJobId ? "queued" : "idle",
+  );
   const [pendingJobId, setPendingJobId] = useState<string | null>(
     initialPendingJobId,
   );
@@ -72,6 +84,7 @@ export function EditWorkspace({
   const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
+  const submissionLockRef = useRef(Boolean(initialPendingJobId));
 
   const selected =
     versions.find((version) => version.id === selectedVersionId) ??
@@ -156,11 +169,12 @@ export function EditWorkspace({
 
   async function submit() {
     const clean = instruction.trim();
-    if (clean.length < 10 || loading) {
+    if (clean.length < 10 || loading || submissionLockRef.current) {
       setError("Describe el cambio con al menos 10 caracteres.");
       return;
     }
 
+    submissionLockRef.current = true;
     const clientRequestId = crypto.randomUUID();
     const optimisticMessage: EditMessageView = {
       id: `pending-${clientRequestId}`,
@@ -170,8 +184,8 @@ export function EditWorkspace({
       createdAt: new Date().toISOString(),
     };
     setMessages((items) => [...items, optimisticMessage]);
-    setInstruction("");
     setLoading(true);
+    setSubmitState("submitting");
     setError(null);
     queueMicrotask(() =>
       conversationRef.current?.scrollTo({
@@ -204,6 +218,7 @@ export function EditWorkspace({
       }
 
       setPendingJobId(result.jobId);
+      setSubmitState("queued");
       setMessages((items) =>
         items.map((item) =>
           item.id === optimisticMessage.id
@@ -217,6 +232,8 @@ export function EditWorkspace({
         items.filter((item) => item.id !== optimisticMessage.id),
       );
       setInstruction(clean);
+      setSubmitState("failed");
+      submissionLockRef.current = false;
       setError(
         caught instanceof Error
           ? caught.message
@@ -502,13 +519,22 @@ export function EditWorkspace({
               <JobProgress
                 jobId={pendingJobId}
                 compact
-                onComplete={() => window.location.reload()}
-                onDismiss={() => setPendingJobId(null)}
+                onComplete={() => {
+                  setSubmitState("saving");
+                  setInstruction("");
+                  setSubmitState("completed");
+                  window.location.reload();
+                }}
+                onDismiss={() => {
+                  setPendingJobId(null);
+                  setSubmitState("failed");
+                  submissionLockRef.current = false;
+                }}
               />
             ) : null}
           </div>
 
-          <div className="border-t border-white/[0.08] p-4">
+          <div className="sticky bottom-0 border-t border-white/[0.08] bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] xl:static">
             {!available || initialSession.status !== "active" ? (
               <div
                 role="status"
@@ -594,9 +620,13 @@ export function EditWorkspace({
                 <Sparkles aria-hidden="true" className="size-4" />
               )}
               {pendingJobId
-                ? "Procesando versión…"
+                ? submitState === "saving"
+                  ? "Guardando…"
+                  : "Aplicando cambios…"
                 : loading
-                  ? "Preparando versión…"
+                  ? "Enviando…"
+                  : submitState === "failed"
+                    ? "Intentar nuevamente"
                   : "Aplicar cambios"}
               {!loading ? <Send aria-hidden="true" className="size-4" /> : null}
             </button>

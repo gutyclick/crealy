@@ -6,6 +6,7 @@ import {
   getEditingServerEnv,
   isGenerationAvailable,
 } from "@/lib/env/server";
+import type { ContentType } from "@/types/generation";
 
 /*
 THESIS: Crear debe sentirse como dirigir una pieza visual, no operar un panel técnico.
@@ -20,7 +21,23 @@ export const metadata: Metadata = {
   description: "Genera una nueva pieza visual con Crealy.",
 };
 
-export default function CreatePage() {
+const CONTENT_TYPES = new Set<ContentType>([
+  "youtube-thumbnail",
+  "social-post",
+  "banner",
+  "social-cover",
+]);
+
+export default async function CreatePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
+  const requestedType = (await searchParams).type;
+  const initialContentType =
+    requestedType && CONTENT_TYPES.has(requestedType as ContentType)
+      ? (requestedType as ContentType)
+      : undefined;
   let maxReferenceFileMb = 10;
   try {
     maxReferenceFileMb =
@@ -35,6 +52,7 @@ export default function CreatePage() {
         <GenerationForm
           available={isGenerationAvailable()}
           maxReferenceFileMb={maxReferenceFileMb}
+          initialContentType={initialContentType}
         />
       </Container>
     </main>

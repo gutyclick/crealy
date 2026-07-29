@@ -1,4 +1,13 @@
-import { ArrowUpRight, Clock3, Sparkles } from "lucide-react";
+import {
+  ArrowUpRight,
+  Clock3,
+  Image,
+  MonitorPlay,
+  PanelsTopLeft,
+  PencilLine,
+  RectangleHorizontal,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 
 import { GenerationGrid } from "@/components/generation/generation-grid";
@@ -12,6 +21,8 @@ export function DashboardHome({
   recentGenerations,
   recentEditSessions,
   activeJobs,
+  plan,
+  credits,
 }: {
   firstName?: string;
   recentGenerations: GenerationListItem[];
@@ -23,7 +34,15 @@ export function DashboardHome({
     resourceId: string;
     createdAt: string;
   }>;
+  plan: string;
+  credits: number;
 }) {
+  const quickCreate = [
+    { href: "/create?type=youtube-thumbnail", label: "Miniatura de YouTube", description: "1920 × 1080", icon: MonitorPlay },
+    { href: "/create?type=social-post", label: "Post para redes", description: "Cuadrado o vertical", icon: Image },
+    { href: "/create?type=banner", label: "Banner", description: "Formato panorámico", icon: RectangleHorizontal },
+    { href: "/create?type=social-cover", label: "Portada", description: "Elige la plataforma", icon: PanelsTopLeft },
+  ] as const;
   return (
     <main className="py-10 sm:py-14">
       <Container>
@@ -33,7 +52,7 @@ export function DashboardHome({
             {firstName ? `Hola, ${firstName}.` : "Hola."}
           </h1>
           <p className="max-w-xl text-base leading-7 text-muted">
-            Convierte una idea en una pieza visual lista para compartir.
+            ¿Qué quieres crear hoy?
           </p>
         </div>
 
@@ -54,17 +73,37 @@ export function DashboardHome({
               Elige el formato, describe lo que quieres comunicar y ajusta el
               estilo. Crealy construye el primer resultado contigo.
             </p>
-            <Link
-              href="/create"
-              className="mt-7 inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink shadow-[0_14px_38px_rgba(221,245,39,0.12)] transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-[var(--brand-hover)]"
-            >
-              Crear nuevo diseño
-              <ArrowUpRight aria-hidden="true" className="size-4" />
-            </Link>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/create" className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink transition hover:-translate-y-0.5 hover:bg-[var(--brand-hover)]">
+                Crear nuevo diseño <ArrowUpRight aria-hidden="true" className="size-4" />
+              </Link>
+              <Link href="/edit" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/15 px-5 text-sm font-semibold text-foreground hover:bg-white/[0.05]">
+                <PencilLine aria-hidden="true" className="size-4" /> Editar una imagen
+              </Link>
+            </div>
           </div>
         </section>
 
-        <section aria-labelledby="active-jobs-title" className="mt-10">
+        <section aria-labelledby="quick-create-title" className="mt-10">
+          <div className="mb-5">
+            <h2 id="quick-create-title" className="text-xl font-semibold text-foreground">Creación rápida</h2>
+            <p className="mt-1 text-sm text-muted">Empieza por el destino; el tamaño correcto viene incluido.</p>
+          </div>
+          <div className="grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
+            {quickCreate.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.href} href={item.href} className="group min-h-36 bg-background p-5 transition-colors hover:bg-white/[0.035]">
+                  <Icon aria-hidden="true" className="size-5 text-brand" />
+                  <span className="mt-7 block font-semibold text-foreground">{item.label}</span>
+                  <span className="mt-1 block text-xs text-muted">{item.description}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        {activeJobs.length ? <section aria-labelledby="active-jobs-title" className="mt-10">
           <div className="mb-5">
             <h2 id="active-jobs-title" className="text-xl font-semibold text-foreground">
               Trabajos en curso
@@ -73,7 +112,6 @@ export function DashboardHome({
               Puedes cerrar la pestaña; el trabajo continúa en segundo plano.
             </p>
           </div>
-          {activeJobs.length ? (
             <div className="divide-y divide-white/10 border-y border-white/10">
               {activeJobs.map((job) => (
                 <Link
@@ -94,12 +132,7 @@ export function DashboardHome({
                 </Link>
               ))}
             </div>
-          ) : (
-            <div className="border-y border-white/10 py-6 text-sm text-muted">
-              No tienes trabajos pendientes.
-            </div>
-          )}
-        </section>
+        </section> : null}
 
         <section aria-labelledby="recent-projects-title" className="mt-10">
           <div className="mb-5 flex items-end justify-between gap-4">
@@ -126,6 +159,16 @@ export function DashboardHome({
           <GenerationGrid items={recentGenerations} compact />
         </section>
         <RecentEditSessions sessions={recentEditSessions} />
+        <section className="mt-10 grid gap-4 border-t border-white/10 pt-8 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Plan y créditos</p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground">{plan === "free" ? "Plan Free" : `Plan ${plan}`}</h2>
+            <p className="mt-1 text-sm text-muted">{credits} créditos disponibles.</p>
+          </div>
+          <Link href="/settings/billing" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-semibold text-foreground hover:bg-white/[0.05]">
+            Administrar plan
+          </Link>
+        </section>
       </Container>
     </main>
   );
