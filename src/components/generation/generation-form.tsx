@@ -41,6 +41,7 @@ import type {
   GenerationResponse,
   GenerationStyle,
 } from "@/types/generation";
+import type { QueuedGenerationResponse } from "@/types/jobs";
 
 const contentIcons = {
   "monitor-play": MonitorPlay,
@@ -193,7 +194,7 @@ export function GenerationForm({
         }),
       });
       const payload = await readApiResponse<
-        | GenerationResponse
+        | QueuedGenerationResponse
         | GenerationErrorResponse
       >(response, "No pudimos completar la generación.");
 
@@ -209,8 +210,7 @@ export function GenerationForm({
       }
 
       setProjectId(payload.projectId);
-      setResult({ ...payload, status: "completed" });
-      router.refresh();
+      router.push(`/generations/${payload.generationId}?job=${payload.jobId}`);
     } catch (error) {
       setResult({
         status: "error",

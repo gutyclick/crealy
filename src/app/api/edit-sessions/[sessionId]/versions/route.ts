@@ -1,136 +1,121 @@
-import OpenAI from "openai";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 
-import {
-  completeEditWithCredits,
-  CreditError,
-  ensureWelcomeCredits,
-  releaseCredits,
-  reserveCredits,
-} from "@/lib/credits/credit-service";
+import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
 import { getEditCreditCost } from "@/lib/credits/get-credit-cost";
 import { buildEditInstruction } from "@/lib/editing/build-edit-instruction";
-import { editImage } from "@/lib/editing/edit-image";
-import { inspectImage } from "@/lib/editing/image-metadata";
-import { resolveVersionSource } from "@/lib/editing/resolve-version-source";
 import { getEditingServerEnv } from "@/lib/env/server";
+import { processQueuedJob } from "@/lib/jobs/worker";
+import { logger } from "@/lib/observability/logger";
+import { getOperationsConfig } from "@/lib/operations/config";
+import {
+  enforceRateLimit,
+  RATE_LIMITS,
+} from "@/lib/operations/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  ApiErrorResponse,
-  EditVersionResponse,
-  EditVersionView,
-} from "@/types/editing";
+import type { ApiErrorResponse } from "@/types/editing";
+import type { QueuedEditResponse } from "@/types/jobs";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
 const MAX_REQUEST_BYTES = 12_000;
-const SIGNED_URL_TTL_SECONDS = 60 * 60;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function error(code: string, message: string, status: number) {
+function apiError(code: string, message: string, status: number, headers?: HeadersInit) {
   return NextResponse.json<ApiErrorResponse>(
     { code, error: message },
-    { status },
+    { status, headers },
   );
 }
 
 function reservationError(message: string) {
+  if (message.includes("insufficient_credits")) {
+    return apiError("insufficient_credits", "No tienes créditos suficientes.", 402);
+  }
   if (message.includes("edit_active")) {
-    return error("edit_active", "Ya tienes un cambio en proceso.", 429);
+    return apiError("edit_active", "Ya tienes un cambio en proceso.", 429);
   }
   if (message.includes("edit_limit")) {
-    return error("edit_limit", "Alcanzaste el límite diario de ediciones.", 429);
+    return apiError("edit_limit", "Alcanzaste el límite diario de ediciones.", 429);
   }
   if (message.includes("edit_cooldown")) {
-    return error("edit_cooldown", "Espera unos segundos antes de editar otra vez.", 429);
+    return apiError("edit_cooldown", "Espera unos segundos antes de editar otra vez.", 429);
   }
   if (message.includes("version_limit")) {
-    return error(
+    return apiError(
       "version_limit",
       "Esta sesión alcanzó su límite de versiones. Inicia una nueva edición.",
       429,
     );
   }
   if (message.includes("session_not_found")) {
-    return error("not_found", "No encontramos esta sesión activa.", 404);
+    return apiError("not_found", "No encontramos esta sesión activa.", 404);
   }
-  return error("internal_error", "No pudimos preparar la nueva versión.", 500);
-}
-
-function providerError(providerError: unknown) {
-  if (providerError instanceof OpenAI.APIError) {
-    if (providerError.status === 401 || providerError.status === 403) {
-      return {
-        code: "provider_auth",
-        status: 503,
-        message: "La edición con IA no está disponible en este momento.",
-      };
-    }
-    if (providerError.status === 429) {
-      return {
-        code: "provider_busy",
-        status: 429,
-        message: "La IA está ocupada. Inténtalo de nuevo en un momento.",
-      };
-    }
-    if (providerError.status && providerError.status >= 500) {
-      return {
-        code: "provider_busy",
-        status: 503,
-        message: "La IA no respondió. Tu imagen original sigue intacta.",
-      };
-    }
+  if (message.includes("budget_exceeded")) {
+    return apiError(
+      "editing_disabled",
+      "La edición alcanzó temporalmente su capacidad operativa.",
+      503,
+    );
   }
-  return {
-    code: "edit_failed",
-    status: 500,
-    message: "No pudimos crear esta versión. Tu imagen original sigue intacta.",
-  };
+  return apiError("internal_error", "No pudimos preparar la nueva versión.", 500);
 }
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
-  const startedAt = Date.now();
   if (!request.headers.get("content-type")?.includes("application/json")) {
-    return error("invalid_request", "Envía la solicitud como JSON.", 415);
+    return apiError("invalid_request", "Envía la solicitud como JSON.", 415);
   }
-
   const supabase = await createClient();
-  const admin = createAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return error("unauthorized", "Inicia sesión para editar.", 401);
+  if (!user) return apiError("unauthorized", "Inicia sesión para editar.", 401);
+  if (!user.email_confirmed_at) {
+    return apiError("email_unverified", "Confirma tu correo antes de editar.", 403);
+  }
+
   try {
-    await ensureWelcomeCredits(user.id);
+    const rateLimit = await enforceRateLimit({
+      request,
+      userId: user.id,
+      action: "edit.create",
+      userPolicy: RATE_LIMITS.editUser,
+      ipPolicy: RATE_LIMITS.editIp,
+    });
+    if (!rateLimit.allowed) {
+      return apiError(
+        "rate_limited",
+        "Hay demasiadas solicitudes. Espera un momento.",
+        429,
+        { "Retry-After": String(rateLimit.retryAfter) },
+      );
+    }
   } catch {
-    return error(
-      "billing_unavailable",
-      "No pudimos consultar tus créditos. Inténtalo de nuevo.",
-      503,
-    );
+    return apiError("operations_unavailable", "No pudimos validar la solicitud.", 503);
   }
 
   let config: ReturnType<typeof getEditingServerEnv>;
+  let operations: ReturnType<typeof getOperationsConfig>;
   try {
     config = getEditingServerEnv();
+    operations = getOperationsConfig();
   } catch {
-    return error("editing_disabled", "La edición no está disponible.", 503);
+    return apiError("editing_disabled", "La edición no está disponible.", 503);
   }
-  if (!config.editingEnabled) {
-    return error("editing_disabled", "La edición está en mantenimiento.", 503);
+  if (!config.editingEnabled || !operations.workerEnabled) {
+    return apiError("editing_disabled", "La edición está en mantenimiento.", 503);
   }
 
   const declaredLength = Number(request.headers.get("content-length") || 0);
   if (declaredLength > MAX_REQUEST_BYTES) {
-    return error("invalid_request", "La solicitud es demasiado grande.", 413);
+    return apiError("invalid_request", "La solicitud es demasiado grande.", 413);
   }
-
   let body: {
     clientRequestId?: unknown;
     baseVersionId?: unknown;
@@ -140,11 +125,11 @@ export async function POST(
   try {
     const text = await request.text();
     if (Buffer.byteLength(text, "utf8") > MAX_REQUEST_BYTES) {
-      return error("invalid_request", "La solicitud es demasiado grande.", 413);
+      return apiError("invalid_request", "La solicitud es demasiado grande.", 413);
     }
     body = JSON.parse(text);
   } catch {
-    return error("invalid_request", "La solicitud no contiene JSON válido.", 400);
+    return apiError("invalid_request", "La solicitud no contiene JSON válido.", 400);
   }
 
   const instruction =
@@ -159,7 +144,7 @@ export async function POST(
     instruction.length > 1000 ||
     typeof body.preserveUnmentionedElements !== "boolean"
   ) {
-    return error(
+    return apiError(
       "invalid_request",
       "Describe el cambio en entre 10 y 1000 caracteres.",
       400,
@@ -168,302 +153,74 @@ export async function POST(
 
   const { sessionId } = await params;
   if (!UUID_PATTERN.test(sessionId)) {
-    return error("not_found", "No encontramos esta sesión.", 404);
+    return apiError("not_found", "No encontramos esta sesión.", 404);
   }
-
-  const { data: session } = await supabase
-    .from("edit_sessions")
-    .select("id, current_version_id, previous_response_id, status")
-    .eq("id", sessionId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!session || session.status !== "active") {
-    return error("not_found", "No encontramos esta sesión activa.", 404);
-  }
-
-  const provisionalInstruction = buildEditInstruction({
-    instruction,
-    preserveComposition: body.preserveUnmentionedElements,
-    width: 1,
-    height: 1,
-  });
-  const { data: reservationRows, error: reserveError } = await supabase.rpc(
-    "reserve_edit_version",
-    {
-      p_session_id: sessionId,
-      p_client_request_id: body.clientRequestId,
-      p_base_version_id: (body.baseVersionId as string | null) ?? null,
-      p_instruction: instruction,
-      p_enhanced_instruction: provisionalInstruction,
-      p_preserve_composition: body.preserveUnmentionedElements,
-      p_daily_limit: 2_147_483_647,
-      p_cooldown_seconds: 1,
-      p_version_limit: config.sessionVersionLimit,
-    },
-  );
-  if (reserveError || !reservationRows?.[0]) {
-    return reservationError(reserveError?.message ?? "");
-  }
-
-  const reservation = reservationRows[0];
-  const versionId = reservation.reserved_version_id;
-
-  if (reservation.is_existing) {
-    if (reservation.version_status !== "completed") {
-      return error(
-        "edit_in_progress",
-        reservation.version_status === "failed"
-          ? "La solicitud anterior no se completó. Prueba de nuevo."
-          : "Esta versión todavía está en proceso.",
-        409,
-      );
-    }
-
-    const { data: existing } = await supabase
-      .from("edit_versions")
-      .select("id, parent_version_id, status, storage_path, width, height, instruction, preserve_composition, created_at, credit_cost")
-      .eq("id", versionId)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (existing?.storage_path) {
-      const { data: signed } = await supabase.storage
-        .from("generations")
-        .createSignedUrl(existing.storage_path, SIGNED_URL_TTL_SECONDS);
-      if (signed?.signedUrl) {
-        const { data: account } = await supabase
-          .from("credit_accounts")
-          .select("available_balance")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        const version: EditVersionView = {
-          id: existing.id,
-          parentVersionId: existing.parent_version_id,
-          status: existing.status,
-          imageUrl: signed.signedUrl,
-          width: existing.width,
-          height: existing.height,
-          instruction: existing.instruction,
-          preserveComposition: existing.preserve_composition,
-          createdAt: existing.created_at,
-          isCurrent: true,
-        };
-        return NextResponse.json<EditVersionResponse>({
-          version,
-          assistantMessage: {
-            id: `assistant-${existing.id}`,
-            versionId: existing.id,
-            role: "assistant",
-            content: "Listo. Creé una nueva versión con los cambios solicitados.",
-            createdAt: existing.created_at,
-          },
-          creditsUsed: existing.credit_cost ?? 0,
-          creditsRemaining: account?.available_balance ?? 0,
-        });
-      }
-    }
-    return error("storage_error", "La versión existe, pero no pudimos mostrarla.", 500);
-  }
-
-  let storagePath: string | null = null;
-  let creditReservationId: string | null = null;
-  const creditCost = getEditCreditCost();
   try {
-    const creditReservation = await reserveCredits({
-      userId: user.id,
-      amount: creditCost,
-      referenceType: "edit",
-      referenceId: versionId,
-    });
-    creditReservationId = creditReservation.reservationId;
-    const { error: creditLinkError } = await admin
-      .from("edit_versions")
-      .update({
-        credit_reservation_id: creditReservationId,
-        credit_cost: creditCost,
-      })
-      .eq("id", versionId)
-      .eq("user_id", user.id);
-    if (creditLinkError) {
-      throw new CreditError("credit_reservation_failed");
-    }
+    await ensureWelcomeCredits(user.id);
+  } catch {
+    return apiError("billing_unavailable", "No pudimos consultar tus créditos.", 503);
+  }
 
-    const { data: baseVersion } = await supabase
-      .from("edit_versions")
-      .select("storage_path, source_generation_id, source_upload_id, mime_type, width, height")
-      .eq("id", reservation.selected_base_version_id)
-      .eq("session_id", sessionId)
-      .eq("user_id", user.id)
-      .eq("status", "completed")
-      .maybeSingle();
-    if (!baseVersion) throw new Error("base_version_missing");
-
-    const source = await resolveVersionSource(supabase, baseVersion);
-    if (
-      !source?.storagePath ||
-      !source.mimeType ||
-      !source.width ||
-      !source.height
-    ) {
-      throw new Error("base_source_missing");
-    }
-
-    const enhancedInstruction = buildEditInstruction({
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("create_edit_job_internal", {
+    p_user_id: user.id,
+    p_session_id: sessionId,
+    p_client_request_id: body.clientRequestId,
+    p_base_version_id: (body.baseVersionId as string | null) ?? null,
+    p_instruction: instruction,
+    p_enhanced_instruction: buildEditInstruction({
       instruction,
       preserveComposition: body.preserveUnmentionedElements,
-      width: source.width,
-      height: source.height,
-    });
-    const { error: processingError } = await admin
-      .from("edit_versions")
-      .update({
-        status: "processing",
-        enhanced_instruction: enhancedInstruction,
-        model: config.responsesModel,
-      })
-      .eq("id", versionId)
-      .eq("user_id", user.id)
-      .eq("status", "pending");
-    if (processingError) throw processingError;
-
-    const { data: sourceBlob, error: downloadError } = await supabase.storage
-      .from("generations")
-      .download(source.storagePath);
-    if (downloadError || !sourceBlob) throw new Error("source_download_failed");
-
-    const sourceBuffer = Buffer.from(await sourceBlob.arrayBuffer());
-    if (sourceBuffer.length > config.maxReferenceImageBytes) {
-      throw new Error("source_too_large");
-    }
-    const sourceMetadata = inspectImage(sourceBuffer);
-    if (
-      sourceMetadata.mimeType !== source.mimeType ||
-      sourceMetadata.width > config.maxReferenceWidth ||
-      sourceMetadata.height > config.maxReferenceHeight ||
-      sourceMetadata.width * sourceMetadata.height > config.maxReferencePixels
-    ) {
-      throw new Error("invalid_source_image");
-    }
-
-    const generated = await editImage({
-      imageBuffer: sourceBuffer,
-      mimeType: sourceMetadata.mimeType,
-      instruction: enhancedInstruction,
-      previousResponseId:
-        reservation.selected_base_version_id === session.current_version_id
-          ? session.previous_response_id
-          : null,
-      width: sourceMetadata.width,
-      height: sourceMetadata.height,
-    });
-    const output = inspectImage(generated.buffer);
-    storagePath = `${user.id}/edits/${sessionId}/${versionId}.png`;
-    const { error: uploadError } = await supabase.storage
-      .from("generations")
-      .upload(storagePath, generated.buffer, {
-        contentType: output.mimeType,
-        cacheControl: "3600",
-        upsert: false,
-      });
-    if (uploadError) throw uploadError;
-
-    const { data: signed, error: signedError } = await supabase.storage
-      .from("generations")
-      .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
-    if (signedError || !signed?.signedUrl) {
-      await supabase.storage.from("generations").remove([storagePath]);
-      storagePath = null;
-      throw new Error("signed_url_failed");
-    }
-
-    let creditResult;
-    try {
-      creditResult = await completeEditWithCredits({
-        userId: user.id,
-        versionId,
-        reservationId: creditReservationId,
-        storagePath,
-        mimeType: output.mimeType,
-        width: output.width,
-        height: output.height,
-        model: generated.model,
-        providerResponseId: generated.providerResponseId,
-      });
-    } catch {
-      await supabase.storage.from("generations").remove([storagePath]);
-      storagePath = null;
-      throw new CreditError("credit_consumption_failed");
-    }
-
-    const createdAt = new Date().toISOString();
-    console.info("[Crealy Edit]", {
-      sessionId,
-      versionId,
-      status: "completed",
-      durationMs: Date.now() - startedAt,
-      model: config.responsesModel,
-      sourceBytes: sourceBuffer.length,
-      outputBytes: generated.buffer.length,
-    });
-    return NextResponse.json<EditVersionResponse>(
-      {
-        version: {
-          id: versionId,
-          parentVersionId: reservation.selected_base_version_id,
-          status: "completed",
-          imageUrl: signed.signedUrl,
-          width: output.width,
-          height: output.height,
-          instruction,
-          preserveComposition: body.preserveUnmentionedElements,
-          createdAt,
-          isCurrent: true,
-        },
-        assistantMessage: {
-          id: `assistant-${versionId}`,
-          versionId,
-          role: "assistant",
-          content: "Listo. Creé una nueva versión con los cambios solicitados.",
-          createdAt,
-        },
-        creditsUsed: creditResult.amount,
-        creditsRemaining: creditResult.creditsRemaining,
-      },
-      { status: 201 },
-    );
-  } catch (caught) {
-    if (storagePath) {
-      await supabase.storage.from("generations").remove([storagePath]);
-    }
-    if (creditReservationId) {
-      try {
-        await releaseCredits(user.id, creditReservationId);
-      } catch {
-        console.error("[Crealy Credits]", {
+      width: 1,
+      height: 1,
+    }),
+    p_preserve_composition: body.preserveUnmentionedElements,
+    p_input_hash: createHash("sha256")
+      .update(
+        JSON.stringify({
           sessionId,
-          versionId,
-          errorCode: "credit_release_failed",
-        });
-      }
+          baseVersionId: body.baseVersionId ?? null,
+          instruction,
+          preserveUnmentionedElements: body.preserveUnmentionedElements,
+        }),
+      )
+      .digest("hex"),
+    p_credit_cost: getEditCreditCost(),
+    p_daily_limit: config.dailyLimit,
+    p_cooldown_seconds: config.cooldownSeconds,
+    p_version_limit: config.sessionVersionLimit,
+    p_estimated_cost_usd: operations.editCostUsd,
+    p_daily_budget_usd: operations.dailyBudgetUsd,
+    p_monthly_budget_usd: operations.monthlyBudgetUsd,
+  });
+  if (error || !data?.[0]) return reservationError(error?.message ?? "");
+
+  const queued = data[0];
+  await admin
+    .from("jobs")
+    .update({ max_attempts: operations.maxAttempts })
+    .eq("id", queued.job_id)
+    .eq("status", "queued");
+  after(async () => {
+    try {
+      await processQueuedJob(queued.job_id);
+    } catch {
+      logger.error("job.dispatch_failed", {
+        jobId: queued.job_id,
+        userId: user.id,
+        resourceId: queued.version_id,
+        errorCode: "dispatch_failed",
+      });
     }
-    const mapped =
-      caught instanceof CreditError && caught.code === "insufficient_credits"
-        ? {
-            code: "insufficient_credits",
-            status: 402,
-            message: "No tienes créditos suficientes para esta edición.",
-          }
-        : providerError(caught);
-    await admin.rpc("fail_edit_version", {
-      p_version_id: versionId,
-      p_error_code: mapped.code,
-    });
-    console.error("[Crealy Edit]", {
+  });
+  return NextResponse.json<QueuedEditResponse>(
+    {
+      jobId: queued.job_id,
+      versionId: queued.version_id,
       sessionId,
-      versionId,
-      errorCode: mapped.code,
-      durationMs: Date.now() - startedAt,
-      model: config.responsesModel,
-    });
-    return error(mapped.code, mapped.message, mapped.status);
-  }
+      status:
+        queued.job_status === "processing" ? "processing" : "queued",
+    },
+    { status: 202, headers: { Location: `/api/jobs/${queued.job_id}` } },
+  );
 }

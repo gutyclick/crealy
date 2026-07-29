@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
+    "ops:jobs": "tsx scripts/ops/inspect-jobs.ts",
+    "ops:credits": "tsx scripts/ops/reconcile-credits.ts",
+    "ops:storage": "tsx scripts/ops/reconcile-storage.ts",
+    "ops:billing": "tsx scripts/ops/inspect-billing.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -27,6 +33,11 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.25",
+    "sharp": "^0.35.3"
   }
 }

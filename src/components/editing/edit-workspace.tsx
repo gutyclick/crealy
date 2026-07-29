@@ -16,14 +16,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 
+import { JobProgress } from "@/components/jobs/job-progress";
 import { EDIT_SUGGESTIONS } from "@/config/editing";
 import { cn } from "@/lib/utils";
 import type {
   ApiErrorResponse,
   EditMessageView,
   EditSessionView,
-  EditVersionResponse,
 } from "@/types/editing";
+import type { QueuedEditResponse } from "@/types/jobs";
 
 function shortTime(value: string) {
   return new Intl.DateTimeFormat("es", {
@@ -42,9 +43,11 @@ function shortDate(value: string) {
 export function EditWorkspace({
   initialSession,
   available,
+  initialPendingJobId = null,
 }: {
   initialSession: EditSessionView;
   available: boolean;
+  initialPendingJobId?: string | null;
 }) {
   const router = useRouter();
   const [versions, setVersions] = useState(initialSession.versions);
@@ -62,6 +65,9 @@ export function EditWorkspace({
     "before" | "after"
   >("after");
   const [loading, setLoading] = useState(false);
+  const [pendingJobId, setPendingJobId] = useState<string | null>(
+    initialPendingJobId,
+  );
   const [restoring, setRestoring] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -189,31 +195,23 @@ export function EditWorkspace({
         },
       );
       const result = (await response.json()) as
-        | EditVersionResponse
+        | QueuedEditResponse
         | ApiErrorResponse;
-      if (!response.ok || !("version" in result)) {
+      if (!response.ok || !("jobId" in result)) {
         throw new Error(
-          "error" in result ? result.error : "No pudimos crear la versión.",
+          "error" in result ? result.error : "No pudimos preparar la versión.",
         );
       }
 
-      const nextVersion = result.version;
-      setVersions((items) => [
-        ...items.map((item) => ({ ...item, isCurrent: false })),
-        nextVersion,
-      ]);
-      setCurrentVersionId(nextVersion.id);
-      setSelectedVersionId(nextVersion.id);
-      setMessages((items) => [
-        ...items.map((item) =>
+      setPendingJobId(result.jobId);
+      setMessages((items) =>
+        items.map((item) =>
           item.id === optimisticMessage.id
-            ? { ...item, versionId: nextVersion.id }
+            ? { ...item, versionId: result.versionId }
             : item,
         ),
-        result.assistantMessage,
-      ]);
+      );
       setCompare(false);
-      router.refresh();
     } catch (caught) {
       setMessages((items) =>
         items.filter((item) => item.id !== optimisticMessage.id),
@@ -500,6 +498,14 @@ export function EditWorkspace({
                 Creando una nueva versión…
               </div>
             ) : null}
+            {pendingJobId ? (
+              <JobProgress
+                jobId={pendingJobId}
+                compact
+                onComplete={() => window.location.reload()}
+                onDismiss={() => setPendingJobId(null)}
+              />
+            ) : null}
           </div>
 
           <div className="border-t border-white/[0.08] p-4">
@@ -575,6 +581,7 @@ export function EditWorkspace({
               onClick={submit}
               disabled={
                 loading ||
+                Boolean(pendingJobId) ||
                 !available ||
                 initialSession.status !== "active" ||
                 instruction.trim().length < 10
@@ -586,7 +593,11 @@ export function EditWorkspace({
               ) : (
                 <Sparkles aria-hidden="true" className="size-4" />
               )}
-              {loading ? "Creando versión…" : "Aplicar cambio"}
+              {pendingJobId
+                ? "Procesando versión…"
+                : loading
+                  ? "Preparando versión…"
+                  : "Aplicar cambio"}
               {!loading ? <Send aria-hidden="true" className="size-4" /> : null}
             </button>
           </div>

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getEditingServerEnv } from "@/lib/env/server";
+import {
+  enforceRateLimit,
+  RATE_LIMITS,
+} from "@/lib/operations/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -20,6 +24,33 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { code: "unauthorized", error: "Inicia sesión para subir imágenes." },
       { status: 401 },
+    );
+  }
+  if (!user.email_confirmed_at) {
+    return NextResponse.json(
+      { code: "email_unverified", error: "Confirma tu correo antes de subir imágenes." },
+      { status: 403 },
+    );
+  }
+
+  try {
+    const rateLimit = await enforceRateLimit({
+      request,
+      userId: user.id,
+      action: "upload.sign",
+      userPolicy: RATE_LIMITS.uploadUser,
+      ipPolicy: RATE_LIMITS.uploadIp,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { code: "rate_limited", error: "Demasiadas subidas. Espera un momento." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } },
+      );
+    }
+  } catch {
+    return NextResponse.json(
+      { code: "operations_unavailable", error: "No pudimos validar la subida." },
+      { status: 503 },
     );
   }
 
@@ -63,6 +94,34 @@ export async function POST(request: Request) {
     );
   }
 
+  const [{ count }, { data: uploads }] = await Promise.all([
+    supabase
+      .from("user_uploads")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id),
+    supabase
+      .from("user_uploads")
+      .select("file_size")
+      .eq("user_id", user.id)
+      .limit(500),
+  ]);
+  const totalBytes = (uploads ?? []).reduce(
+    (sum, upload) => sum + upload.file_size,
+    0,
+  );
+  const maxFiles = Number(process.env.UPLOAD_MAX_FILES_PER_USER || 100);
+  const maxBytes =
+    Number(process.env.UPLOAD_MAX_TOTAL_MB_PER_USER || 500) * 1024 * 1024;
+  if ((count ?? 0) >= maxFiles || totalBytes + body.fileSize > maxBytes) {
+    return NextResponse.json(
+      {
+        code: "upload_quota_exceeded",
+        error: "Alcanzaste tu cuota de archivos. Elimina referencias que ya no uses.",
+      },
+      { status: 413 },
+    );
+  }
+
   const uploadId = crypto.randomUUID();
   const extension =
     MIME_EXTENSIONS[body.mimeType as keyof typeof MIME_EXTENSIONS];
@@ -85,4 +144,3 @@ export async function POST(request: Request) {
     extension,
   });
 }
-

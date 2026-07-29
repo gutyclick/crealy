@@ -186,8 +186,9 @@ stripe trigger invoice.paid
   código distinto.
 - Sólo se genera una imagen por llamada y una generación puede estar activa por
   usuario.
-- No existen reintentos automáticos, generación al cargar ni una segunda
-  llamada para reescribir prompts.
+- Los reintentos automáticos se reservan para fallos transitorios (`429`,
+  `5xx`, red o storage) y usan backoff acotado. Los errores de entrada o
+  moderación son definitivos.
 - `EDIT_SESSION_VERSION_LIMIT` controla el tamaño de una sesión conversacional.
 - `OPENAI_EDITING_ENABLED=false` detiene nuevas ediciones sin afectar la
   biblioteca ni las descargas.
@@ -209,6 +210,25 @@ previews autorizados a Supabase Authentication.
 
 ```bash
 npm run lint
-npx tsc --noEmit
+npm run typecheck
+npm test
 npm run build
 ```
+
+## Operación en producción
+
+La generación y la edición se procesan mediante jobs durables en Supabase. Las
+APIs devuelven `202 Accepted`; el estado real se consulta en `/api/jobs/:id` y
+la interfaz se recupera aunque el usuario recargue la página.
+
+- Liveness: `GET /api/health`
+- Readiness: `GET /api/ready`
+- Recuperación protegida: `GET /api/internal/jobs/tick`
+- Publicador de outbox protegido: `POST /api/internal/jobs/publish`
+- Inspección dry-run: `npm run ops:jobs`, `ops:credits`, `ops:storage` y
+  `ops:billing`
+
+Los comandos de reconciliación no escriben por defecto. Para ejecutar una
+corrección revisada usa `-- --execute`. Consulta
+[`docs/operations/architecture.md`](docs/operations/architecture.md) y los
+runbooks en [`docs/runbooks`](docs/runbooks).

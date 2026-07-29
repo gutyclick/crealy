@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -15,6 +15,10 @@ import {
   validatePassword,
 } from "@/lib/auth/validation";
 import { getSiteUrl } from "@/lib/env";
+import {
+  enforceRateLimit,
+  RATE_LIMITS,
+} from "@/lib/operations/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 const genericResetMessage =
@@ -27,10 +31,28 @@ function reportAuthError(context: string, error: unknown) {
   console.error(`[Crealy Auth · ${context}] ${message}`);
 }
 
+async function authRateLimited(action: string) {
+  try {
+    const incoming = await headers();
+    const request = new Request(getSiteUrl(), { headers: incoming });
+    const result = await enforceRateLimit({
+      request,
+      action: `auth.${action}`,
+      ipPolicy: RATE_LIMITS.authIp,
+    });
+    return !result.allowed;
+  } catch {
+    return true;
+  }
+}
+
 export async function signUp(
   _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  if (await authRateLimited("signup")) {
+    return errorState("Demasiados intentos. Espera unos minutos.");
+  }
   const name = readText(formData, "name").trim();
   const email = normalizeEmail(readText(formData, "email"));
   const password = readText(formData, "password");
@@ -107,6 +129,9 @@ export async function signIn(
   _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  if (await authRateLimited("signin")) {
+    return errorState("Demasiados intentos. Espera unos minutos.");
+  }
   const email = normalizeEmail(readText(formData, "email"));
   const password = readText(formData, "password");
   const destination = getSafeRedirect(
@@ -158,6 +183,9 @@ export async function requestPasswordReset(
   _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  if (await authRateLimited("password_reset")) {
+    return errorState(genericResetMessage);
+  }
   const email = normalizeEmail(readText(formData, "email"));
   const emailError = validateEmail(email);
 
@@ -189,6 +217,9 @@ export async function requestPasswordReset(
 export async function resendVerificationEmail(
   previousState: AuthActionState,
 ): Promise<AuthActionState> {
+  if (await authRateLimited("resend_verification")) {
+    return errorState("Espera unos minutos antes de solicitar otro correo.");
+  }
   void previousState;
   const cookieStore = await cookies();
   const email = cookieStore.get("crealy_verification_email")?.value;

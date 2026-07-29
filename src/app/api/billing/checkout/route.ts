@@ -4,6 +4,10 @@ import { BillingError } from "@/lib/billing/billing-errors";
 import { getStripePriceId } from "@/lib/billing/get-stripe-price-id";
 import { getBillingServerEnv } from "@/lib/env/server";
 import { getSiteUrl } from "@/lib/env";
+import {
+  enforceRateLimit,
+  RATE_LIMITS,
+} from "@/lib/operations/rate-limit";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/get-or-create-customer";
 import { getStripeClient } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/server";
@@ -43,6 +47,25 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { code: "unauthorized", error: "Inicia sesión para elegir un plan." },
         { status: 401 },
+      );
+    }
+    if (!user.email_confirmed_at) {
+      return NextResponse.json(
+        { code: "email_unverified", error: "Confirma tu correo antes de elegir un plan." },
+        { status: 403 },
+      );
+    }
+    const rateLimit = await enforceRateLimit({
+      request,
+      userId: user.id,
+      action: "billing.checkout",
+      userPolicy: RATE_LIMITS.billingUser,
+      ipPolicy: RATE_LIMITS.billingIp,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { code: "rate_limited", error: "Espera un momento antes de intentarlo otra vez." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } },
       );
     }
 

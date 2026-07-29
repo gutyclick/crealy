@@ -5,6 +5,7 @@ import { EditWorkspace } from "@/components/editing/edit-workspace";
 import { requireUser } from "@/lib/auth/require-user";
 import { getEditSession } from "@/lib/editing/get-edit-session";
 import { isEditingAvailable } from "@/lib/env/server";
+import { createClient } from "@/lib/supabase/server";
 
 /*
 THESIS: La imagen manda; la conversación existe para cambiarla sin convertir el trabajo en un panel técnico.
@@ -25,11 +26,31 @@ export default async function EditSessionPage({
   const { sessionId } = await params;
   const session = await getEditSession(user.id, sessionId);
   if (!session || !session.versions.length) notFound();
+  const supabase = await createClient();
+  const { data: pendingVersion } = await supabase
+    .from("edit_versions")
+    .select("id")
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id)
+    .in("status", ["pending", "processing"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { data: pendingJob } = pendingVersion
+    ? await supabase
+        .from("jobs")
+        .select("id")
+        .eq("resource_id", pendingVersion.id)
+        .eq("user_id", user.id)
+        .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
+        .maybeSingle()
+    : { data: null };
 
   return (
     <EditWorkspace
       initialSession={session}
       available={isEditingAvailable()}
+      initialPendingJobId={pendingJob?.id ?? null}
     />
   );
 }

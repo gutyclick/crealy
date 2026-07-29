@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
+import { JobProgress } from "@/components/jobs/job-progress";
 import { getContentTypeConfig, getFormatConfig } from "@/config/generation";
 import { requireUser } from "@/lib/auth/require-user";
 import { createClient } from "@/lib/supabase/server";
@@ -16,11 +17,14 @@ export const metadata: Metadata = {
 
 export default async function GenerationDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ job?: string }>;
 }) {
   const user = await requireUser("/generations");
   const { id } = await params;
+  let { job: jobId } = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase
     .from("generations")
@@ -32,6 +36,17 @@ export default async function GenerationDetailPage({
     .maybeSingle();
 
   if (!data) notFound();
+
+  if (!jobId && data.status !== "completed" && data.status !== "failed") {
+    const { data: activeJob } = await supabase
+      .from("jobs")
+      .select("id")
+      .eq("resource_id", data.id)
+      .eq("user_id", user.id)
+      .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
+      .maybeSingle();
+    jobId = activeJob?.id;
+  }
 
   let imageUrl: string | null = null;
   if (data.status === "completed" && data.storage_path) {
@@ -68,9 +83,17 @@ export default async function GenerationDetailPage({
                   className="max-h-[72vh] w-full object-contain"
                 />
               ) : (
-                <p className="px-6 text-center text-sm text-muted">
-                  Esta imagen no está disponible para previsualizar.
-                </p>
+                <div className="w-full max-w-xl px-6">
+                  {jobId && data.status !== "failed" ? (
+                    <JobProgress jobId={jobId} />
+                  ) : (
+                    <p className="text-center text-sm text-muted">
+                      {data.status === "failed"
+                        ? "No pudimos completar esta imagen. Los créditos reservados fueron liberados."
+                        : "Esta imagen no está disponible para previsualizar."}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </section>

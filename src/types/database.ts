@@ -611,6 +611,182 @@ export type Database = {
         };
         Relationships: [];
       };
+      jobs: {
+        Row: {
+          id: string;
+          user_id: string;
+          job_type: string;
+          status: string;
+          idempotency_key: string;
+          correlation_id: string;
+          resource_id: string;
+          payload: Json;
+          input_hash: string;
+          output_sha256: string | null;
+          output_bytes: number | null;
+          priority: number;
+          attempt_count: number;
+          max_attempts: number;
+          available_at: string;
+          claimed_at: string | null;
+          claimed_by: string | null;
+          visibility_expires_at: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          cancelled_at: string | null;
+          error_code: string | null;
+          estimated_cost_usd: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          job_type: string;
+          status?: string;
+          idempotency_key: string;
+          correlation_id?: string;
+          resource_id: string;
+          payload?: Json;
+          input_hash: string;
+          output_sha256?: string | null;
+          output_bytes?: number | null;
+          priority?: number;
+          attempt_count?: number;
+          max_attempts?: number;
+          available_at?: string;
+          claimed_at?: string | null;
+          claimed_by?: string | null;
+          visibility_expires_at?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          error_code?: string | null;
+          estimated_cost_usd?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["jobs"]["Insert"]>;
+        Relationships: [];
+      };
+      job_attempts: {
+        Row: {
+          id: string;
+          job_id: string;
+          attempt_no: number;
+          worker_id: string;
+          status: string;
+          provider_request_id: string | null;
+          error_code: string | null;
+          duration_ms: number | null;
+          started_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          attempt_no: number;
+          worker_id: string;
+          status: string;
+          provider_request_id?: string | null;
+          error_code?: string | null;
+          duration_ms?: number | null;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["job_attempts"]["Insert"]>;
+        Relationships: [];
+      };
+      job_outbox: {
+        Row: {
+          id: string;
+          job_id: string;
+          event_type: string;
+          status: string;
+          attempts: number;
+          available_at: string;
+          published_at: string | null;
+          last_error_code: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          event_type?: string;
+          status?: string;
+          attempts?: number;
+          available_at?: string;
+          published_at?: string | null;
+          last_error_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["job_outbox"]["Insert"]>;
+        Relationships: [];
+      };
+      provider_usage: {
+        Row: {
+          id: string;
+          job_id: string;
+          user_id: string;
+          provider: string;
+          model: string;
+          operation: string;
+          provider_request_id: string | null;
+          estimated_cost_usd: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          user_id: string;
+          provider: string;
+          model: string;
+          operation: string;
+          provider_request_id?: string | null;
+          estimated_cost_usd?: number | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["provider_usage"]["Insert"]>;
+        Relationships: [];
+      };
+      operational_metrics: {
+        Row: {
+          metric_date: string;
+          metric_name: string;
+          dimension: string;
+          metric_value: number;
+          updated_at: string;
+        };
+        Insert: {
+          metric_date?: string;
+          metric_name: string;
+          dimension?: string;
+          metric_value?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["operational_metrics"]["Insert"]>;
+        Relationships: [];
+      };
+      rate_limit_counters: {
+        Row: {
+          scope_key: string;
+          action: string;
+          window_started_at: string;
+          request_count: number;
+          expires_at: string;
+        };
+        Insert: {
+          scope_key: string;
+          action: string;
+          window_started_at: string;
+          request_count?: number;
+          expires_at: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rate_limit_counters"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -822,6 +998,169 @@ export type Database = {
           credits_used: number;
           credits_remaining: number;
         }[];
+      };
+      consume_rate_limit_internal: {
+        Args: {
+          p_scope_key: string;
+          p_action: string;
+          p_limit: number;
+          p_window_seconds: number;
+        };
+        Returns: {
+          allowed: boolean;
+          remaining: number;
+          retry_after_seconds: number;
+        }[];
+      };
+      increment_operational_metric_internal: {
+        Args: {
+          p_metric_name: string;
+          p_dimension: string;
+          p_increment?: number;
+        };
+        Returns: undefined;
+      };
+      assert_operational_budget_internal: {
+        Args: {
+          p_estimated_cost_usd: number | null;
+          p_daily_budget_usd: number | null;
+          p_monthly_budget_usd: number | null;
+        };
+        Returns: undefined;
+      };
+      create_generation_job_internal: {
+        Args: {
+          p_user_id: string;
+          p_client_request_id: string;
+          p_project_id: string | null;
+          p_title: string;
+          p_user_prompt: string;
+          p_content_type: string;
+          p_requested_format: string;
+          p_style: string;
+          p_quality: string;
+          p_primary_text: string | null;
+          p_color_preference: string;
+          p_custom_colors: string[] | null;
+          p_reference_upload_ids: string[];
+          p_input_hash: string;
+          p_credit_cost: number;
+          p_daily_limit: number;
+          p_cooldown_seconds: number;
+          p_estimated_cost_usd: number | null;
+          p_daily_budget_usd: number | null;
+          p_monthly_budget_usd: number | null;
+        };
+        Returns: {
+          job_id: string;
+          generation_id: string;
+          project_id: string;
+          job_status: string;
+          generation_status: string;
+          is_existing: boolean;
+        }[];
+      };
+      create_edit_job_internal: {
+        Args: {
+          p_user_id: string;
+          p_session_id: string;
+          p_client_request_id: string;
+          p_base_version_id: string | null;
+          p_instruction: string;
+          p_enhanced_instruction: string;
+          p_preserve_composition: boolean;
+          p_input_hash: string;
+          p_credit_cost: number;
+          p_daily_limit: number;
+          p_cooldown_seconds: number;
+          p_version_limit: number;
+          p_estimated_cost_usd: number | null;
+          p_daily_budget_usd: number | null;
+          p_monthly_budget_usd: number | null;
+        };
+        Returns: {
+          job_id: string;
+          version_id: string;
+          selected_base_version_id: string;
+          job_status: string;
+          version_status: string;
+          is_existing: boolean;
+        }[];
+      };
+      publish_job_outbox_internal: {
+        Args: { p_limit: number };
+        Returns: number;
+      };
+      claim_job_internal: {
+        Args: {
+          p_job_id: string;
+          p_worker_id: string;
+          p_visibility_seconds: number;
+          p_global_concurrency: number;
+          p_user_concurrency: number;
+        };
+        Returns: Database["public"]["Tables"]["jobs"]["Row"][];
+      };
+      mark_job_processing_internal: {
+        Args: { p_job_id: string; p_worker_id: string };
+        Returns: boolean;
+      };
+      complete_generation_job_internal: {
+        Args: {
+          p_job_id: string;
+          p_user_id: string;
+          p_generation_id: string;
+          p_reservation_id: string;
+          p_storage_path: string;
+          p_mime_type: string;
+          p_width: number;
+          p_height: number;
+          p_model: string;
+          p_provider_request_id: string | null;
+          p_duration_ms: number;
+        };
+        Returns: { credits_used: number; credits_remaining: number }[];
+      };
+      complete_edit_job_internal: {
+        Args: {
+          p_job_id: string;
+          p_user_id: string;
+          p_version_id: string;
+          p_reservation_id: string;
+          p_storage_path: string;
+          p_mime_type: string;
+          p_width: number;
+          p_height: number;
+          p_model: string;
+          p_provider_response_id: string | null;
+          p_duration_ms: number;
+        };
+        Returns: { credits_used: number; credits_remaining: number }[];
+      };
+      retry_job_internal: {
+        Args: {
+          p_job_id: string;
+          p_error_code: string;
+          p_delay_seconds: number;
+          p_duration_ms: number;
+        };
+        Returns: string;
+      };
+      fail_job_internal: {
+        Args: {
+          p_job_id: string;
+          p_error_code: string;
+          p_duration_ms: number;
+        };
+        Returns: boolean;
+      };
+      cancel_job_internal: {
+        Args: { p_job_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      recover_stuck_jobs_internal: {
+        Args: { p_limit: number };
+        Returns: number;
       };
     };
     Enums: Record<never, never>;
