@@ -62,6 +62,8 @@ export class R2StorageProvider implements PrivateStorageProvider {
   }
   async remove(path: string) {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: path }));
+    // Transitional reads may still resolve from Supabase until migration is complete.
+    await this.legacy.remove(path).catch(() => undefined);
   }
   async signDownload(path: string, expiresInSeconds: number) {
     if (!(await this.head(path))) return this.legacy.signDownload(path, expiresInSeconds);
