@@ -155,6 +155,30 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 stripe trigger invoice.paid
 ```
 
+### Operación y reconciliación
+
+- Stripe es la fuente de verdad de la suscripción; Supabase conserva una copia
+  operativa actualizada por webhooks firmados.
+- Revisa `stripe_events` cuando un evento falle. El `event_id`, tipo, estado y
+  código seguro permiten investigar sin guardar el payload ni secretos.
+- Stripe reintenta respuestas no exitosas. El mismo evento y la misma factura
+  pueden reprocesarse con seguridad porque ambos usan claves idempotentes.
+- Para reconciliar una suscripción, reenvía desde Stripe Dashboard uno de sus
+  eventos `customer.subscription.updated` o `invoice.paid`.
+- Cambia `PRO_MONTHLY_CREDITS` solo para ciclos futuros. No edites movimientos,
+  grants ni saldos históricos directamente.
+
+### Ciclo de los créditos
+
+- Cada cuenta recibe `FREE_SIGNUP_CREDITS` una sola vez.
+- Una factura mensual pagada crea un grant idempotente con vencimiento al final
+  del ciclo.
+- Antes de llamar a OpenAI, Crealy reserva los grants con vencimiento más
+  cercano. Al completar consume la reserva; al fallar la libera.
+- Cuenta, grants, reserva, movimiento y resultado se actualizan mediante
+  funciones transaccionales con bloqueo de filas; el saldo no puede ser
+  negativo.
+
 ## Límites y control de costes
 
 - `OPENAI_GENERATION_ENABLED=false`: detiene nuevas llamadas sin desplegar
