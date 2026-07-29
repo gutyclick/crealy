@@ -1,24 +1,21 @@
-type RequiredPublicVariable =
-  | "NEXT_PUBLIC_SUPABASE_URL"
-  | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
+export function getSupabaseEnv() {
+  // NEXT_PUBLIC values must use static property access so Next.js can replace
+  // them in the browser bundle. Dynamic process.env[name] access stays empty
+  // client-side even when the variable exists in Vercel.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const publishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
 
-function readRequiredVariable(name: RequiredPublicVariable): string {
-  const value = process.env[name]?.trim();
-
-  if (!value) {
+  if (!url) {
     throw new Error(
-      `[Crealy] Falta ${name}. Copia .env.example a .env.local y completa la configuración pública de Supabase.`,
+      "[Crealy] Falta NEXT_PUBLIC_SUPABASE_URL. Completa la configuración pública de Supabase.",
     );
   }
-
-  return value;
-}
-
-export function getSupabaseEnv() {
-  const url = readRequiredVariable("NEXT_PUBLIC_SUPABASE_URL");
-  const publishableKey = readRequiredVariable(
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-  );
+  if (!publishableKey) {
+    throw new Error(
+      "[Crealy] Falta NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Completa la configuración pública de Supabase.",
+    );
+  }
 
   try {
     const parsedUrl = new URL(url);
