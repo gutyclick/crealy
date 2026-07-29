@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 
 import { GenerationForm } from "@/components/generation/generation-form";
 import { Container } from "@/components/layout/container";
-import { isGenerationAvailable } from "@/lib/env/server";
+import {
+  getEditingServerEnv,
+  isGenerationAvailable,
+} from "@/lib/env/server";
 
 /*
 THESIS: Crear debe sentirse como dirigir una pieza visual, no operar un panel técnico.
@@ -18,10 +21,21 @@ export const metadata: Metadata = {
 };
 
 export default function CreatePage() {
+  let maxReferenceFileMb = 10;
+  try {
+    maxReferenceFileMb =
+      getEditingServerEnv().maxReferenceImageBytes / 1024 / 1024;
+  } catch {
+    // Keep safe client guidance when environment configuration is incomplete.
+  }
+
   return (
     <main className="py-6 sm:py-10">
       <Container>
-        <GenerationForm available={isGenerationAvailable()} />
+        <GenerationForm
+          available={isGenerationAvailable()}
+          maxReferenceFileMb={maxReferenceFileMb}
+        />
       </Container>
     </main>
   );

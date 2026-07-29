@@ -47,12 +47,14 @@ Ejecuta las migraciones en orden desde el SQL Editor:
 1. `supabase/migrations/20260728000000_create_profiles.sql`
 2. `supabase/migrations/20260728010000_create_generation_pipeline.sql`
 3. `supabase/migrations/20260728020000_create_editing_pipeline.sql`
+4. `supabase/migrations/20260728030000_add_generation_references.sql`
 
 La segunda migración crea `projects`, `generations`, restricciones, índices,
 RLS, la reserva atómica con límites y el bucket privado `generations`. La
 tercera añade cargas privadas, sesiones conversacionales, versiones, mensajes,
-restauración y límites atómicos. El repositorio no incluye Supabase CLI, por lo
-que estos archivos no se consideran aplicados hasta ejecutarlos manualmente.
+restauración y límites atómicos. La cuarta relaciona hasta cuatro uploads
+privados con cada generación. El repositorio no incluye Supabase CLI, por lo que
+estos archivos no se consideran aplicados hasta ejecutarlos manualmente.
 
 Verifica después:
 
@@ -93,6 +95,14 @@ formato solicitado y lo mapea a estas salidas del modelo:
 - 12:5 → `1536x640`
 
 La interfaz usa `object-fit: contain`, por lo que nunca estira el resultado.
+
+En `/create`, el usuario puede añadir hasta cuatro referencias PNG/JPEG/WebP.
+Los bytes se suben directamente a Supabase mediante una URL firmada temporal,
+evitando el límite de cuerpo de Vercel; después el servidor vuelve a descargar,
+inspeccionar y registrar cada archivo antes de utilizarlo. Cuando existen
+referencias, Crealy usa el endpoint de edición de Image API para componer una
+nueva pieza y refuerza en el prompt la preservación de personas, productos y
+objetos no solicitados para cambio.
 
 ## Límites y control de costes
 

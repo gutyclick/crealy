@@ -298,6 +298,24 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      generation_references: {
+        Row: {
+          generation_id: string;
+          upload_id: string;
+          user_id: string;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          generation_id: string;
+          upload_id: string;
+          user_id: string;
+          position: number;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -379,6 +397,13 @@ export type Database = {
       };
       archive_edit_session: {
         Args: { p_session_id: string; p_archived: boolean };
+        Returns: undefined;
+      };
+      attach_generation_references: {
+        Args: {
+          p_generation_id: string;
+          p_upload_ids: string[];
+        };
         Returns: undefined;
       };
     };

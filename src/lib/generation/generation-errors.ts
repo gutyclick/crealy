@@ -10,6 +10,7 @@ export type GenerationErrorCode =
   | "provider_unavailable"
   | "invalid_provider_response"
   | "storage_upload_failed"
+  | "invalid_reference"
   | "unknown_generation_error";
 
 export class GenerationError extends Error {

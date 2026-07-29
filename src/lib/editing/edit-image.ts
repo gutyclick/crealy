@@ -51,7 +51,6 @@ async function requestEdit({
         type: "image_generation",
         action: "edit",
         model: EDIT_OUTPUT_MODEL,
-        input_fidelity: "high",
         output_format: "png",
         quality: "medium",
         size,
@@ -126,4 +125,3 @@ export async function editImage({
     model: getEditingServerEnv().responsesModel,
   };
 }
-

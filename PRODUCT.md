@@ -25,6 +25,9 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 ## Capabilities and Constraints
 
 - La Fase 4 incorpora generación real de una imagen por solicitud mediante OpenAI Image API.
+- La creación admite hasta cuatro imágenes privadas de referencia —personas,
+  productos, objetos o dirección visual— y prioriza preservar identidad y
+  rasgos distintivos salvo que el brief solicite cambios.
 - La Fase 5 incorpora edición conversacional mediante OpenAI Responses API:
   permite partir de una generación o de un PNG/JPEG/WebP propio, pedir cambios
   localizados, comparar resultados y restaurar cualquier versión como nueva

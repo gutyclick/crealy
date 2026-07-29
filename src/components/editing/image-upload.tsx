@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
 import { cn } from "@/lib/utils";
 
 const ACCEPT = "image/png,image/jpeg,image/webp";
@@ -53,21 +54,9 @@ export function ImageUpload({
     if (!selection || loading) return;
     setLoading(true);
     setError(null);
-    const data = new FormData();
-    data.set("image", selection.file);
-
     try {
-      const response = await fetch("/api/uploads/images", {
-        method: "POST",
-        body: data,
-      });
-      const result = (await response.json()) as {
-        sessionId?: string;
-        error?: string;
-      };
-      if (!response.ok || !result.sessionId) {
-        throw new Error(result.error || "No pudimos subir la imagen.");
-      }
+      const result = await uploadPrivateImage(selection.file, "edit");
+      if (!result.sessionId) throw new Error("No pudimos iniciar la edición.");
       router.push(`/edit/${result.sessionId}`);
     } catch (caught) {
       setError(

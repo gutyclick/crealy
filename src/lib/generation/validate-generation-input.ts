@@ -67,6 +67,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   const quality = rawInput.quality;
   const clientRequestId = rawInput.clientRequestId;
   const projectId = rawInput.projectId;
+  const referenceUploadIds = rawInput.referenceUploadIds;
 
   if (description.length < 10) {
     fields.description = "Describe tu idea con al menos 10 caracteres.";
@@ -133,6 +134,24 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     fields.form = "El proyecto seleccionado no es válido.";
   }
 
+  let normalizedReferenceIds: string[] | undefined;
+  if (referenceUploadIds !== undefined) {
+    if (
+      !Array.isArray(referenceUploadIds) ||
+      referenceUploadIds.length > 4 ||
+      referenceUploadIds.some(
+        (id) => typeof id !== "string" || !UUID_PATTERN.test(id),
+      )
+    ) {
+      fields.referenceUploadIds =
+        "Puedes usar hasta cuatro imágenes de referencia válidas.";
+    } else if (new Set(referenceUploadIds).size !== referenceUploadIds.length) {
+      fields.referenceUploadIds = "No repitas una imagen de referencia.";
+    } else if (referenceUploadIds.length) {
+      normalizedReferenceIds = referenceUploadIds as string[];
+    }
+  }
+
   let customColors: string[] | undefined;
   if (colorPreference === "custom") {
     if (
@@ -171,6 +190,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       ...(customColors ? { customColors } : {}),
       format: format as GenerationFormat,
       quality: quality as GenerationQuality,
+      ...(normalizedReferenceIds
+        ? { referenceUploadIds: normalizedReferenceIds }
+        : {}),
     },
   };
 }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { getGenerationServerEnv } from "@/lib/env/server";
+import {
+  getEditingServerEnv,
+  getGenerationServerEnv,
+} from "@/lib/env/server";
 import { buildImagePrompt } from "@/lib/generation/build-image-prompt";
 import { buildProjectTitle } from "@/lib/generation/build-project-title";
 import {
@@ -9,10 +12,12 @@ import {
 } from "@/lib/generation/generation-errors";
 import { generateImage } from "@/lib/generation/generate-image";
 import { mapGenerationOptions } from "@/lib/generation/map-generation-options";
+import { loadGenerationReferences } from "@/lib/generation/load-generation-references";
 import { validateGenerationInput } from "@/lib/generation/validate-generation-input";
 import { createClient } from "@/lib/supabase/server";
 import type {
   GenerationErrorResponse,
+  GenerationReferenceImage,
   GenerationResponse,
 } from "@/types/generation";
 
@@ -250,6 +255,39 @@ export async function POST(request: Request) {
   }
 
   try {
+    const referenceUploadIds = input.referenceUploadIds ?? [];
+    let referenceImages: GenerationReferenceImage[] = [];
+    if (referenceUploadIds.length) {
+      const { error: attachError } = await supabase.rpc(
+        "attach_generation_references",
+        {
+          p_generation_id: generationId,
+          p_upload_ids: referenceUploadIds,
+        },
+      );
+      if (attachError) {
+        throw new GenerationError(
+          "invalid_reference",
+          400,
+          "No pudimos usar una de las imágenes de referencia.",
+        );
+      }
+      try {
+        referenceImages = await loadGenerationReferences(
+          supabase,
+          user.id,
+          referenceUploadIds,
+          getEditingServerEnv(),
+        );
+      } catch {
+        throw new GenerationError(
+          "invalid_reference",
+          400,
+          "Una referencia ya no está disponible o no es una imagen válida.",
+        );
+      }
+    }
+
     const enhancedPrompt = buildImagePrompt(input);
     const mappedOutput = mapGenerationOptions(input.format, input.quality);
 
@@ -273,7 +311,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const generated = await generateImage(input, enhancedPrompt);
+    const generated = await generateImage(
+      input,
+      enhancedPrompt,
+      referenceImages,
+    );
     const storagePath = `${user.id}/${projectId}/${generationId}.${generated.extension}`;
 
     const { error: uploadError } = await supabase.storage
@@ -377,7 +419,9 @@ export async function POST(request: Request) {
         code:
           generationError.code === "storage_upload_failed"
             ? "storage_error"
-            : "provider_error",
+            : generationError.code === "invalid_reference"
+              ? "invalid_reference"
+              : "provider_error",
         error: generationError.userMessage,
       },
       generationError.status,

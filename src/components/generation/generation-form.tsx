@@ -13,8 +13,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  ReferenceImagePicker,
+  type ReferenceDraft,
+} from "@/components/generation/reference-image-picker";
 import {
   DEFAULT_GENERATION_VALUES,
   GENERATION_COLORS,
@@ -26,6 +30,8 @@ import {
   getFormatConfig,
 } from "@/config/generation";
 import { cn } from "@/lib/utils";
+import { readApiResponse } from "@/lib/uploads/read-api-response";
+import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
 import type {
   ColorPreference,
   ContentType,
@@ -49,7 +55,13 @@ type ResultState =
   | { status: "error"; message: string }
   | ({ status: "completed" } & GenerationResponse);
 
-export function GenerationForm({ available }: { available: boolean }) {
+export function GenerationForm({
+  available,
+  maxReferenceFileMb,
+}: {
+  available: boolean;
+  maxReferenceFileMb: number;
+}) {
   const router = useRouter();
   const [contentType, setContentType] = useState<ContentType>(
     DEFAULT_GENERATION_VALUES.contentType,
@@ -72,6 +84,20 @@ export function GenerationForm({ available }: { available: boolean }) {
   const [projectId, setProjectId] = useState<string>();
   const [result, setResult] = useState<ResultState>({ status: "idle" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [references, setReferences] = useState<ReferenceDraft[]>([]);
+  const referencesRef = useRef(references);
+
+  useEffect(() => {
+    referencesRef.current = references;
+  }, [references]);
+
+  useEffect(() => {
+    return () => {
+      referencesRef.current.forEach((reference) =>
+        URL.revokeObjectURL(reference.previewUrl),
+      );
+    };
+  }, []);
 
   const currentType = getContentTypeConfig(contentType);
   const compatibleFormats = useMemo(
@@ -110,6 +136,43 @@ export function GenerationForm({ available }: { available: boolean }) {
     setFieldErrors({});
 
     try {
+      const referenceUploadIds = await Promise.all(
+        references.map(async (reference) => {
+          if (reference.uploadId) return reference.uploadId;
+          setReferences((current) =>
+            current.map((item) =>
+              item.key === reference.key
+                ? { ...item, status: "uploading" }
+                : item,
+            ),
+          );
+          try {
+            const upload = await uploadPrivateImage(reference.file, "reference");
+            setReferences((current) =>
+              current.map((item) =>
+                item.key === reference.key
+                  ? {
+                      ...item,
+                      uploadId: upload.uploadId,
+                      status: "uploaded",
+                    }
+                  : item,
+              ),
+            );
+            return upload.uploadId;
+          } catch (uploadError) {
+            setReferences((current) =>
+              current.map((item) =>
+                item.key === reference.key
+                  ? { ...item, status: "error" }
+                  : item,
+              ),
+            );
+            throw uploadError;
+          }
+        }),
+      );
+
       const response = await fetch("/api/generations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,11 +188,14 @@ export function GenerationForm({ available }: { available: boolean }) {
             colorPreference === "custom" ? customColors : undefined,
           format,
           quality,
+          referenceUploadIds:
+            referenceUploadIds.length > 0 ? referenceUploadIds : undefined,
         }),
       });
-      const payload = (await response.json()) as
+      const payload = await readApiResponse<
         | GenerationResponse
-        | GenerationErrorResponse;
+        | GenerationErrorResponse
+      >(response, "No pudimos completar la generación.");
 
       if (!response.ok || "error" in payload) {
         if ("fields" in payload && payload.fields) {
@@ -157,6 +223,10 @@ export function GenerationForm({ available }: { available: boolean }) {
   }
 
   function resetCreation() {
+    references.forEach((reference) =>
+      URL.revokeObjectURL(reference.previewUrl),
+    );
+    setReferences([]);
     setProjectId(undefined);
     setDescription("");
     setPrimaryText("");
@@ -265,6 +335,13 @@ export function GenerationForm({ available }: { available: boolean }) {
             <span className="shrink-0 text-white/45">{description.length}/1500</span>
           </div>
         </div>
+
+        <ReferenceImagePicker
+          references={references}
+          setReferences={setReferences}
+          maxFileMb={maxReferenceFileMb}
+          disabled={result.status === "loading"}
+        />
 
         <div className="mt-6">
           <label

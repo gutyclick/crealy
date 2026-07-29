@@ -40,6 +40,13 @@ export type GenerationInput = {
   customColors?: string[];
   format: GenerationFormat;
   quality: GenerationQuality;
+  referenceUploadIds?: string[];
+};
+
+export type GenerationReferenceImage = {
+  buffer: Buffer;
+  mimeType: "image/png" | "image/jpeg" | "image/webp";
+  filename: string;
 };
 
 export type GenerationResponse = {
@@ -61,6 +68,7 @@ export type GenerationErrorResponse = {
     | "generation_limit"
     | "generation_cooldown"
     | "generation_in_progress"
+    | "invalid_reference"
     | "provider_error"
     | "storage_error"
     | "internal_error";

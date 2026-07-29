@@ -38,6 +38,20 @@ export function buildImagePrompt(input: GenerationInput) {
   const visibleText = input.primaryText
     ? `Incluye exactamente este texto visible: "${input.primaryText}". Dale espacio suficiente y prioriza su legibilidad, aceptando que la tipografía generada puede presentar variaciones menores.`
     : "No añadas titulares, palabras, logotipos ni marcas de agua que no hayan sido solicitados.";
+  const referenceDirections = input.referenceUploadIds?.length
+    ? [
+        "",
+        "Imágenes de referencia:",
+        ...input.referenceUploadIds.map(
+          (_, index) =>
+            `- Imagen ${index + 1}: referencia visual aportada por el usuario.`,
+        ),
+        "- Usa únicamente los elementos relevantes para el brief; no construyas un collage literal salvo que se solicite.",
+        "- Si una referencia contiene una persona, conserva estrictamente su identidad facial, edad aparente, tono de piel, proporciones corporales, cabello y rasgos distintivos. No embellezcas, rejuvenezcas ni sustituyas a la persona salvo petición explícita.",
+        "- Si una referencia contiene un producto u objeto, conserva su geometría, materiales, colores, etiquetas y rasgos distintivos. No lo rediseñes salvo petición explícita.",
+        "- Puedes adaptar encuadre, escala, pose o iluminación sólo cuando sea necesario para integrarlos en la composición solicitada.",
+      ]
+    : [];
 
   return [
     `Crea una ${type.fullLabel.toLowerCase()} profesional.`,
@@ -47,6 +61,7 @@ export function buildImagePrompt(input: GenerationInput) {
     "",
     "Brief del usuario:",
     input.description,
+    ...referenceDirections,
     "",
     "Dirección visual:",
     `- Formato solicitado: ${format.label}.`,
