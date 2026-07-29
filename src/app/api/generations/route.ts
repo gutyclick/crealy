@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 
 import {
+  completeGenerationWithCredits,
+  CreditError,
+  ensureWelcomeCredits,
+  releaseCredits,
+  reserveCredits,
+} from "@/lib/credits/credit-service";
+import { getGenerationCreditCost } from "@/lib/credits/get-credit-cost";
+import {
   getEditingServerEnv,
   getGenerationServerEnv,
 } from "@/lib/env/server";
@@ -15,6 +23,7 @@ import { mapGenerationOptions } from "@/lib/generation/map-generation-options";
 import { loadGenerationReferences } from "@/lib/generation/load-generation-references";
 import { validateGenerationInput } from "@/lib/generation/validate-generation-input";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   GenerationErrorResponse,
   GenerationReferenceImage,
@@ -101,6 +110,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
+  const admin = createAdminClient();
   const {
     data: { user },
     error: authError,
@@ -187,6 +197,17 @@ export async function POST(request: Request) {
   }
 
   const input = validation.data;
+  try {
+    await ensureWelcomeCredits(user.id);
+  } catch {
+    return errorResponse(
+      {
+        code: "internal_error",
+        error: "No pudimos consultar tus créditos. Inténtalo de nuevo.",
+      },
+      503,
+    );
+  }
   const projectTitle = buildProjectTitle(
     input.description,
     input.contentType,
@@ -205,8 +226,8 @@ export async function POST(request: Request) {
       p_primary_text: input.primaryText ?? null,
       p_color_preference: input.colorPreference,
       p_custom_colors: input.customColors ?? null,
-      p_daily_limit: serverConfig.dailyLimit,
-      p_cooldown_seconds: serverConfig.cooldownSeconds,
+      p_daily_limit: 2_147_483_647,
+      p_cooldown_seconds: 1,
     });
 
   if (reservationError || !reservationRows?.[0]) {
@@ -220,7 +241,7 @@ export async function POST(request: Request) {
   if (reservation.is_existing) {
     const { data: existing } = await supabase
       .from("generations")
-      .select("status, storage_path, width, height")
+      .select("status, storage_path, width, height, credit_cost")
       .eq("id", generationId)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -231,6 +252,11 @@ export async function POST(request: Request) {
         .createSignedUrl(existing.storage_path, SIGNED_URL_TTL_SECONDS);
 
       if (signedImage?.signedUrl) {
+        const { data: account } = await supabase
+          .from("credit_accounts")
+          .select("available_balance")
+          .eq("user_id", user.id)
+          .maybeSingle();
         return NextResponse.json<GenerationResponse>({
           generationId,
           projectId,
@@ -238,6 +264,8 @@ export async function POST(request: Request) {
           imageUrl: signedImage.signedUrl,
           width: existing.width,
           height: existing.height,
+          creditsUsed: existing.credit_cost ?? 0,
+          creditsRemaining: account?.available_balance ?? 0,
         });
       }
     }
@@ -254,7 +282,30 @@ export async function POST(request: Request) {
     );
   }
 
+  let creditReservationId: string | null = null;
+  const creditCost = getGenerationCreditCost(input.quality);
+
   try {
+    const creditReservation = await reserveCredits({
+      userId: user.id,
+      amount: creditCost,
+      referenceType: "generation",
+      referenceId: generationId,
+    });
+    creditReservationId = creditReservation.reservationId;
+
+    const { error: creditLinkError } = await admin
+      .from("generations")
+      .update({
+        credit_reservation_id: creditReservationId,
+        credit_cost: creditCost,
+      })
+      .eq("id", generationId)
+      .eq("user_id", user.id);
+    if (creditLinkError) {
+      throw new CreditError("credit_reservation_failed");
+    }
+
     const referenceUploadIds = input.referenceUploadIds ?? [];
     let referenceImages: GenerationReferenceImage[] = [];
     if (referenceUploadIds.length) {
@@ -291,7 +342,7 @@ export async function POST(request: Request) {
     const enhancedPrompt = buildImagePrompt(input);
     const mappedOutput = mapGenerationOptions(input.format, input.quality);
 
-    const { error: processingError } = await supabase
+    const { error: processingError } = await admin
       .from("generations")
       .update({
         status: "processing",
@@ -334,22 +385,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: completionError } = await supabase
-      .from("generations")
-      .update({
-        status: "completed",
-        storage_path: storagePath,
-        mime_type: generated.mimeType,
+    let creditResult;
+    try {
+      creditResult = await completeGenerationWithCredits({
+        userId: user.id,
+        generationId,
+        reservationId: creditReservationId,
+        storagePath,
+        mimeType: generated.mimeType,
         width: generated.width,
         height: generated.height,
-        provider_request_id: generated.providerRequestId,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", generationId)
-      .eq("user_id", user.id)
-      .eq("status", "processing");
-
-    if (completionError) {
+        model: serverConfig.imageModel,
+        providerRequestId: generated.providerRequestId,
+      });
+    } catch {
       await supabase.storage.from("generations").remove([storagePath]);
       throw new GenerationError(
         "storage_upload_failed",
@@ -385,17 +434,45 @@ export async function POST(request: Request) {
         projectId,
         status: "completed",
         imageUrl: signedImage.signedUrl,
-        width: generated.width,
-        height: generated.height,
+          width: generated.width,
+          height: generated.height,
+          creditsUsed: creditResult.amount,
+          creditsRemaining: creditResult.creditsRemaining,
       },
       { status: 201 },
     );
   } catch (error) {
+    if (error instanceof CreditError && error.code === "insufficient_credits") {
+      await admin
+        .from("generations")
+        .update({ status: "failed", error_code: "insufficient_credits" })
+        .eq("id", generationId)
+        .eq("user_id", user.id)
+        .in("status", ["pending", "processing"]);
+      return errorResponse(
+        {
+          code: "insufficient_credits",
+          error: "No tienes créditos suficientes para esta creación.",
+        },
+        402,
+      );
+    }
+
     const generationError = mapOpenAIError(error);
     safeErrorCode = generationError.code;
 
     if (!generationCompleted && generationId) {
-      await supabase
+      if (creditReservationId) {
+        try {
+          await releaseCredits(user.id, creditReservationId);
+        } catch {
+          console.error("[Crealy Credits]", {
+            generationId,
+            errorCode: "credit_release_failed",
+          });
+        }
+      }
+      await admin
         .from("generations")
         .update({
           status: "failed",

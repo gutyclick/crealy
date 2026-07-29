@@ -10,6 +10,7 @@ const items = [
   { href: "/create", label: "Crear" },
   { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
+  { href: "/settings/billing", label: "Facturación", hideOnMobile: true },
 ] as const;
 
 export function DashboardNavigation() {
@@ -28,6 +29,7 @@ export function DashboardNavigation() {
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex min-h-10 items-center rounded-[0.65rem] px-3 text-sm font-medium transition-colors",
+              "hideOnMobile" in item && item.hideOnMobile && "hidden md:flex",
               active
                 ? "bg-white/[0.07] text-foreground"
                 : "text-muted hover:bg-white/[0.04] hover:text-foreground",

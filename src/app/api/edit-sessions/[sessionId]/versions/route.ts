@@ -1,11 +1,20 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
+import {
+  completeEditWithCredits,
+  CreditError,
+  ensureWelcomeCredits,
+  releaseCredits,
+  reserveCredits,
+} from "@/lib/credits/credit-service";
+import { getEditCreditCost } from "@/lib/credits/get-credit-cost";
 import { buildEditInstruction } from "@/lib/editing/build-edit-instruction";
 import { editImage } from "@/lib/editing/edit-image";
 import { inspectImage } from "@/lib/editing/image-metadata";
 import { resolveVersionSource } from "@/lib/editing/resolve-version-source";
 import { getEditingServerEnv } from "@/lib/env/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ApiErrorResponse,
@@ -92,10 +101,20 @@ export async function POST(
   }
 
   const supabase = await createClient();
+  const admin = createAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return error("unauthorized", "Inicia sesión para editar.", 401);
+  try {
+    await ensureWelcomeCredits(user.id);
+  } catch {
+    return error(
+      "billing_unavailable",
+      "No pudimos consultar tus créditos. Inténtalo de nuevo.",
+      503,
+    );
+  }
 
   let config: ReturnType<typeof getEditingServerEnv>;
   try {
@@ -177,8 +196,8 @@ export async function POST(
       p_instruction: instruction,
       p_enhanced_instruction: provisionalInstruction,
       p_preserve_composition: body.preserveUnmentionedElements,
-      p_daily_limit: config.dailyLimit,
-      p_cooldown_seconds: config.cooldownSeconds,
+      p_daily_limit: 2_147_483_647,
+      p_cooldown_seconds: 1,
       p_version_limit: config.sessionVersionLimit,
     },
   );
@@ -202,7 +221,7 @@ export async function POST(
 
     const { data: existing } = await supabase
       .from("edit_versions")
-      .select("id, parent_version_id, status, storage_path, width, height, instruction, preserve_composition, created_at")
+      .select("id, parent_version_id, status, storage_path, width, height, instruction, preserve_composition, created_at, credit_cost")
       .eq("id", versionId)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -211,6 +230,11 @@ export async function POST(
         .from("generations")
         .createSignedUrl(existing.storage_path, SIGNED_URL_TTL_SECONDS);
       if (signed?.signedUrl) {
+        const { data: account } = await supabase
+          .from("credit_accounts")
+          .select("available_balance")
+          .eq("user_id", user.id)
+          .maybeSingle();
         const version: EditVersionView = {
           id: existing.id,
           parentVersionId: existing.parent_version_id,
@@ -232,6 +256,8 @@ export async function POST(
             content: "Listo. Creé una nueva versión con los cambios solicitados.",
             createdAt: existing.created_at,
           },
+          creditsUsed: existing.credit_cost ?? 0,
+          creditsRemaining: account?.available_balance ?? 0,
         });
       }
     }
@@ -239,7 +265,28 @@ export async function POST(
   }
 
   let storagePath: string | null = null;
+  let creditReservationId: string | null = null;
+  const creditCost = getEditCreditCost();
   try {
+    const creditReservation = await reserveCredits({
+      userId: user.id,
+      amount: creditCost,
+      referenceType: "edit",
+      referenceId: versionId,
+    });
+    creditReservationId = creditReservation.reservationId;
+    const { error: creditLinkError } = await admin
+      .from("edit_versions")
+      .update({
+        credit_reservation_id: creditReservationId,
+        credit_cost: creditCost,
+      })
+      .eq("id", versionId)
+      .eq("user_id", user.id);
+    if (creditLinkError) {
+      throw new CreditError("credit_reservation_failed");
+    }
+
     const { data: baseVersion } = await supabase
       .from("edit_versions")
       .select("storage_path, source_generation_id, source_upload_id, mime_type, width, height")
@@ -266,7 +313,7 @@ export async function POST(
       width: source.width,
       height: source.height,
     });
-    const { error: processingError } = await supabase
+    const { error: processingError } = await admin
       .from("edit_versions")
       .update({
         status: "processing",
@@ -328,22 +375,23 @@ export async function POST(
       throw new Error("signed_url_failed");
     }
 
-    const { error: completeError } = await supabase.rpc(
-      "complete_edit_version",
-      {
-        p_version_id: versionId,
-        p_storage_path: storagePath,
-        p_mime_type: output.mimeType,
-        p_width: output.width,
-        p_height: output.height,
-        p_model: generated.model,
-        p_provider_response_id: generated.providerResponseId,
-      },
-    );
-    if (completeError) {
+    let creditResult;
+    try {
+      creditResult = await completeEditWithCredits({
+        userId: user.id,
+        versionId,
+        reservationId: creditReservationId,
+        storagePath,
+        mimeType: output.mimeType,
+        width: output.width,
+        height: output.height,
+        model: generated.model,
+        providerResponseId: generated.providerResponseId,
+      });
+    } catch {
       await supabase.storage.from("generations").remove([storagePath]);
       storagePath = null;
-      throw completeError;
+      throw new CreditError("credit_consumption_failed");
     }
 
     const createdAt = new Date().toISOString();
@@ -377,6 +425,8 @@ export async function POST(
           content: "Listo. Creé una nueva versión con los cambios solicitados.",
           createdAt,
         },
+        creditsUsed: creditResult.amount,
+        creditsRemaining: creditResult.creditsRemaining,
       },
       { status: 201 },
     );
@@ -384,8 +434,26 @@ export async function POST(
     if (storagePath) {
       await supabase.storage.from("generations").remove([storagePath]);
     }
-    const mapped = providerError(caught);
-    await supabase.rpc("fail_edit_version", {
+    if (creditReservationId) {
+      try {
+        await releaseCredits(user.id, creditReservationId);
+      } catch {
+        console.error("[Crealy Credits]", {
+          sessionId,
+          versionId,
+          errorCode: "credit_release_failed",
+        });
+      }
+    }
+    const mapped =
+      caught instanceof CreditError && caught.code === "insufficient_credits"
+        ? {
+            code: "insufficient_credits",
+            status: 402,
+            message: "No tienes créditos suficientes para esta edición.",
+          }
+        : providerError(caught);
+    await admin.rpc("fail_edit_version", {
       p_version_id: versionId,
       p_error_code: mapped.code,
     });

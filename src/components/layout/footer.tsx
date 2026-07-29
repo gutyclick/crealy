@@ -5,16 +5,16 @@ const footerGroups = [
   {
     title: "Producto",
     links: [
-      { label: "Cómo funciona", href: "#how-it-works" },
-      { label: "Ejemplos", href: "#examples" },
-      { label: "Precios", href: "#pricing" },
+      { label: "Cómo funciona", href: "/#how-it-works" },
+      { label: "Ejemplos", href: "/#examples" },
+      { label: "Precios", href: "/pricing" },
     ],
   },
   {
     title: "Compañía",
     links: [
-      { label: "Sobre Crealy", href: "#product" },
-      { label: "Contacto", href: "#final-cta" },
+      { label: "Sobre Crealy", href: "/#product" },
+      { label: "Contacto", href: "/#final-cta" },
     ],
   },
 ] as const;
@@ -53,7 +53,7 @@ export function Footer() {
         <div>
           <p className="text-sm font-semibold text-foreground">Estado</p>
           <p className="mt-4 text-sm leading-6 text-muted">
-            Área privada disponible. Generación y facturación en desarrollo.
+            Área privada, generación, edición y créditos disponibles.
           </p>
           <p className="mt-5 text-xs leading-5 text-white/55">
             Privacidad y términos se publicarán antes del lanzamiento.

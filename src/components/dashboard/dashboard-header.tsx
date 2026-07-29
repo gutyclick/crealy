@@ -1,4 +1,5 @@
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, Coins, LogOut } from "lucide-react";
+import Link from "next/link";
 
 import { signOut } from "@/app/(auth)/actions";
 import { DashboardNavigation } from "@/components/dashboard/dashboard-navigation";
@@ -8,11 +9,13 @@ import { Logo } from "@/components/ui/logo";
 type DashboardHeaderProps = {
   displayName: string;
   email: string;
+  credits: number | null;
 };
 
 export function DashboardHeader({
   displayName,
   email,
+  credits,
 }: DashboardHeaderProps) {
   const initial = displayName.charAt(0).toUpperCase() || "C";
 
@@ -24,7 +27,23 @@ export function DashboardHeader({
           <DashboardNavigation />
         </div>
 
-        <details className="group relative justify-self-end">
+        <div className="flex items-center gap-2 justify-self-end">
+          <Link
+            href="/settings/billing"
+            aria-label={
+              credits === null
+                ? "Abrir facturación"
+                : `${credits} créditos disponibles. Abrir facturación`
+            }
+            className="flex min-h-10 items-center gap-2 rounded-[0.7rem] border border-white/10 bg-white/[0.025] px-3 text-sm font-semibold text-foreground transition-colors hover:border-white/20 hover:bg-white/[0.05]"
+          >
+            <Coins aria-hidden="true" className="size-4 text-brand" />
+            <span>{credits ?? "—"}</span>
+            <span className="hidden text-xs font-normal text-muted lg:inline">
+              créditos
+            </span>
+          </Link>
+        <details className="group relative">
           <summary
             aria-label="Abrir menú de usuario"
             className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-[0.7rem] px-2 py-1.5 transition-colors hover:bg-white/[0.05]"
@@ -67,6 +86,7 @@ export function DashboardHeader({
             </form>
           </div>
         </details>
+        </div>
       </Container>
     </header>
   );

@@ -32,16 +32,20 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
   permite partir de una generación o de un PNG/JPEG/WebP propio, pedir cambios
   localizados, comparar resultados y restaurar cualquier versión como nueva
   base.
-- La Fase 2 establece una landing page comercial completa con demostraciones visuales, tipos de contenido, proceso, precios provisionales, ejemplos, comparativa y preguntas frecuentes.
-- La tabla de precios de la Fase 2 es una propuesta de lanzamiento con valores y límites provisionales.
+- La landing muestra planes reales: Gratis y Pro mensual. Business permanece
+  oculto mientras no exista un precio configurado.
 - La Fase 3 incorpora autenticación real con Supabase, confirmación de correo, recuperación de contraseña, perfil básico y un dashboard privado protegido.
 - Los proyectos, generaciones e imágenes privadas persisten en PostgreSQL y Supabase Storage con RLS.
 - Las sesiones, mensajes, uploads y versiones se conservan de forma privada con
   RLS, URLs firmadas, relaciones padre-hijo y archivado reversible.
-- La edición aplica límites diarios, cooldown, una sola operación activa por
-  usuario y un máximo configurable de versiones por sesión.
-- La edición manual por capas, máscaras, canvas, colaboración, sharing público,
-  créditos, pagos y facturación siguen fuera de alcance.
+- Generación y edición consumen créditos mediante reservas y movimientos
+  atómicos. La cuenta recibe créditos de bienvenida una sola vez.
+- Stripe Checkout gestiona el alta de Pro; Customer Portal administra cobro y
+  cancelación; webhooks firmados sincronizan suscripción y créditos mensuales.
+- Se conserva una sola operación activa por usuario y un máximo configurable
+  de versiones por sesión como medidas operativas.
+- La edición manual por capas, máscaras, canvas, colaboración y sharing público
+  siguen fuera de alcance.
 - La arquitectura debe permitir crecimiento por fases sin anticipar abstracciones o servicios que todavía no existen.
 
 ## Brand Commitments
@@ -55,7 +59,9 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 
 ## Evidence on Hand
 
-No existen todavía testimonios, clientes, métricas, precios definitivos, casos de estudio ni resultados generados por el producto. Las demostraciones, ejemplos visuales y precios de la Fase 2 son conceptuales y deben presentarse como propuestas sujetas a cambio.
+No existen todavía testimonios, clientes, métricas ni casos de estudio. El
+precio visible de Pro siempre debe provenir de la configuración real; no se
+fabrican descuentos, pruebas ni alternativas anuales.
 
 ## Product Principles
 

@@ -85,6 +85,9 @@ export type Database = {
           model: string | null;
           provider_request_id: string | null;
           error_code: string | null;
+          credit_reservation_id: string | null;
+          credit_transaction_id: string | null;
+          credit_cost: number | null;
           created_at: string;
           completed_at: string | null;
         };
@@ -112,6 +115,9 @@ export type Database = {
           model?: string | null;
           provider_request_id?: string | null;
           error_code?: string | null;
+          credit_reservation_id?: string | null;
+          credit_transaction_id?: string | null;
+          credit_cost?: number | null;
           created_at?: string;
           completed_at?: string | null;
         };
@@ -139,6 +145,9 @@ export type Database = {
           model?: string | null;
           provider_request_id?: string | null;
           error_code?: string | null;
+          credit_reservation_id?: string | null;
+          credit_transaction_id?: string | null;
+          credit_cost?: number | null;
           created_at?: string;
           completed_at?: string | null;
         };
@@ -237,6 +246,9 @@ export type Database = {
           model: string | null;
           provider_response_id: string | null;
           error_code: string | null;
+          credit_reservation_id: string | null;
+          credit_transaction_id: string | null;
+          credit_cost: number | null;
           created_at: string;
           completed_at: string | null;
         };
@@ -259,6 +271,9 @@ export type Database = {
           model?: string | null;
           provider_response_id?: string | null;
           error_code?: string | null;
+          credit_reservation_id?: string | null;
+          credit_transaction_id?: string | null;
+          credit_cost?: number | null;
           created_at?: string;
           completed_at?: string | null;
         };
@@ -272,6 +287,9 @@ export type Database = {
           model?: string | null;
           provider_response_id?: string | null;
           error_code?: string | null;
+          credit_reservation_id?: string | null;
+          credit_transaction_id?: string | null;
+          credit_cost?: number | null;
           completed_at?: string | null;
         };
         Relationships: [];
@@ -314,6 +332,283 @@ export type Database = {
           created_at?: string;
         };
         Update: Record<string, never>;
+        Relationships: [];
+      };
+      billing_settings: {
+        Row: {
+          id: boolean;
+          free_signup_credits: number;
+          pro_monthly_credits: number;
+          business_monthly_credits: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          free_signup_credits?: number;
+          pro_monthly_credits?: number;
+          business_monthly_credits?: number;
+          updated_at?: string;
+        };
+        Update: {
+          free_signup_credits?: number;
+          pro_monthly_credits?: number;
+          business_monthly_credits?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      billing_customers: {
+        Row: {
+          id: string;
+          user_id: string;
+          stripe_customer_id: string;
+          livemode: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          stripe_customer_id: string;
+          livemode: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          stripe_customer_id?: string;
+          livemode?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          stripe_customer_id: string;
+          stripe_subscription_id: string;
+          stripe_price_id: string | null;
+          stripe_product_id: string | null;
+          plan_key: string;
+          status: string;
+          currency: string | null;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          canceled_at: string | null;
+          ended_at: string | null;
+          trial_end: string | null;
+          last_stripe_event_created_at: string | null;
+          last_invoice_paid_at: string | null;
+          livemode: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          stripe_customer_id: string;
+          stripe_subscription_id: string;
+          stripe_price_id?: string | null;
+          stripe_product_id?: string | null;
+          plan_key: string;
+          status: string;
+          currency?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          ended_at?: string | null;
+          trial_end?: string | null;
+          last_stripe_event_created_at?: string | null;
+          last_invoice_paid_at?: string | null;
+          livemode: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          stripe_customer_id?: string;
+          stripe_price_id?: string | null;
+          stripe_product_id?: string | null;
+          plan_key?: string;
+          status?: string;
+          currency?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          ended_at?: string | null;
+          trial_end?: string | null;
+          last_stripe_event_created_at?: string | null;
+          last_invoice_paid_at?: string | null;
+          livemode?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      credit_accounts: {
+        Row: {
+          user_id: string;
+          available_balance: number;
+          reserved_balance: number;
+          lifetime_granted: number;
+          lifetime_consumed: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          available_balance?: number;
+          reserved_balance?: number;
+          lifetime_granted?: number;
+          lifetime_consumed?: number;
+          updated_at?: string;
+        };
+        Update: {
+          available_balance?: number;
+          reserved_balance?: number;
+          lifetime_granted?: number;
+          lifetime_consumed?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      credit_grants: {
+        Row: {
+          id: string;
+          user_id: string;
+          source_type: string;
+          source_reference: string | null;
+          initial_amount: number;
+          remaining_amount: number;
+          reserved_amount: number;
+          expires_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source_type: string;
+          source_reference?: string | null;
+          initial_amount: number;
+          remaining_amount: number;
+          reserved_amount?: number;
+          expires_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          remaining_amount?: number;
+          reserved_amount?: number;
+          expires_at?: string | null;
+        };
+        Relationships: [];
+      };
+      credit_reservations: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          status: string;
+          reference_type: string;
+          reference_id: string;
+          idempotency_key: string;
+          created_at: string;
+          finalized_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          status?: string;
+          reference_type: string;
+          reference_id: string;
+          idempotency_key: string;
+          created_at?: string;
+          finalized_at?: string | null;
+        };
+        Update: {
+          status?: string;
+          finalized_at?: string | null;
+        };
+        Relationships: [];
+      };
+      credit_reservation_items: {
+        Row: {
+          reservation_id: string;
+          grant_id: string;
+          amount: number;
+        };
+        Insert: {
+          reservation_id: string;
+          grant_id: string;
+          amount: number;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      credit_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          grant_id: string | null;
+          reservation_id: string | null;
+          transaction_type: string;
+          amount: number;
+          balance_after: number | null;
+          reference_type: string | null;
+          reference_id: string | null;
+          idempotency_key: string | null;
+          description: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          grant_id?: string | null;
+          reservation_id?: string | null;
+          transaction_type: string;
+          amount: number;
+          balance_after?: number | null;
+          reference_type?: string | null;
+          reference_id?: string | null;
+          idempotency_key?: string | null;
+          description: string;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      stripe_events: {
+        Row: {
+          stripe_event_id: string;
+          event_type: string;
+          api_version: string | null;
+          livemode: boolean;
+          status: string;
+          attempts: number;
+          last_attempt_at: string;
+          processed_at: string | null;
+          error_code: string | null;
+          created_at: string;
+        };
+        Insert: {
+          stripe_event_id: string;
+          event_type: string;
+          api_version?: string | null;
+          livemode: boolean;
+          status?: string;
+          attempts?: number;
+          last_attempt_at?: string;
+          processed_at?: string | null;
+          error_code?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+          attempts?: number;
+          last_attempt_at?: string;
+          processed_at?: string | null;
+          error_code?: string | null;
+        };
         Relationships: [];
       };
     };
@@ -405,6 +700,128 @@ export type Database = {
           p_upload_ids: string[];
         };
         Returns: undefined;
+      };
+      sync_credit_settings_internal: {
+        Args: {
+          p_free_signup_credits: number;
+          p_pro_monthly_credits: number;
+          p_business_monthly_credits: number;
+        };
+        Returns: undefined;
+      };
+      grant_credits_internal: {
+        Args: {
+          p_user_id: string;
+          p_source_type: string;
+          p_source_reference: string | null;
+          p_amount: number;
+          p_expires_at: string | null;
+          p_description: string;
+        };
+        Returns: string;
+      };
+      expire_credits_internal: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      reserve_credits_internal: {
+        Args: {
+          p_user_id: string;
+          p_amount: number;
+          p_reference_type: string;
+          p_reference_id: string;
+          p_idempotency_key: string;
+        };
+        Returns: {
+          reservation_id: string;
+          reserved_amount: number;
+          credits_remaining: number;
+          is_existing: boolean;
+        }[];
+      };
+      consume_reserved_credits_internal: {
+        Args: {
+          p_user_id: string;
+          p_reservation_id: string;
+          p_reference_type: string;
+          p_reference_id: string;
+          p_description: string;
+        };
+        Returns: {
+          transaction_id: string;
+          consumed_amount: number;
+          credits_remaining: number;
+        }[];
+      };
+      release_reserved_credits_internal: {
+        Args: {
+          p_user_id: string;
+          p_reservation_id: string;
+        };
+        Returns: number;
+      };
+      grant_subscription_credits_internal: {
+        Args: {
+          p_user_id: string;
+          p_invoice_id: string;
+          p_amount: number;
+          p_expires_at: string | null;
+          p_plan_key: string;
+        };
+        Returns: string;
+      };
+      claim_stripe_event_internal: {
+        Args: {
+          p_event_id: string;
+          p_event_type: string;
+          p_api_version: string | null;
+          p_livemode: boolean;
+        };
+        Returns: string;
+      };
+      finish_stripe_event_internal: {
+        Args: {
+          p_event_id: string;
+          p_status: string;
+          p_error_code: string | null;
+        };
+        Returns: undefined;
+      };
+      complete_generation_with_credits_internal: {
+        Args: {
+          p_user_id: string;
+          p_generation_id: string;
+          p_reservation_id: string;
+          p_storage_path: string;
+          p_mime_type: string;
+          p_width: number;
+          p_height: number;
+          p_model: string;
+          p_provider_request_id: string | null;
+        };
+        Returns: {
+          credit_transaction_id: string;
+          credits_used: number;
+          credits_remaining: number;
+        }[];
+      };
+      complete_edit_version_with_credits_internal: {
+        Args: {
+          p_user_id: string;
+          p_version_id: string;
+          p_reservation_id: string;
+          p_storage_path: string;
+          p_mime_type: string;
+          p_width: number;
+          p_height: number;
+          p_model: string;
+          p_provider_response_id: string;
+        };
+        Returns: {
+          credit_transaction_id: string;
+          credits_used: number;
+          credits_remaining: number;
+        }[];
       };
     };
     Enums: Record<never, never>;

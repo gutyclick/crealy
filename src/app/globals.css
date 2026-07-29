@@ -302,6 +302,26 @@ a {
   }
 }
 
+@keyframes pricing-reveal {
+  from {
+    clip-path: inset(0 0 14% 0 round 1rem);
+    filter: blur(6px);
+    transform: translate3d(0, 1.25rem, 0);
+  }
+  to {
+    clip-path: inset(0 round 1rem);
+    filter: blur(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes billing-status-pulse {
+  50% {
+    border-color: rgba(221, 245, 39, 0.7);
+    box-shadow: 0 12px 40px rgba(221, 245, 39, 0.12);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
@@ -323,6 +343,14 @@ a {
 
   .generation-orbit {
     animation: generation-orbit 2.8s var(--ease-in-out) infinite;
+  }
+
+  .pricing-reveal {
+    animation: pricing-reveal 720ms var(--ease-out) both;
+  }
+
+  .billing-status-pulse {
+    animation: billing-status-pulse 1.8s var(--ease-in-out) infinite;
   }
 
   @supports (animation-timeline: view()) {

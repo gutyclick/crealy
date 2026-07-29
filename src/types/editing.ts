@@ -31,6 +31,8 @@ export type EditSessionView = {
 export type EditVersionResponse = {
   version: EditVersionView;
   assistantMessage: EditMessageView;
+  creditsUsed: number;
+  creditsRemaining: number;
 };
 
 export type ApiErrorResponse = {

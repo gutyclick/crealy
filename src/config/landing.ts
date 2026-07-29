@@ -47,40 +47,6 @@ export const creationSteps = [
   },
 ] as const;
 
-export const pricingPlans = [
-  {
-    name: "Creator",
-    description: "Para personas que crean contenido con constancia.",
-    monthlyPrice: 12,
-    yearlyPrice: 115,
-    monthlyTokens: 120,
-    trialTokens: 30,
-    featured: false,
-    features: [
-      "Miniaturas, posts, banners y portadas",
-      "Historial de proyectos",
-      "Descargas en alta calidad",
-      "Uso comercial incluido",
-    ],
-  },
-  {
-    name: "Pro",
-    description: "Para marcas y equipos con más volumen de publicación.",
-    monthlyPrice: 29,
-    yearlyPrice: 278,
-    monthlyTokens: 400,
-    trialTokens: 80,
-    featured: true,
-    features: [
-      "Todo lo incluido en Creator",
-      "Más tokens cada mes",
-      "Generaciones prioritarias",
-      "Hasta 3 miembros por espacio",
-      "Acceso anticipado a nuevas funciones",
-    ],
-  },
-] as const;
-
 export const examples = [
   {
     title: "Una carrera que se siente antes de empezar",
@@ -138,7 +104,7 @@ export const faqs = [
   {
     question: "¿Crealy ya está disponible?",
     answer:
-      "Puedes crear tu cuenta y acceder al área privada. La generación de imágenes, los créditos y la facturación siguen en desarrollo.",
+      "Sí. Puedes crear tu cuenta, generar, editar y administrar tus créditos desde el área privada. Los pagos aparecen únicamente cuando Stripe está habilitado.",
   },
   {
     question: "¿Las imágenes se generan con inteligencia artificial?",

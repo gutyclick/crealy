@@ -20,6 +20,7 @@ Abre [http://localhost:3000](http://localhost:3000).
 NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+SUPABASE_SERVICE_ROLE_KEY=
 
 OPENAI_API_KEY=
 OPENAI_IMAGE_MODEL=gpt-image-2
@@ -35,6 +36,23 @@ REFERENCE_IMAGE_MAX_PIXELS=40000000
 EDIT_DAILY_LIMIT=20
 EDIT_COOLDOWN_SECONDS=12
 EDIT_SESSION_VERSION_LIMIT=20
+
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRO_PRICE_ID=
+STRIPE_PRO_PRICE_DISPLAY=
+STRIPE_BUSINESS_PRICE_ID=
+STRIPE_BUSINESS_PRICE_DISPLAY=
+STRIPE_BILLING_ENABLED=false
+BUSINESS_PLAN_ENABLED=false
+
+FREE_SIGNUP_CREDITS=5
+PRO_MONTHLY_CREDITS=100
+BUSINESS_MONTHLY_CREDITS=500
+CREDITS_COST_GENERATION_STANDARD=1
+CREDITS_COST_GENERATION_HIGH=2
+CREDITS_COST_EDIT=1
+BILLING_GRACE_PERIOD_DAYS=3
 ```
 
 `OPENAI_API_KEY` es exclusivamente de servidor. No debe llevar el prefijo
@@ -48,13 +66,16 @@ Ejecuta las migraciones en orden desde el SQL Editor:
 2. `supabase/migrations/20260728010000_create_generation_pipeline.sql`
 3. `supabase/migrations/20260728020000_create_editing_pipeline.sql`
 4. `supabase/migrations/20260728030000_add_generation_references.sql`
+5. `supabase/migrations/20260729000000_add_billing_and_credits.sql`
+6. `supabase/migrations/20260729010000_harden_financial_writes.sql`
 
 La segunda migración crea `projects`, `generations`, restricciones, índices,
 RLS, la reserva atómica con límites y el bucket privado `generations`. La
 tercera añade cargas privadas, sesiones conversacionales, versiones, mensajes,
 restauración y límites atómicos. La cuarta relaciona hasta cuatro uploads
-privados con cada generación. El repositorio no incluye Supabase CLI, por lo que
-estos archivos no se consideran aplicados hasta ejecutarlos manualmente.
+privados con cada generación. Las dos últimas añaden suscripciones, cuentas,
+grants, reservas, movimientos, eventos de Stripe y funciones financieras
+reservadas al servidor. No edites una migración ya aplicada: crea una nueva.
 
 Verifica después:
 
@@ -104,18 +125,45 @@ referencias, Crealy usa el endpoint de edición de Image API para componer una
 nueva pieza y refuerza en el prompt la preservación de personas, productos y
 objetos no solicitados para cambio.
 
+## Stripe y créditos
+
+1. Crea en Stripe un producto Pro con un precio recurrente mensual.
+2. Copia el ID `price_...` en `STRIPE_PRO_PRICE_ID` y el texto público real
+   (por ejemplo, `$19`) en `STRIPE_PRO_PRICE_DISPLAY`.
+3. Crea el webhook `https://TU_DOMINIO/api/webhooks/stripe` y escucha
+   `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted`,
+   `invoice.paid`, `invoice.payment_failed`,
+   `invoice.payment_action_required` y `checkout.session.expired`.
+4. Copia el signing secret en `STRIPE_WEBHOOK_SECRET`, configura Customer
+   Portal y activa `STRIPE_BILLING_ENABLED=true`.
+5. Mantén `BUSINESS_PLAN_ENABLED=false` hasta tener un precio real.
+
+Checkout y Portal son sesiones alojadas por Stripe. El navegador nunca decide
+el precio ni concede créditos. `invoice.paid` concede los créditos mensuales de
+forma idempotente y los intentos de generación/edición reservan saldo antes de
+llamar a OpenAI.
+
+`SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` y
+`STRIPE_WEBHOOK_SECRET` son exclusivamente de servidor. Nunca uses el prefijo
+`NEXT_PUBLIC_` ni los imprimas en logs.
+
+Para probar webhooks localmente:
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+stripe trigger invoice.paid
+```
+
 ## Límites y control de costes
 
-- `GENERATION_DAILY_LIMIT`: máximo diario por usuario.
-- `GENERATION_COOLDOWN_SECONDS`: espera mínima entre solicitudes.
 - `OPENAI_GENERATION_ENABLED=false`: detiene nuevas llamadas sin desplegar
   código distinto.
 - Sólo se genera una imagen por llamada y una generación puede estar activa por
   usuario.
 - No existen reintentos automáticos, generación al cargar ni una segunda
   llamada para reescribir prompts.
-- `EDIT_DAILY_LIMIT`, `EDIT_COOLDOWN_SECONDS` y
-  `EDIT_SESSION_VERSION_LIMIT` controlan la edición conversacional.
+- `EDIT_SESSION_VERSION_LIMIT` controla el tamaño de una sesión conversacional.
 - `OPENAI_EDITING_ENABLED=false` detiene nuevas ediciones sin afectar la
   biblioteca ni las descargas.
 - Sólo puede existir una edición activa por usuario. Si el contexto del

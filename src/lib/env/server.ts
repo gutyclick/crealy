@@ -10,16 +10,7 @@ const DEFAULT_DAILY_LIMIT = 10;
 const DEFAULT_COOLDOWN_SECONDS = 15;
 
 function readPositiveInteger(
-  name:
-    | "GENERATION_DAILY_LIMIT"
-    | "GENERATION_COOLDOWN_SECONDS"
-    | "REFERENCE_IMAGE_MAX_MB"
-    | "REFERENCE_IMAGE_MAX_WIDTH"
-    | "REFERENCE_IMAGE_MAX_HEIGHT"
-    | "REFERENCE_IMAGE_MAX_PIXELS"
-    | "EDIT_DAILY_LIMIT"
-    | "EDIT_COOLDOWN_SECONDS"
-    | "EDIT_SESSION_VERSION_LIMIT",
+  name: string,
   fallback: number,
   maximum = 100_000_000,
 ) {
@@ -33,6 +24,23 @@ function readPositiveInteger(
     );
   }
 
+  return value;
+}
+
+function readNonNegativeInteger(
+  name: string,
+  fallback: number,
+  maximum = 100_000_000,
+) {
+  const rawValue = process.env[name]?.trim();
+  if (!rawValue) return fallback;
+
+  const value = Number(rawValue);
+  if (!Number.isSafeInteger(value) || value < 0 || value > maximum) {
+    throw new Error(
+      `[Crealy] ${name} debe ser un número entero no negativo dentro del rango permitido.`,
+    );
+  }
   return value;
 }
 
@@ -155,6 +163,64 @@ export function isEditingAvailable() {
   try {
     const config = getEditingServerEnv();
     return config.editingEnabled && Boolean(config.apiKey);
+  } catch {
+    return false;
+  }
+}
+
+export function getCreditServerEnv() {
+  return {
+    freeSignupCredits: readNonNegativeInteger("FREE_SIGNUP_CREDITS", 5, 10_000),
+    proMonthlyCredits: readPositiveInteger(
+      "PRO_MONTHLY_CREDITS",
+      100,
+      1_000_000,
+    ),
+    businessMonthlyCredits: readPositiveInteger(
+      "BUSINESS_MONTHLY_CREDITS",
+      500,
+      1_000_000,
+    ),
+    generationStandardCost: readPositiveInteger(
+      "CREDITS_COST_GENERATION_STANDARD",
+      1,
+      10_000,
+    ),
+    generationHighCost: readPositiveInteger(
+      "CREDITS_COST_GENERATION_HIGH",
+      2,
+      10_000,
+    ),
+    editCost: readPositiveInteger("CREDITS_COST_EDIT", 1, 10_000),
+  };
+}
+
+export function getBillingServerEnv() {
+  return {
+    billingEnabled: readBoolean("STRIPE_BILLING_ENABLED", false),
+    businessPlanEnabled: readBoolean("BUSINESS_PLAN_ENABLED", false),
+    gracePeriodDays: readNonNegativeInteger(
+      "BILLING_GRACE_PERIOD_DAYS",
+      3,
+      30,
+    ),
+    proPriceId: process.env.STRIPE_PRO_PRICE_ID?.trim() || "",
+    businessPriceId: process.env.STRIPE_BUSINESS_PRICE_ID?.trim() || "",
+    businessPriceDisplay:
+      process.env.STRIPE_BUSINESS_PRICE_DISPLAY?.trim() || "",
+    proPriceDisplay: process.env.STRIPE_PRO_PRICE_DISPLAY?.trim() || "",
+  };
+}
+
+export function isCheckoutAvailable() {
+  try {
+    const config = getBillingServerEnv();
+    return Boolean(
+      config.billingEnabled &&
+        config.proPriceId &&
+        config.proPriceDisplay &&
+        process.env.STRIPE_SECRET_KEY?.trim(),
+    );
   } catch {
     return false;
   }

@@ -56,6 +56,8 @@ export type GenerationResponse = {
   imageUrl: string;
   width: number | null;
   height: number | null;
+  creditsUsed: number;
+  creditsRemaining: number;
 };
 
 export type GenerationErrorResponse = {
@@ -68,6 +70,7 @@ export type GenerationErrorResponse = {
     | "generation_limit"
     | "generation_cooldown"
     | "generation_in_progress"
+    | "insufficient_credits"
     | "invalid_reference"
     | "provider_error"
     | "storage_error"
