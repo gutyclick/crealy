@@ -6,7 +6,7 @@ import { siteConfig } from "@/config/site";
 
 export function Header() {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.07] bg-background/88 backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.08] bg-background/82 backdrop-blur-2xl">
       <Container className="relative flex h-16 items-center justify-between sm:h-[4.5rem]">
         <Logo />
 
@@ -33,8 +33,8 @@ export function Header() {
             Iniciar sesión
           </a>
           <Button href="/signup" size="sm" variant="secondary">
-            <span className="sm:hidden">Crear</span>
-            <span className="hidden sm:inline">Crear gratis</span>
+            <span className="sm:hidden">Cuenta</span>
+            <span className="hidden sm:inline">Crear cuenta</span>
           </Button>
           <MobileNavigation />
         </div>

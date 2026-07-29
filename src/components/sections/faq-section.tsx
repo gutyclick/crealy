@@ -5,16 +5,19 @@ import { faqs } from "@/config/landing";
 export function FaqSection() {
   return (
     <section id="faq" className="scroll-mt-24 py-24 sm:py-32">
-      <Container className="grid gap-12 lg:grid-cols-[0.72fr_1.28fr]">
-        <div>
+      <Container>
+        <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl">
-            Preguntas frecuentes.
+            Lo esencial, sin letra pequeña.
           </h2>
-          <p className="mt-5 max-w-sm text-base leading-7 text-muted">
-            Lo esencial sobre la primera versión de Crealy y su lanzamiento.
+          <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-muted">
+            Qué podrás crear, qué está disponible y cómo estamos construyendo
+            la primera versión.
           </p>
         </div>
-        <Accordion items={faqs} />
+        <div className="reveal-rise mx-auto mt-12 max-w-3xl">
+          <Accordion items={faqs} />
+        </div>
       </Container>
     </section>
   );

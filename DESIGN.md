@@ -6,10 +6,11 @@ colors:
   brand-hover: "#E6F94F"
   brand-ink: "#111400"
   background: "#080808"
-  surface: "#101010"
-  surface-elevated: "#151515"
+  surface-soft: "#0D0E0B"
+  surface: "#11120E"
+  surface-elevated: "#191A15"
   foreground: "#F7F7F5"
-  muted: "#A3A3A3"
+  muted: "#B0B1AA"
   border: "rgba(255, 255, 255, 0.10)"
 typography:
   display:
@@ -85,8 +86,9 @@ La paleta utiliza negros cálidos y grises minerales con una única señal lima 
 
 - **Cinta Crealy** (`#DDF527`): acción primaria e indicadores activos.
 - **Negro de estudio** (`#080808`): fondo principal.
-- **Mesa de trabajo** (`#101010`): paneles de producto.
-- **Prueba elevada** (`#151515`): superficies secundarias.
+- **Transición de estudio** (`#0D0E0B`): secciones que necesitan una pausa tonal.
+- **Mesa de trabajo** (`#11120E`): paneles de producto.
+- **Prueba elevada** (`#191A15`): superficies secundarias.
 - **Papel luminoso** (`#F7F7F5`): texto principal.
 - **Grafito auxiliar** (`#A3A3A3`): texto secundario.
 - **Línea de corte** (`rgba(255, 255, 255, 0.10)`): divisiones discretas.
@@ -107,7 +109,7 @@ Geist Sans sostiene titulares, cuerpo y controles. Geist Mono se reserva para fo
 
 ## Layout
 
-La página usa un contenedor máximo de 1240 px. El menú se centra de forma independiente entre marca y acciones. El hero mantiene tesis, explicación y CTA sobre el eje central, mientras dos cintas de miniaturas atraviesan el fondo con baja opacidad. La vista de producto se limita a 1024 px.
+La página usa un contenedor máximo de 1240 px. El menú se centra de forma independiente entre marca y acciones. El hero mantiene tesis, explicación y CTA sobre el eje central. Una composición fotográfica de piezas creativas ocupa todo el fondo, conserva una zona central oscura para la lectura y se desplaza lentamente como una mesa de producción viva. La vista de producto se limita a 1152 px.
 
 En móvil, la navegación secundaria desaparece, los CTA se apilan por debajo de 420 px y el panel pasa de dos columnas a una. Todo debe conservar una lectura clara desde 320 px sin desplazamiento horizontal.
 
@@ -126,8 +128,9 @@ Los controles usan un radio de `0.7rem`; las piezas de contenido, `0.8rem`; y el
 - **Primary Button:** fondo `#DDF527`, texto oscuro, altura de 48 px y elevación de 2 px en hover.
 - **Secondary Button:** fondo casi transparente, borde blanco al 18% y contraste mayor en hover.
 - **Centered Header:** marca a la izquierda, navegación absolutamente centrada y acciones a la derecha.
-- **Animated Proof Strip:** miniaturas abstractas 16:9 en dos carriles lentos; se detienen de manera efectiva con `prefers-reduced-motion`.
+- **Animated Studio Scene:** composición panorámica de piezas en distintos formatos; usa un único desplazamiento ambiental lento y se vuelve estática con `prefers-reduced-motion`.
 - **Product Preview:** marco oscuro con prompt estático y tres formatos sociales de muestra; comunica dirección sin simular funcionalidad.
+- **Section Reveal:** solo los grupos visuales clave usan entrada por clip o desplazamiento corto; el contenido permanece visible cuando el navegador no soporta scroll-driven animations.
 
 ## Do's and Don'ts
 

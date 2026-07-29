@@ -9,16 +9,16 @@ export function ExamplesSection() {
   return (
     <section
       id="examples"
-      className="scroll-mt-24 border-y border-white/[0.07] bg-surface/25 py-24 sm:py-32"
+      className="section-surface scroll-mt-24 border-y border-white/[0.07] py-24 sm:py-32"
     >
       <Container>
         <SectionHeading
           align="center"
-          title="Contenido pensado para destacar."
-          description="Explora algunas de las piezas visuales que podrás preparar con Crealy."
+          title="Una dirección para cada mensaje."
+          description="Conceptos visuales para distintos ritmos, audiencias y momentos de publicación."
         />
 
-        <div className="mt-12 grid auto-rows-[17rem] gap-4 md:grid-cols-4">
+        <div className="reveal-clip mt-12 grid auto-rows-[18rem] gap-4 md:grid-cols-5">
           {examples.map((example) => (
             <figure
               key={example.title}
@@ -32,22 +32,23 @@ export function ExamplesSection() {
                 alt={example.alt}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover transition duration-500 ease-out group-hover:scale-[1.025]"
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.025]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/8 to-transparent" />
-              <figcaption className="absolute inset-x-0 bottom-0 p-5">
-                <h3 className="text-lg font-semibold text-white">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#080808]/95 via-[#080808]/10 to-transparent" />
+              <figcaption className="absolute inset-x-0 bottom-0 p-6">
+                <h3 className="max-w-md text-xl font-semibold tracking-[-0.025em] text-white">
                   {example.title}
                 </h3>
-                <p className="mt-1 text-sm text-white/62">
+                <p className="mt-2 text-sm text-white/72">
                   {example.description}
                 </p>
               </figcaption>
             </figure>
           ))}
         </div>
-        <p className="mt-5 text-center text-xs leading-5 text-white/38">
-          Imágenes conceptuales creadas para mostrar la dirección del producto.
+        <p className="mx-auto mt-6 max-w-xl text-center text-sm leading-6 text-white/58">
+          Imágenes conceptuales creadas para mostrar la amplitud visual de
+          Crealy.
         </p>
       </Container>
     </section>

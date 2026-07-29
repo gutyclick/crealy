@@ -35,28 +35,32 @@ export function ProductPreview() {
       className="scroll-mt-24 pb-24 sm:pb-32"
     >
       <Container>
-        <div className="mb-8 text-center">
+        <div className="mx-auto mb-10 max-w-3xl text-center">
           <p className="text-sm font-medium text-brand">Vista conceptual</p>
           <h2
             id="preview-title"
-            className="mt-3 text-balance text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-3xl"
+            className="mt-3 text-balance text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-5xl"
           >
-            Un flujo guiado, sin un panel lleno de controles.
+            Describe. Compara. Elige.
           </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+            La atención se queda en tu mensaje, no en aprender dónde está cada
+            herramienta.
+          </p>
         </div>
 
-        <div className="brand-glow mx-auto max-w-6xl overflow-hidden rounded-2xl border border-white/[0.12] bg-surface">
+        <div className="reveal-clip brand-glow mx-auto max-w-6xl overflow-hidden rounded-2xl border border-white/[0.12] bg-surface">
           <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3 sm:px-5">
             <div className="flex items-center gap-3">
               <Logo compact className="text-sm" />
               <span className="hidden h-4 w-px bg-white/10 sm:block" />
               <span className="hidden text-xs text-white/58 sm:inline">
-                Miniatura de productividad
+                Campaña de productividad
               </span>
             </div>
             <div className="flex items-center gap-3">
               <span className="hidden rounded-full bg-white/[0.05] px-3 py-1.5 text-[0.625rem] text-white/52 sm:inline">
-                Producto en desarrollo
+                Demostración
               </span>
               <span
                 aria-label="Perfil de ejemplo"
@@ -126,13 +130,13 @@ export function ProductPreview() {
                   type="button"
                   disabled
                   aria-describedby="generator-status"
-                  className="mt-1 inline-flex h-11 items-center justify-center gap-2 rounded-[0.7rem] bg-brand px-5 text-sm font-semibold text-brand-ink disabled:cursor-not-allowed disabled:opacity-70"
+                  className="mt-1 inline-flex h-11 items-center justify-center gap-2 rounded-[0.7rem] border border-white/10 bg-white/[0.07] px-5 text-sm font-semibold text-white/62 disabled:cursor-not-allowed"
                 >
                   Generar
                   <ArrowRight aria-hidden="true" className="size-4" />
                 </button>
-                <p id="generator-status" className="text-center text-xs text-white/38">
-                  Demostración visual. La generación estará disponible después.
+                <p id="generator-status" className="text-center text-xs leading-5 text-white/58">
+                  Vista conceptual. La generación todavía está en desarrollo.
                 </p>
               </div>
             </div>
@@ -142,7 +146,7 @@ export function ProductPreview() {
                 <p className="text-sm font-semibold text-foreground">
                   Propuestas
                 </p>
-                <span className="text-xs text-white/38">3 resultados</span>
+                <span className="text-xs text-white/55">3 direcciones</span>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {resultImages.map((result, index) => (

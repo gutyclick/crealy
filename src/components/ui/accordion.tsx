@@ -29,13 +29,13 @@ export function Accordion({ items }: { items: readonly AccordionItem[] }) {
                 aria-expanded={open}
                 aria-controls={panelId}
                 onClick={() => setOpenIndex(open ? null : index)}
-                className="flex min-h-16 w-full items-center justify-between gap-6 py-5 text-left text-base font-semibold text-foreground transition-colors hover:text-brand sm:text-lg"
+                className="flex min-h-16 w-full items-center justify-between gap-6 py-5 text-left text-base font-semibold text-foreground transition-[color,transform] duration-200 ease-out hover:text-brand active:scale-[0.995] sm:text-lg"
               >
                 {item.question}
                 <ChevronDown
                   aria-hidden="true"
                   className={cn(
-                    "size-5 shrink-0 text-muted transition-transform duration-200",
+                    "size-5 shrink-0 text-muted transition-transform duration-200 ease-out",
                     open && "rotate-180 text-brand",
                   )}
                 />
@@ -47,7 +47,7 @@ export function Accordion({ items }: { items: readonly AccordionItem[] }) {
               aria-labelledby={triggerId}
               aria-hidden={!open}
               className={cn(
-                "grid transition-[grid-template-rows] duration-200 ease-out",
+                "grid transition-[grid-template-rows] duration-200 ease-[var(--ease-out)]",
                 open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
               )}
             >

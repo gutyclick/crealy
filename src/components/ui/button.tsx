@@ -50,7 +50,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const styles = cn(
-    "inline-flex shrink-0 items-center justify-center gap-2 rounded-[0.7rem] border font-semibold transition-[background-color,border-color,color,transform] duration-200 ease-out disabled:pointer-events-none disabled:opacity-45",
+    "inline-flex shrink-0 items-center justify-center gap-2 rounded-[0.7rem] border font-semibold transition-[background-color,border-color,color,transform] duration-200 ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45",
     variantClasses[variant],
     sizeClasses[size],
     className,

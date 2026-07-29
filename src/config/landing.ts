@@ -3,58 +3,54 @@ export const contentTypes = [
     key: "thumbnail",
     title: "Miniaturas",
     description:
-      "Imágenes llamativas para destacar tus videos y causar una mejor primera impresión.",
+      "Presenta el tema de tu video con una composición clara desde el primer vistazo.",
     format: "16:9",
-    visual: "/images/examples/gaming.webp",
   },
   {
     key: "social",
     title: "Posts para redes",
     description:
-      "Contenido visual preparado para comunicar promociones, ideas y novedades.",
+      "Convierte promociones, ideas y novedades en piezas listas para compartir.",
     format: "1:1",
-    visual: "/images/examples/productivity.webp",
   },
   {
     key: "banner",
     title: "Banners",
     description:
-      "Composiciones horizontales para campañas, canales y páginas digitales.",
+      "Extiende una campaña a canales y cabeceras sin reconstruirla desde cero.",
     format: "3:1",
-    visual: "/images/examples/technology.webp",
   },
   {
     key: "cover",
     title: "Portadas",
     description:
-      "Imágenes adaptadas para perfiles, comunidades y marcas personales.",
+      "Da una identidad reconocible a perfiles, comunidades y marcas personales.",
     format: "4:5",
-    visual: "/images/examples/restaurant.webp",
   },
 ] as const;
 
 export const creationSteps = [
   {
-    title: "Elige qué quieres crear",
+    title: "Elige el formato",
     description:
-      "Selecciona una miniatura, un banner, una publicación o una portada.",
+      "Selecciona una miniatura, un post, un banner o una portada.",
   },
   {
     title: "Describe tu idea",
     description:
-      "Explica el tema, el estilo y el mensaje que quieres comunicar.",
+      "Cuenta qué quieres comunicar, para quién y con qué intención.",
   },
   {
-    title: "Genera y descarga",
+    title: "Revisa y descarga",
     description:
-      "Revisa las propuestas, elige tu favorita y utilízala en tu contenido.",
+      "Compara las propuestas, elige una dirección y prepara tu publicación.",
   },
 ] as const;
 
 export const pricingPlans = [
   {
     name: "Creator",
-    description: "Para crear contenido con constancia y probar nuevas ideas.",
+    description: "Para personas que crean contenido con constancia.",
     monthlyPrice: 12,
     yearlyPrice: 115,
     monthlyTokens: 120,
@@ -69,7 +65,7 @@ export const pricingPlans = [
   },
   {
     name: "Pro",
-    description: "Para marcas y equipos que necesitan producir más cada semana.",
+    description: "Para marcas y equipos con más volumen de publicación.",
     monthlyPrice: 29,
     yearlyPrice: 278,
     monthlyTokens: 400,
@@ -87,85 +83,62 @@ export const pricingPlans = [
 
 export const examples = [
   {
-    title: "Tecnología",
-    description: "Lanzamiento de un producto digital",
-    src: "/images/examples/technology.webp",
-    alt: "Dispositivo tecnológico transparente iluminado en un estudio oscuro",
-    className: "md:col-span-2 md:row-span-1",
-  },
-  {
-    title: "Videojuegos",
-    description: "Miniatura de un video de carreras",
+    title: "Una carrera que se siente antes de empezar",
+    description: "Miniatura para un canal de videojuegos",
     src: "/images/examples/gaming.webp",
     alt: "Vehículo futurista recorriendo una ciudad nocturna",
-    className: "md:col-span-2 md:row-span-1",
+    className: "md:col-span-3 md:row-span-2",
   },
   {
-    title: "Productividad",
-    description: "Publicación para una rutina de enfoque",
-    src: "/images/examples/productivity.webp",
-    alt: "Escritorio minimalista con libreta, teclado, planta y temporizador",
-    className: "md:row-span-2",
-  },
-  {
-    title: "Restaurantes",
-    description: "Promoción de un menú de temporada",
+    title: "El plato es el mensaje",
+    description: "Promoción para un menú de temporada",
     src: "/images/examples/restaurant.webp",
     alt: "Plato de vegetales asados presentado sobre una mesa oscura",
-    className: "md:row-span-2",
+    className: "md:col-span-2",
   },
   {
-    title: "Fitness",
+    title: "Energía para volver a moverse",
     description: "Creatividad para una rutina de entrenamiento",
     src: "/images/examples/fitness.webp",
     alt: "Atleta entrenando con cuerdas en un gimnasio de arquitectura moderna",
     className: "md:col-span-2",
   },
-  {
-    title: "Podcast",
-    description: "Portada para un nuevo episodio",
-    src: "/images/examples/podcast.webp",
-    alt: "Micrófono y audífonos en un estudio de grabación oscuro",
-    className: "md:col-span-2",
-  },
 ] as const;
 
 export const traditionalFlow = [
-  "Elegir una plantilla",
+  "Buscar una plantilla",
   "Ajustar capas y recursos",
-  "Revisar cada tamaño",
+  "Reconstruir cada formato",
   "Corregir la composición",
-  "Exportar diferentes versiones",
+  "Exportar cada versión",
 ] as const;
 
 export const crealyFlow = [
   "Elige el formato",
   "Describe tu idea",
-  "Genera propuestas",
-  "Elige el resultado",
-  "Descarga y publica",
+  "Revisa y descarga",
 ] as const;
 
 export const faqs = [
   {
     question: "¿Necesito saber diseñar?",
     answer:
-      "No. Crealy está pensado para convertir una descripción sencilla en una propuesta visual.",
+      "No. Crealy está pensado para convertir una descripción clara en una propuesta visual sin obligarte a dominar un editor profesional.",
   },
   {
     question: "¿Qué tipo de contenido podré crear?",
     answer:
-      "Inicialmente podrás crear miniaturas, banners, posts y portadas para plataformas digitales.",
+      "La primera versión contempla miniaturas, banners, posts y portadas para plataformas digitales.",
   },
   {
     question: "¿Podré editar los resultados?",
     answer:
-      "El producto se centrará primero en generar buenos resultados con rapidez. Las opciones de edición se incorporarán progresivamente.",
+      "Crealy se centrará primero en producir buenas direcciones con rapidez. Las opciones de edición se incorporarán progresivamente.",
   },
   {
     question: "¿Crealy ya está disponible?",
     answer:
-      "Estamos construyendo la primera versión. Podrás registrarte para conocer las novedades del lanzamiento.",
+      "Puedes crear tu cuenta y acceder al área privada. La generación de imágenes, los créditos y la facturación siguen en desarrollo.",
   },
   {
     question: "¿Las imágenes se generan con inteligencia artificial?",

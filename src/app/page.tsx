@@ -11,11 +11,11 @@ import { PricingSection } from "@/components/sections/pricing-section";
 import { ProductPreview } from "@/components/sections/product-preview";
 
 /*
-THESIS: Crealy convierte una descripción breve en piezas listas para publicar y rechaza la complejidad de un editor generalista.
-OWN-WORLD: mesa mate #080808, fotografía editorial oscura, paneles contenidos y #DDF527 reservado para acción y selección.
-STORY: el visitante entiende la oferta, observa el flujo, reconoce formatos posibles y llega a una invitación de acceso anticipado.
-FIRST VIEWPORT: navegación compacta y mensaje centrado sobre una cinta tenue de pruebas visuales; el CTA queda visible sin desplazarse.
-FORM: landing Persuade de variación 6, movimiento 3 y densidad 4; combina demostración, bento visual y lectura editorial.
+THESIS: Crealy convierte una intención en varias piezas listas para publicar y evita la complejidad de un editor generalista.
+OWN-WORLD: una mesa de producción oscura, imágenes diversas en movimiento y #DDF527 reservado para acción y selección.
+STORY: el visitante entiende la oferta, ve el mecanismo, reconoce usos concretos y termina en una invitación honesta a crear su cuenta.
+FIRST VIEWPORT: un estudio visual ocupa todo el fondo; el mensaje centrado conserva una zona de lectura limpia y dos acciones visibles.
+FORM: landing Persuade centrada, de variación 7, movimiento 7 y densidad 3; alterna escena, demostración, ritmo editorial y pausa.
 */
 export default function Home() {
   return (
@@ -25,10 +25,10 @@ export default function Home() {
         <HeroSection />
         <ProductPreview />
         <ContentTypesSection />
-        <HowItWorksSection />
-        <PricingSection />
         <ExamplesSection />
+        <HowItWorksSection />
         <ComparisonSection />
+        <PricingSection />
         <FaqSection />
         <FinalCtaSection />
       </main>

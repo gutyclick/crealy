@@ -1,12 +1,23 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { siteConfig } from "@/config/site";
 
 export function MobileNavigation() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
 
   return (
     <div className="lg:hidden">
@@ -16,7 +27,7 @@ export function MobileNavigation() {
         aria-controls="mobile-navigation"
         aria-label={open ? "Cerrar menú" : "Abrir menú"}
         onClick={() => setOpen((current) => !current)}
-        className="grid size-10 place-items-center rounded-[0.7rem] border border-white/[0.12] bg-white/[0.025] text-foreground transition-colors hover:bg-white/[0.06]"
+        className="grid size-11 place-items-center rounded-[0.7rem] border border-white/[0.12] bg-white/[0.025] text-foreground transition-[background-color,transform] duration-200 ease-out hover:bg-white/[0.06] active:scale-[0.97]"
       >
         {open ? (
           <X aria-hidden="true" className="size-5" />
@@ -28,7 +39,7 @@ export function MobileNavigation() {
       <div
         id="mobile-navigation"
         hidden={!open}
-        className="absolute inset-x-0 top-full border-b border-white/[0.08] bg-background/98 px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+        className="absolute inset-x-0 top-full origin-top border-b border-white/[0.08] bg-background/98 px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.42)] backdrop-blur-xl"
       >
         <nav aria-label="Navegación móvil" className="grid gap-1">
           {siteConfig.navigation.map((item) => (

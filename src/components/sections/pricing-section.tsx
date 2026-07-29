@@ -17,28 +17,26 @@ export function PricingSection() {
   return (
     <section
       id="pricing"
-      className="scroll-mt-24 border-y border-white/[0.07] bg-surface/35 py-24 sm:py-32"
+      className="scroll-mt-24 py-24 sm:py-32"
     >
       <Container>
         <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-sm font-medium text-brand">
-                Precios simples
-              </p>
-              <h2 className="mt-3 max-w-[12ch] text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-5xl">
-                Empieza gratis. Crece cuando lo necesites.
-              </h2>
-              <p className="mt-5 max-w-xl text-base leading-7 text-muted">
-                Todos los planes incluyen 7 días de prueba y tokens de
-                bienvenida para crear tus primeras piezas.
-              </p>
-            </div>
+          <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+            <p className="text-sm font-medium text-brand">
+              Planes de lanzamiento
+            </p>
+            <h2 className="mt-3 text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-5xl">
+              Empieza con espacio para probar.
+            </h2>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+              Dos planes previstos para cuando abramos la generación, ambos con
+              7 días de prueba y tokens de bienvenida.
+            </p>
 
             <div
               role="group"
               aria-label="Periodo de facturación"
-              className="inline-grid w-full grid-cols-2 rounded-[0.8rem] border border-white/10 bg-background p-1 sm:w-auto"
+              className="mt-8 inline-grid w-full grid-cols-2 rounded-[0.8rem] border border-white/10 bg-surface p-1 sm:w-auto"
             >
               <button
                 type="button"
@@ -70,14 +68,14 @@ export function PricingSection() {
             </div>
           </div>
 
-          <div className="mt-12 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="reveal-rise mt-12 grid gap-4 lg:grid-cols-2">
             {pricingPlans.map((plan) => {
               const yearlySavings =
                 plan.monthlyPrice * 12 - plan.yearlyPrice;
               const displayedPrice =
                 billingCycle === "monthly"
-                  ? plan.monthlyPrice
-                  : plan.yearlyPrice;
+                  ? String(plan.monthlyPrice)
+                  : (plan.yearlyPrice / 12).toFixed(2);
 
               return (
                 <article
@@ -85,8 +83,8 @@ export function PricingSection() {
                   className={cn(
                     "relative flex min-h-full flex-col rounded-2xl border p-6 sm:p-8",
                     plan.featured
-                      ? "border-brand/45 bg-surface-elevated"
-                      : "border-white/10 bg-background",
+                      ? "border-brand/42 bg-surface-elevated"
+                      : "border-white/10 bg-surface/45",
                   )}
                 >
                   {plan.featured && (
@@ -111,15 +109,18 @@ export function PricingSection() {
                     <span className="text-5xl font-semibold tracking-[-0.04em] text-foreground sm:text-6xl">
                       {displayedPrice}
                     </span>
-                    <span className="pb-2 text-sm text-muted">
-                      /{billingCycle === "monthly" ? "mes" : "año"}
-                    </span>
+                    <span className="pb-2 text-sm text-muted">/mes</span>
                   </div>
 
                   {billingCycle === "yearly" && (
-                    <p className="mt-3 text-sm font-medium text-brand">
-                      Ahorras ${yearlySavings} al año
-                    </p>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+                      <span className="text-muted">
+                        Facturado ${plan.yearlyPrice} al año
+                      </span>
+                      <span className="font-medium text-brand">
+                        Ahorras ${yearlySavings}
+                      </span>
+                    </div>
                   )}
 
                   <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -167,7 +168,7 @@ export function PricingSection() {
                     variant={plan.featured ? "primary" : "secondary"}
                     className="mt-8 w-full"
                   >
-                    Probar gratis 7 días
+                    Crear cuenta
                     <ArrowRight aria-hidden="true" className="size-4" />
                   </Button>
                 </article>
@@ -176,8 +177,8 @@ export function PricingSection() {
           </div>
 
           <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-6 text-white/65">
-            Propuesta de precios de lanzamiento. Los valores y límites pueden
-            cambiar antes de la apertura.
+            Precios provisionales. Los valores, límites y equivalencias se
+            confirmarán antes de abrir la generación.
           </p>
         </div>
       </Container>

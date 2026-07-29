@@ -4,7 +4,6 @@ import {
   MonitorPlay,
   PanelsTopLeft,
 } from "lucide-react";
-import Image from "next/image";
 
 import { Container } from "@/components/layout/container";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -18,12 +17,12 @@ const icons = {
   cover: PanelsTopLeft,
 } as const;
 
-const layouts = [
-  "md:col-span-7",
-  "md:col-span-5",
-  "md:col-span-5",
-  "md:col-span-7",
-] as const;
+const ratios = {
+  thumbnail: "aspect-video w-20",
+  social: "aspect-square w-12",
+  banner: "aspect-[3/1] w-24",
+  cover: "aspect-[4/5] w-11",
+} as const;
 
 export function ContentTypesSection() {
   return (
@@ -31,11 +30,11 @@ export function ContentTypesSection() {
       <Container>
         <SectionHeading
           align="center"
-          title="Una idea. Diferentes formatos."
-          description="Crea las piezas que necesitas sin adaptar cada diseño manualmente desde cero."
+          title="Una idea. Todos tus formatos."
+          description="Mantén una misma dirección visual mientras preparas contenido para cada canal."
         />
 
-        <div className="mt-12 grid gap-4 md:grid-cols-12">
+        <div className="reveal-rise mx-auto mt-14 grid max-w-6xl overflow-hidden rounded-2xl border border-white/[0.1] bg-surface/62 md:grid-cols-2 xl:grid-cols-4">
           {contentTypes.map((item, index) => {
             const Icon = icons[item.key];
 
@@ -43,30 +42,36 @@ export function ContentTypesSection() {
               <article
                 key={item.key}
                 className={cn(
-                  "group relative min-h-[24rem] overflow-hidden rounded-2xl bg-surface",
-                  layouts[index],
-                  index > 1 && "md:min-h-[20rem]",
+                  "group relative flex min-h-72 flex-col items-center justify-between p-7 text-center sm:p-8",
+                  index > 0 && "border-t border-white/[0.09] md:border-t-0",
+                  index === 1 && "md:border-l",
+                  index === 2 && "md:border-t xl:border-l xl:border-t-0",
+                  index === 3 && "md:border-l md:border-t xl:border-t-0",
                 )}
               >
-                <Image
-                  src={item.visual}
-                  alt=""
-                  fill
-                  sizes="(max-width: 768px) 100vw, 58vw"
-                  className="object-cover opacity-62 transition duration-500 ease-out group-hover:scale-[1.02] group-hover:opacity-72"
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,8,8,0.98)_0%,rgba(8,8,8,0.52)_48%,rgba(8,8,8,0.1)_100%)]" />
-                <div className="absolute inset-x-0 bottom-0 p-6 sm:p-7">
-                  <div className="flex items-center justify-between gap-4">
-                    <Icon aria-hidden="true" className="size-5 text-brand" />
-                    <span className="font-mono text-[0.62rem] tracking-[0.12em] text-white/48">
-                      {item.format}
-                    </span>
-                  </div>
-                  <h3 className="mt-4 text-2xl font-semibold tracking-[-0.025em] text-white">
+                <div className="flex w-full items-center justify-between">
+                  <Icon aria-hidden="true" className="size-5 text-brand" />
+                  <span className="font-mono text-xs text-white/55">
+                    {item.format}
+                  </span>
+                </div>
+
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    "relative my-8 overflow-hidden rounded-[0.55rem] border border-white/15 bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-[transform,border-color,background-color] duration-300 ease-out group-hover:-translate-y-1 group-hover:border-brand/55 group-hover:bg-brand/10",
+                    ratios[item.key],
+                  )}
+                >
+                  <span className="absolute inset-x-2 bottom-2 h-1 rounded-full bg-white/12" />
+                  <span className="absolute bottom-2 left-2 h-1 w-1/3 rounded-full bg-brand" />
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold tracking-[-0.025em] text-foreground">
                     {item.title}
                   </h3>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-white/62">
+                  <p className="mx-auto mt-3 max-w-[17rem] text-sm leading-6 text-muted">
                     {item.description}
                   </p>
                 </div>
