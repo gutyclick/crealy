@@ -22,6 +22,16 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
+  icons: {
+    icon: [
+      {
+        url: "/brand/crealy-favicon.webp",
+        type: "image/webp",
+        sizes: "200x200",
+      },
+    ],
+    shortcut: "/brand/crealy-favicon.webp",
+  },
   openGraph: {
     type: "website",
     locale: "es_PA",

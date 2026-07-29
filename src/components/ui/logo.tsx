@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
@@ -12,22 +13,26 @@ export function Logo({ className, compact = false }: LogoProps) {
     <Link
       href="/"
       className={cn(
-        "inline-flex items-center gap-2 text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground",
+        "inline-flex shrink-0 items-center",
         className,
       )}
       aria-label="Crealy, página principal"
     >
-      <span
-        aria-hidden="true"
-        className="relative grid size-7 place-items-center rounded-[0.55rem] bg-brand text-brand-ink"
-      >
-        <span className="size-2.5 rotate-45 rounded-[0.12rem] border-2 border-current" />
-      </span>
-      {compact ? null : (
-        <span>
-          Crealy<span className="text-brand">.</span>
-        </span>
-      )}
+      <Image
+        src={
+          compact
+            ? "/brand/crealy-favicon.webp"
+            : "/brand/crealy-logo-white.svg"
+        }
+        alt=""
+        width={compact ? 200 : 400}
+        height={compact ? 200 : 100}
+        className={
+          compact
+            ? "size-7 rounded-[0.4rem]"
+            : "h-7 w-auto sm:h-8"
+        }
+      />
     </Link>
   );
 }

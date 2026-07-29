@@ -1,6 +1,6 @@
 import "server-only";
 
-export const DEFAULT_RESPONSES_MODEL = "gpt-5.6-sol";
+export const DEFAULT_RESPONSES_MODEL = "gpt-5.6-luna";
 export const EDIT_OUTPUT_MODEL = "gpt-image-2";
 
 export const EDITING_DEFAULTS = {
@@ -12,4 +12,3 @@ export const EDITING_DEFAULTS = {
   cooldownSeconds: 12,
   sessionVersionLimit: 20,
 } as const;
-
