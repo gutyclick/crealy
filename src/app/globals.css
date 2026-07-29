@@ -269,6 +269,18 @@ a {
   }
 }
 
+@keyframes generation-orbit {
+  0%,
+  100% {
+    box-shadow: 0 12px 36px rgba(221, 245, 39, 0.06);
+    transform: rotate(-3deg) scale(0.98);
+  }
+  50% {
+    box-shadow: 0 18px 54px rgba(221, 245, 39, 0.16);
+    transform: rotate(3deg) scale(1.03);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
@@ -286,6 +298,10 @@ a {
 
   .hero-copy {
     animation: hero-copy-enter 780ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  .generation-orbit {
+    animation: generation-orbit 2.8s var(--ease-in-out) infinite;
   }
 
   @supports (animation-timeline: view()) {

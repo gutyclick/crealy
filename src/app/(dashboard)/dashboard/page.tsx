@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DashboardHome } from "@/components/dashboard/dashboard-home";
 import { requireUser } from "@/lib/auth/require-user";
+import { listGenerations } from "@/lib/generation/list-generations";
 import { createClient } from "@/lib/supabase/server";
 
 /*
@@ -37,6 +38,12 @@ export default async function DashboardPage() {
     profile?.full_name?.trim().split(/\s+/)[0] ||
     metadataName.split(/\s+/)[0] ||
     localEmailName;
+  const recentGenerations = await listGenerations(user.id, 4);
 
-  return <DashboardHome firstName={firstName || undefined} />;
+  return (
+    <DashboardHome
+      firstName={firstName || undefined}
+      recentGenerations={recentGenerations}
+    />
+  );
 }

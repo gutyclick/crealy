@@ -24,12 +24,12 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 
 ## Capabilities and Constraints
 
-- El producto futuro incluirá generación de imágenes con inteligencia artificial.
+- La Fase 4 incorpora generación real de una imagen por solicitud mediante OpenAI Image API.
 - La Fase 2 establece una landing page comercial completa con demostraciones visuales, tipos de contenido, proceso, precios provisionales, ejemplos, comparativa y preguntas frecuentes.
-- En esta fase no existen generación real, autenticación, cargas, editor, dashboard, pagos, persistencia, lista de espera funcional ni integraciones de inteligencia artificial.
 - La tabla de precios de la Fase 2 es una propuesta de lanzamiento con valores y límites provisionales.
 - La Fase 3 incorpora autenticación real con Supabase, confirmación de correo, recuperación de contraseña, perfil básico y un dashboard privado protegido.
-- La generación de imágenes, proyectos, almacenamiento, créditos y facturación siguen fuera de alcance.
+- Los proyectos, generaciones e imágenes privadas persisten en PostgreSQL y Supabase Storage con RLS.
+- La edición de imágenes, créditos, pagos y facturación siguen fuera de alcance.
 - La arquitectura debe permitir crecimiento por fases sin anticipar abstracciones o servicios que todavía no existen.
 
 ## Brand Commitments

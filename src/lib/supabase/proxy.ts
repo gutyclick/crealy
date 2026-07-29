@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getSupabaseEnv } from "@/lib/env";
 import type { Database } from "@/types/database";
 
-const privateRoutes = ["/dashboard"];
+const privateRoutes = ["/dashboard", "/create", "/generations"];
 const guestOnlyRoutes = ["/login", "/signup", "/forgot-password"];
 
 function copyAuthCookies(source: NextResponse, target: NextResponse) {
@@ -46,7 +46,7 @@ export async function updateSession(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";
-    loginUrl.searchParams.set("next", "/dashboard");
+    loginUrl.searchParams.set("next", pathname);
     return copyAuthCookies(response, NextResponse.redirect(loginUrl));
   }
 

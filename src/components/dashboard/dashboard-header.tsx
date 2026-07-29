@@ -1,6 +1,7 @@
 import { ChevronDown, LogOut } from "lucide-react";
 
 import { signOut } from "@/app/(auth)/actions";
+import { DashboardNavigation } from "@/components/dashboard/dashboard-navigation";
 import { Container } from "@/components/layout/container";
 import { Logo } from "@/components/ui/logo";
 
@@ -17,10 +18,13 @@ export function DashboardHeader({
 
   return (
     <header className="border-b border-white/[0.08] bg-background">
-      <Container className="flex h-16 items-center justify-between sm:h-[4.5rem]">
+      <Container className="grid min-h-16 grid-cols-[1fr_auto] items-center gap-3 py-2 sm:min-h-[4.5rem] sm:grid-cols-[1fr_auto_1fr]">
         <Logo />
+        <div className="order-3 col-span-2 flex justify-center border-t border-white/[0.06] pt-2 sm:order-none sm:col-span-1 sm:border-0 sm:pt-0">
+          <DashboardNavigation />
+        </div>
 
-        <details className="group relative">
+        <details className="group relative justify-self-end">
           <summary
             aria-label="Abrir menú de usuario"
             className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-[0.7rem] px-2 py-1.5 transition-colors hover:bg-white/[0.05]"
