@@ -10,15 +10,17 @@ let adminClient: ReturnType<typeof createClient<Database>> | null = null;
 export function createAdminClient() {
   if (adminClient) return adminClient;
 
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!serviceRoleKey) {
+  const secretKey =
+    process.env.SUPABASE_SECRET_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!secretKey) {
     throw new Error(
-      "[Crealy] Falta SUPABASE_SERVICE_ROLE_KEY para operaciones internas.",
+      "[Crealy] Falta SUPABASE_SECRET_KEY o SUPABASE_SERVICE_ROLE_KEY para operaciones internas.",
     );
   }
 
   const { url } = getSupabaseEnv();
-  adminClient = createClient<Database>(url, serviceRoleKey, {
+  adminClient = createClient<Database>(url, secretKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

@@ -20,7 +20,7 @@ Abre [http://localhost:3000](http://localhost:3000).
 NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 
 OPENAI_API_KEY=
 OPENAI_IMAGE_MODEL=gpt-image-2
@@ -144,7 +144,8 @@ el precio ni concede créditos. `invoice.paid` concede los créditos mensuales d
 forma idempotente y los intentos de generación/edición reservan saldo antes de
 llamar a OpenAI.
 
-`SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` y
+`SUPABASE_SECRET_KEY` (o la clave legacy en
+`SUPABASE_SERVICE_ROLE_KEY`), `STRIPE_SECRET_KEY` y
 `STRIPE_WEBHOOK_SECRET` son exclusivamente de servidor. Nunca uses el prefijo
 `NEXT_PUBLIC_` ni los imprimas en logs.
 
