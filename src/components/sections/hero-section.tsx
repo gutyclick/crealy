@@ -5,19 +5,78 @@ import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+type CreativePiece = {
+  src: string;
+  format: "wide" | "square" | "cover" | "banner";
+  position?: string;
+};
+
+const firstRail: CreativePiece[] = [
+  { src: "/images/examples/gaming.webp", format: "wide" },
+  { src: "/images/examples/productivity.webp", format: "square" },
+  { src: "/images/examples/podcast.webp", format: "cover" },
+  { src: "/images/crealy-hero-studio-v2.webp", format: "banner" },
+  { src: "/images/examples/technology.webp", format: "wide" },
+  { src: "/images/examples/restaurant.webp", format: "square" },
+  { src: "/images/examples/fitness.webp", format: "cover" },
+  { src: "/images/examples/podcast.webp", format: "wide", position: "object-top" },
+];
+
+const secondRail: CreativePiece[] = [
+  { src: "/images/examples/restaurant.webp", format: "square" },
+  { src: "/images/examples/fitness.webp", format: "cover" },
+  { src: "/images/examples/technology.webp", format: "wide" },
+  { src: "/images/crealy-hero-studio-v2.webp", format: "banner" },
+  { src: "/images/examples/podcast.webp", format: "square" },
+  { src: "/images/examples/gaming.webp", format: "wide" },
+  { src: "/images/examples/productivity.webp", format: "cover" },
+  { src: "/images/examples/fitness.webp", format: "wide", position: "object-top" },
+];
+
+function CreativeRail({
+  pieces,
+  reverse = false,
+}: {
+  pieces: CreativePiece[];
+  reverse?: boolean;
+}) {
+  return (
+    <div className={`hero-gallery-rail${reverse ? " hero-gallery-rail--reverse" : ""}`}>
+      <div className="hero-gallery-track">
+        {[...pieces, ...pieces].map((piece, index) => (
+          <div
+            className={`hero-gallery-card hero-gallery-card--${piece.format}`}
+            key={`${piece.src}-${piece.format}-${index}`}
+          >
+            <Image
+              src={piece.src}
+              alt=""
+              fill
+              priority={index === 0}
+              sizes={
+                piece.format === "banner"
+                  ? "(max-width: 640px) 64vw, 28vw"
+                  : piece.format === "wide"
+                    ? "(max-width: 640px) 52vw, 22vw"
+                    : "(max-width: 640px) 32vw, 14vw"
+              }
+              className={`object-cover ${piece.position ?? "object-center"}`}
+              draggable={false}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function HeroSection() {
   return (
     <section className="relative isolate min-h-[100dvh] overflow-hidden pt-16 sm:pt-[4.5rem]">
-      <div aria-hidden="true" className="absolute inset-0">
-        <Image
-          src="/images/crealy-hero-studio-v2.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="hero-studio-image object-cover"
-        />
-        <div className="hero-studio-wash absolute inset-0" />
+      <div aria-hidden="true" className="hero-gallery absolute inset-0">
+        <CreativeRail pieces={firstRail} />
+        <CreativeRail pieces={secondRail} reverse />
+        <div className="hero-gallery-wash absolute inset-0" />
         <div className="hero-focus-frame absolute left-1/2 top-1/2 h-[62%] w-[min(82vw,62rem)] -translate-x-1/2 -translate-y-1/2 rounded-[1.4rem]" />
       </div>
 

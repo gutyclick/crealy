@@ -78,7 +78,7 @@ La identidad combina precisión editorial con velocidad cotidiana. Debe sentirse
 - Superficies oscuras y mate que ceden el protagonismo al contenido.
 - Verde lima reservado para acción, selección y estado listo.
 - Miniaturas abstractas que demuestran variedad sin prometer resultados reales.
-- Movimiento ambiental lento en el hero y transiciones breves en controles.
+- Movimiento editorial continuo en el hero y transiciones breves en controles.
 
 ## Colors
 
@@ -109,7 +109,7 @@ Geist Sans sostiene titulares, cuerpo y controles. Geist Mono se reserva para fo
 
 ## Layout
 
-La página usa un contenedor máximo de 1240 px. El menú se centra de forma independiente entre marca y acciones. El hero mantiene tesis, explicación y CTA sobre el eje central. Una composición fotográfica de piezas creativas ocupa todo el fondo, conserva una zona central oscura para la lectura y se desplaza lentamente como una mesa de producción viva. La vista de producto se limita a 1152 px.
+La página usa un contenedor máximo de 1240 px. El menú se centra de forma independiente entre marca y acciones. El hero mantiene tesis, explicación y CTA sobre el eje central. Dos carriles editoriales de miniaturas, posts y portadas recorren el fondo en direcciones opuestas, conservan una zona central oscura para la lectura y convierten el primer viewport en una mesa de publicación viva. La vista de producto se limita a 1152 px.
 
 En móvil, la navegación secundaria desaparece, los CTA se apilan por debajo de 420 px y el panel pasa de dos columnas a una. Todo debe conservar una lectura clara desde 320 px sin desplazamiento horizontal.
 
@@ -128,7 +128,7 @@ Los controles usan un radio de `0.7rem`; las piezas de contenido, `0.8rem`; y el
 - **Primary Button:** fondo `#DDF527`, texto oscuro, altura de 48 px y elevación de 2 px en hover.
 - **Secondary Button:** fondo casi transparente, borde blanco al 18% y contraste mayor en hover.
 - **Centered Header:** marca a la izquierda, navegación absolutamente centrada y acciones a la derecha.
-- **Animated Studio Scene:** composición panorámica de piezas en distintos formatos; usa un único desplazamiento ambiental lento y se vuelve estática con `prefers-reduced-motion`.
+- **Kinetic Publishing Wall:** dos carriles continuos de piezas reales en formatos 16:9, 1:1, 4:5 y banner; se mueven en direcciones opuestas, dejan el centro despejado y se vuelven estáticos con `prefers-reduced-motion`.
 - **Product Preview:** marco oscuro con prompt estático y tres formatos sociales de muestra; comunica dirección sin simular funcionalidad.
 - **Section Reveal:** solo los grupos visuales clave usan entrada por clip o desplazamiento corto; el contenido permanece visible cuando el navegador no soporta scroll-driven animations.
 
