@@ -5,6 +5,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { requireUser } from "@/lib/auth/require-user";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
+import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 
 export const metadata: Metadata = {
   robots: {
@@ -44,6 +45,7 @@ export default async function DashboardLayout({
         credits={credits}
       />
       {children}
+      <FeedbackWidget />
     </div>
   );
 }

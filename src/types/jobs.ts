@@ -1,4 +1,4 @@
-export type JobType = "generation" | "edit";
+export type JobType = "generation" | "edit" | "send_transactional_email";
 
 export type JobStatus =
   | "queued"
@@ -11,7 +11,7 @@ export type JobStatus =
 
 export type JobRecord = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   job_type: JobType;
   status: JobStatus;
   idempotency_key: string;

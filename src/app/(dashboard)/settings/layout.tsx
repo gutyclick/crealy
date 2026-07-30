@@ -8,6 +8,8 @@ const tabs = [
   { href: "/settings/security", label: "Seguridad" },
   { href: "/settings/billing", label: "Facturación" },
   { href: "/settings/storage", label: "Almacenamiento" },
+  { href: "/settings/notifications", label: "Notificaciones" },
+  { href: "/settings/account", label: "Cuenta" },
 ];
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {

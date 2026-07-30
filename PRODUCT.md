@@ -74,3 +74,20 @@ fabrican descuentos, pruebas ni alternativas anuales.
 ## Accessibility & Inclusion
 
 La interfaz debe funcionar con teclado, mantener foco visible y contraste suficiente, respetar preferencias de movimiento reducido y adaptarse desde aproximadamente 320 px hasta pantallas grandes.
+
+## Launch Operations
+
+- La etapa inicial es beta privada, con invitaciones habilitadas por defecto en
+  producción y ampliación gradual por cohortes.
+- El onboarding tiene tres pasos opcionales y personaliza accesos sin consumir
+  créditos ni decidir permisos, seguridad o facturación.
+- Los correos de producto se envían con Resend mediante jobs idempotentes; los
+  correos de seguridad y autenticación permanecen en Supabase Auth.
+- Soporte y feedback nunca adjuntan automáticamente prompts o imágenes. Las
+  solicitudes anónimas conservan únicamente el contacto necesario para poder
+  responder.
+- Analytics y Speed Insights permanecen desactivados hasta aprobar privacidad
+  y consentimiento; sus eventos no incluyen contenido del usuario.
+- Las páginas legales son borradores no indexables hasta completar entidad,
+  jurisdicción, fechas y revisión profesional.
+- La definición de activación es una generación o edición completada.

@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { ArrowDown } from "lucide-react";
 
 import { PricingTable } from "@/components/billing/pricing-table";
@@ -6,12 +5,14 @@ import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
+import { createMetadata } from "@/lib/seo/create-metadata";
 
-export const metadata: Metadata = {
-  title: "Precios | Crealy",
-  description:
-    "Planes mensuales y créditos para crear y editar contenido visual con Crealy.",
-};
+export const metadata = createMetadata({
+  title: "Precios y créditos",
+  description: "Planes mensuales y créditos para crear y editar contenido visual con Crealy.",
+  path: "/pricing",
+  image: "/pricing/opengraph-image",
+});
 
 export default async function PricingPage({
   searchParams,

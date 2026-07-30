@@ -8,6 +8,8 @@ __pycache__/
 /out/
 /build/
 /coverage/
+/playwright-report/
+/test-results/
 
 # Graphify machine-local and reproducible cache files
 graphify-out/cache/

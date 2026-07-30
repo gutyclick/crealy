@@ -287,6 +287,41 @@ npm test
 npm run build
 ```
 
+## Preparación para lanzamiento
+
+Producción arranca como **beta privada**. La configuración se centraliza con
+`NEXT_PUBLIC_LAUNCH_STAGE`, `REGISTRATIONS_ENABLED`, `INVITE_REQUIRED` y los
+flags de generación, edición, cobros, herramientas, correo y analítica. No
+actives una integración hasta que sus credenciales y webhooks estén probados.
+
+```bash
+npm run check:secrets
+npm run validate:production-env
+npm run test:e2e
+npm run smoke:production -- https://www.crealy.app
+```
+
+Para email transaccional, verifica el dominio en Resend, configura
+`RESEND_API_KEY`, remitente, reply-to y secreto del webhook
+`/api/webhooks/resend`, y después activa `TRANSACTIONAL_EMAILS_ENABLED`.
+Configura también SMTP personalizado en Supabase Auth; Resend no sustituye los
+correos de confirmación y recuperación administrados por Supabase.
+
+Analytics y Speed Insights están desactivados por defecto. Sus eventos solo
+incluyen nombres de flujo y métricas seguras, nunca prompts, imágenes, correos
+ni texto del usuario. Antes de habilitarlos, revisa privacidad, retención y la
+necesidad de consentimiento.
+
+Las páginas `/privacy`, `/terms`, `/cookies`, `/acceptable-use` y
+`/refund-policy` son borradores provisionales. **Se requiere revisión legal
+antes de cualquier lanzamiento público.**
+
+La guía de salida está en
+[`docs/launch/production-checklist.md`](docs/launch/production-checklist.md);
+incluye el [plan de beta](docs/launch/beta-plan.md), el
+[playbook de soporte](docs/launch/support-playbook.md) y el
+[procedimiento de rollback](docs/launch/rollback.md).
+
 ## Operación en producción
 
 La generación y la edición se procesan mediante jobs durables en Supabase. Las

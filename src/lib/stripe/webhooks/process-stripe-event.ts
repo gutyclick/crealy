@@ -8,6 +8,7 @@ import {
   getInvoiceSubscriptionId,
   syncStripeSubscription,
 } from "@/lib/stripe/sync-subscription";
+import { queueTransactionalEmail } from "@/lib/email/queue-email";
 
 function objectId(value: string | { id: string } | null) {
   return typeof value === "string" ? value : value?.id ?? null;
@@ -38,7 +39,13 @@ async function handleCheckoutCompleted(
   if (!customer || customer.user_id !== userId) {
     throw new Error("checkout_customer_mismatch");
   }
-  await syncStripeSubscription(subscriptionId, eventCreated);
+  const synced = await syncStripeSubscription(subscriptionId, eventCreated);
+  await queueTransactionalEmail({
+    userId,
+    type: "subscription_active",
+    idempotencyKey: `subscription-active:${subscriptionId}`,
+    data: { plan: synced.planKey },
+  }).catch(() => null);
 }
 
 async function handleInvoicePaid(
@@ -138,7 +145,12 @@ export async function processStripeEvent(event: Stripe.Event) {
         const invoice = event.data.object as Stripe.Invoice;
         const subscriptionId = getInvoiceSubscriptionId(invoice);
         if (subscriptionId) {
-          await syncStripeSubscription(subscriptionId, event.created);
+          const synced = await syncStripeSubscription(subscriptionId, event.created);
+          await queueTransactionalEmail({
+            userId: synced.userId,
+            type: "payment_failed",
+            idempotencyKey: `payment-failed:${invoice.id}`,
+          }).catch(() => null);
         } else {
           status = "ignored";
         }

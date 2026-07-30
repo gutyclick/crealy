@@ -36,6 +36,7 @@ import {
 } from "@/config/generation";
 import { COVER_PLATFORMS, PLATFORM_COVERS } from "@/config/content-formats";
 import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
+import { trackConversion } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
 import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
@@ -222,6 +223,11 @@ export function GenerationForm({
         );
       }
 
+      trackConversion("first_generation_started", {
+        content_type: contentType,
+        platform: contentType === "social-cover" ? coverPlatform : undefined,
+        style,
+      });
       setProjectId(payload.projectId);
       router.push(`/generations/${payload.generationId}?job=${payload.jobId}`);
     } catch (error) {

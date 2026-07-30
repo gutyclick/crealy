@@ -40,7 +40,7 @@ export default async function DashboardPage() {
     profile?.full_name?.trim().split(/\s+/)[0] ||
     metadataName.split(/\s+/)[0] ||
     localEmailName;
-  const [recentGenerations, recentEditSessions, activeJobsResult, billing] =
+  const [recentGenerations, recentEditSessions, activeJobsResult, billing, preferences] =
     await Promise.all([
       listGenerations(user.id, 8),
       listRecentEditSessions(user.id, 4),
@@ -48,10 +48,16 @@ export default async function DashboardPage() {
         .from("jobs")
         .select("id, job_type, status, resource_id, created_at")
         .eq("user_id", user.id)
+        .in("job_type", ["generation", "edit"])
         .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
         .order("created_at", { ascending: false })
         .limit(5),
       getUserBillingState(user.id).catch(() => null),
+      supabase
+        .from("user_preferences")
+        .select("onboarding_completed_at")
+        .eq("user_id", user.id)
+        .maybeSingle(),
     ]);
 
   return (
@@ -68,6 +74,13 @@ export default async function DashboardPage() {
       }))}
       plan={billing?.effectivePlan.key ?? "free"}
       credits={billing?.credits.available ?? 0}
+      onboardingChecklist={{
+        emailConfirmed: Boolean(user.email_confirmed_at),
+        profileCompleted: Boolean(profile?.full_name?.trim()),
+        onboardingCompleted: Boolean(preferences.data?.onboarding_completed_at),
+        firstDesignCreated: recentGenerations.length > 0,
+        editorTried: recentEditSessions.length > 0,
+      }}
     />
   );
 }

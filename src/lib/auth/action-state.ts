@@ -2,7 +2,8 @@ export type AuthField =
   | "name"
   | "email"
   | "password"
-  | "confirmPassword";
+  | "confirmPassword"
+  | "inviteCode";
 
 export type AuthActionState = {
   status: "idle" | "error" | "success";

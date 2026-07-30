@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createMetadata } from "@/lib/seo/create-metadata";
 
 export function createToolMetadata({
   title,
@@ -9,22 +10,17 @@ export function createToolMetadata({
   description: string;
   path: string;
 }): Metadata {
-  return {
+  const dedicatedImages = new Set([
+    "/tools/youtube-thumbnail-downloader",
+    "/tools/thumbnail-analyzer",
+    "/tools/youtube-banner-preview",
+  ]);
+  return createMetadata({
     title,
     description,
-    alternates: { canonical: path },
-    openGraph: {
-      type: "website",
-      locale: "es_PA",
-      siteName: "Crealy",
-      title,
-      description,
-      url: path,
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
-  };
+    path,
+    image: dedicatedImages.has(path)
+      ? `${path}/opengraph-image`
+      : "/tools/opengraph-image",
+  });
 }

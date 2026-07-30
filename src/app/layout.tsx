@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { siteConfig } from "@/config/site";
+import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
 
 import "./globals.css";
 
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
+  alternates: { canonical: "/" },
   icons: {
     icon: [
       {
@@ -39,11 +41,21 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: "Crealy | Crea contenido visual con inteligencia artificial",
     description: siteConfig.description,
+    url: "/",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Crealy: contenido visual asistido por inteligencia artificial",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Crealy | Crea contenido visual con inteligencia artificial",
     description: siteConfig.description,
+    images: ["/opengraph-image"],
   },
 };
 
@@ -63,7 +75,18 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <a
+          href="#main-content"
+          className="fixed top-3 left-3 z-[100] -translate-y-20 rounded-lg bg-brand px-4 py-2 text-sm font-bold text-brand-ink focus:translate-y-0"
+        >
+          Saltar al contenido
+        </a>
+        <div id="main-content" tabIndex={-1} className="contents outline-none">
+          {children}
+        </div>
+        <AnalyticsProvider />
+      </body>
     </html>
   );
 }

@@ -259,3 +259,17 @@ export function isCheckoutAvailable() {
     return false;
   }
 }
+
+export function serverFeatureEnabled(name: string, fallback = false) {
+  return readBoolean(name, fallback);
+}
+
+export function getRequiredServerEnv(name: string) {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`server_configuration_missing:${name}`);
+  return value;
+}
+
+export function getOptionalServerEnv(name: string) {
+  return process.env[name]?.trim() || undefined;
+}

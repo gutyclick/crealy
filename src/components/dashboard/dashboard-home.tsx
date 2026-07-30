@@ -23,6 +23,7 @@ export function DashboardHome({
   activeJobs,
   plan,
   credits,
+  onboardingChecklist,
 }: {
   firstName?: string;
   recentGenerations: GenerationListItem[];
@@ -36,6 +37,13 @@ export function DashboardHome({
   }>;
   plan: string;
   credits: number;
+  onboardingChecklist: {
+    emailConfirmed: boolean;
+    profileCompleted: boolean;
+    onboardingCompleted: boolean;
+    firstDesignCreated: boolean;
+    editorTried: boolean;
+  };
 }) {
   const quickCreate = [
     { href: "/create?type=youtube-thumbnail", label: "Miniatura de YouTube", description: "1920 × 1080", icon: MonitorPlay },
@@ -43,6 +51,39 @@ export function DashboardHome({
     { href: "/create?type=banner", label: "Banner", description: "Formato panorámico", icon: RectangleHorizontal },
     { href: "/create?type=social-cover", label: "Portada", description: "Elige la plataforma", icon: PanelsTopLeft },
   ] as const;
+  const checklist = [
+    {
+      label: "Confirmar correo",
+      done: onboardingChecklist.emailConfirmed,
+      href: "/verify-email",
+    },
+    {
+      label: "Completar perfil",
+      done: onboardingChecklist.profileCompleted,
+      href: "/settings/profile",
+    },
+    {
+      label: "Completar preferencias",
+      done: onboardingChecklist.onboardingCompleted,
+      href: "/onboarding",
+    },
+    {
+      label: "Crear primer diseño",
+      done: onboardingChecklist.firstDesignCreated,
+      href: "/create",
+    },
+    {
+      label: "Probar el editor",
+      done: onboardingChecklist.editorTried,
+      href: "/edit",
+    },
+    {
+      label: "Explorar herramientas",
+      done: false,
+      href: "/tools",
+    },
+  ] as const;
+  const completedChecklistItems = checklist.filter((item) => item.done).length;
   return (
     <main className="py-10 sm:py-14">
       <Container>
@@ -55,6 +96,36 @@ export function DashboardHome({
             ¿Qué quieres crear hoy?
           </p>
         </div>
+
+        {completedChecklistItems < 5 && (
+          <section className="mt-8 border-y border-white/10 py-6" aria-labelledby="first-steps-title">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 id="first-steps-title" className="text-lg font-semibold text-foreground">
+                  Completa tus primeros pasos
+                </h2>
+                <p className="mt-2 text-sm text-muted">
+                  {completedChecklistItems} de {checklist.length} listos. Puedes seguir creando sin completarlos todos.
+                </p>
+              </div>
+              <div className="flex max-w-3xl flex-wrap gap-2">
+                {checklist.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`inline-flex min-h-10 items-center rounded-lg border px-3 text-xs font-semibold ${
+                      item.done
+                        ? "border-white/8 text-white/40 line-through"
+                        : "border-white/12 text-muted hover:border-white/25 hover:text-foreground"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="relative mt-10 overflow-hidden rounded-2xl border border-white/10 bg-surface p-6 sm:p-9">
           <div

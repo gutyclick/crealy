@@ -6,7 +6,12 @@ import { buildEditInstruction } from "@/lib/editing/build-edit-instruction";
 import { editImage } from "@/lib/editing/edit-image";
 import { inspectImage } from "@/lib/editing/image-metadata";
 import { resolveVersionSource } from "@/lib/editing/resolve-version-source";
+import { sendTransactionalEmail } from "@/lib/email/send-email";
+import { EmailError } from "@/lib/email/email-errors";
+import type { TransactionalEmailType } from "@/lib/email/templates";
+import { queueTransactionalEmail } from "@/lib/email/queue-email";
 import { getEditingServerEnv, getGenerationServerEnv } from "@/lib/env/server";
+import { getPublicSiteUrl } from "@/lib/seo/get-public-site-url";
 import { buildImagePrompt } from "@/lib/generation/build-image-prompt";
 import { generateImage } from "@/lib/generation/generate-image";
 import { loadGenerationReferences } from "@/lib/generation/load-generation-references";
@@ -113,6 +118,7 @@ async function completeExistingGenerationFile(
 }
 
 async function processGeneration(job: JobRecord, startedAt: number) {
+  if (!job.user_id) throw new Error("generation_user_missing");
   const admin = createAdminClient();
   const { data: generation, error } = await admin
     .from("generations")
@@ -140,6 +146,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       startedAt,
     )
   ) {
+    await queueLowCreditWarning(generation.user_id);
     return;
   }
 
@@ -293,9 +300,17 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .eq("id", generation.id)
     .eq("user_id", generation.user_id);
   if (metadataError) throw metadataError;
+  await queueTransactionalEmail({
+    userId: generation.user_id,
+    type: "generation_ready",
+    idempotencyKey: `generation-ready:${generation.id}`,
+    data: { url: `${getPublicSiteUrl()}/generations/${generation.id}` },
+  }).catch(() => null);
+  await queueLowCreditWarning(generation.user_id);
 }
 
 async function processEdit(job: JobRecord, startedAt: number) {
+  if (!job.user_id) throw new Error("edit_user_missing");
   const admin = createAdminClient();
   const { data: version, error } = await admin
     .from("edit_versions")
@@ -457,6 +472,185 @@ async function processEdit(job: JobRecord, startedAt: number) {
       preview_asset_id: previewAsset.id,
     }).eq("id", version.id).eq("user_id", version.user_id);
   }
+  await queueTransactionalEmail({
+    userId: version.user_id,
+    type: "edit_ready",
+    idempotencyKey: `edit-ready:${version.id}`,
+    data: { url: `${getPublicSiteUrl()}/edit/${version.session_id}` },
+  }).catch(() => null);
+  await queueLowCreditWarning(version.user_id);
+}
+
+async function queueLowCreditWarning(userId: string) {
+  const threshold = Math.max(
+    0,
+    Math.min(100, Number(process.env.LOW_CREDIT_THRESHOLD || 3)),
+  );
+  const { data: account } = await createAdminClient()
+    .from("credit_accounts")
+    .select("available_balance")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!account || account.available_balance > threshold) return;
+  const period = new Date().toISOString().slice(0, 7);
+  await queueTransactionalEmail({
+    userId,
+    type: "low_credits",
+    idempotencyKey: `low-credits:${userId}:${period}`,
+    data: { credits: account.available_balance },
+  }).catch(() => null);
+}
+
+async function processTransactionalEmail(job: JobRecord, startedAt: number) {
+  const admin = createAdminClient();
+  const payload = job.payload as {
+    deliveryId?: string;
+    audience?: "user" | "support";
+    type?: TransactionalEmailType;
+    data?: Record<string, string | number | boolean | null | undefined>;
+  };
+  if (
+    payload.deliveryId !== job.resource_id ||
+    !payload.type ||
+    !payload.audience
+  ) {
+    throw new Error("email_payload_invalid");
+  }
+  const { data: delivery } = await admin
+    .from("email_deliveries")
+    .select("id, status, provider_message_id, idempotency_key, user_id")
+    .eq("id", payload.deliveryId)
+    .maybeSingle();
+  if (!delivery) throw new Error("email_delivery_not_found");
+  if (["sent", "delivered", "bounced", "complained"].includes(delivery.status)) {
+    const completedAt = new Date().toISOString();
+    await Promise.all([
+      admin
+        .from("jobs")
+        .update({
+          status: "completed",
+          completed_at: completedAt,
+          visibility_expires_at: null,
+          updated_at: completedAt,
+        })
+        .eq("id", job.id),
+      admin
+        .from("job_attempts")
+        .update({
+          status: "completed",
+          provider_request_id: delivery.provider_message_id,
+          duration_ms: Date.now() - startedAt,
+          finished_at: completedAt,
+        })
+        .eq("job_id", job.id)
+        .eq("attempt_no", job.attempt_count),
+    ]);
+    return;
+  }
+
+  let recipient = "";
+  if (payload.audience === "support") {
+    recipient = process.env.SUPPORT_EMAIL_ADDRESS?.trim() || "";
+  } else if (delivery.user_id) {
+    const { data: authData } = await admin.auth.admin.getUserById(
+      delivery.user_id,
+    );
+    if (authData.user?.email_confirmed_at) {
+      recipient = authData.user.email || "";
+    }
+  }
+  if (!recipient) throw new Error("email_recipient_unavailable");
+
+  let templateData = payload.data || {};
+  if (payload.type === "support_internal") {
+    const supportRequestId =
+      typeof templateData.supportRequestId === "string"
+        ? templateData.supportRequestId
+        : "";
+    const { data: supportRequest } = await admin
+      .from("support_requests")
+      .select("category, subject, message, requester_email")
+      .eq("id", supportRequestId)
+      .maybeSingle();
+    if (!supportRequest?.requester_email) {
+      throw new Error("support_request_unavailable");
+    }
+    templateData = {
+      ...templateData,
+      category: supportRequest.category,
+      subject: supportRequest.subject,
+      message: supportRequest.message,
+      email: supportRequest.requester_email,
+    };
+  }
+
+  await admin
+    .from("email_deliveries")
+    .update({
+      status: "processing",
+      attempt_count: job.attempt_count,
+      recipient_hash: createHash("sha256")
+        .update(recipient.trim().toLowerCase())
+        .digest("hex"),
+      last_error_code: null,
+    })
+    .eq("id", delivery.id);
+
+  try {
+    const providerMessageId =
+      delivery.provider_message_id ||
+      (await sendTransactionalEmail({
+        to: recipient,
+        type: payload.type,
+        data: templateData,
+        idempotencyKey: delivery.idempotency_key,
+      }));
+    const completedAt = new Date().toISOString();
+    await Promise.all([
+      admin
+        .from("email_deliveries")
+        .update({
+          status: "sent",
+          provider_message_id: providerMessageId,
+          sent_at: completedAt,
+          last_error_code: null,
+        })
+        .eq("id", delivery.id),
+      admin
+        .from("jobs")
+        .update({
+          status: "completed",
+          completed_at: completedAt,
+          visibility_expires_at: null,
+          updated_at: completedAt,
+        })
+        .eq("id", job.id),
+      admin
+        .from("job_attempts")
+        .update({
+          status: "completed",
+          provider_request_id: providerMessageId,
+          duration_ms: Date.now() - startedAt,
+          finished_at: completedAt,
+        })
+        .eq("job_id", job.id)
+        .eq("attempt_no", job.attempt_count),
+    ]);
+  } catch (error) {
+    await admin
+      .from("email_deliveries")
+      .update({
+        status: "failed",
+        last_error_code:
+          error instanceof EmailError
+            ? error.code
+            : error instanceof Error
+              ? error.message.slice(0, 120)
+              : "email_failed",
+      })
+      .eq("id", delivery.id);
+    throw error;
+  }
 }
 
 export async function processQueuedJob(jobId: string) {
@@ -489,7 +683,7 @@ export async function processQueuedJob(jobId: string) {
   logger.info("job.started", {
     correlationId: job.correlation_id,
     jobId: job.id,
-    userId: job.user_id,
+    userId: job.user_id || undefined,
     resourceId: job.resource_id,
     attempt: job.attempt_count,
     jobType: job.job_type,
@@ -497,11 +691,12 @@ export async function processQueuedJob(jobId: string) {
 
   try {
     if (job.job_type === "generation") await processGeneration(job, startedAt);
-    else await processEdit(job, startedAt);
+    else if (job.job_type === "edit") await processEdit(job, startedAt);
+    else await processTransactionalEmail(job, startedAt);
     logger.info("job.completed", {
       correlationId: job.correlation_id,
       jobId: job.id,
-      userId: job.user_id,
+      userId: job.user_id || undefined,
       resourceId: job.resource_id,
       attempt: job.attempt_count,
       durationMs: Date.now() - startedAt,
@@ -521,7 +716,7 @@ export async function processQueuedJob(jobId: string) {
       logger.warn("job.retry_scheduled", {
         correlationId: job.correlation_id,
         jobId: job.id,
-        userId: job.user_id,
+        userId: job.user_id || undefined,
         attempt: job.attempt_count,
         durationMs,
         errorCode: decision.errorCode,
@@ -536,7 +731,7 @@ export async function processQueuedJob(jobId: string) {
     logger.error("job.failed", {
       correlationId: job.correlation_id,
       jobId: job.id,
-      userId: job.user_id,
+      userId: job.user_id || undefined,
       attempt: job.attempt_count,
       durationMs,
       errorCode: decision.errorCode,
@@ -577,6 +772,30 @@ export async function maintainQueue() {
     }
   }
   const now = new Date();
+  const expirationNoticeStart = new Date(now.getTime() + 2 * 86_400_000);
+  const expirationNoticeEnd = new Date(now.getTime() + 4 * 86_400_000);
+  const { data: expiringSoon } = await admin
+    .from("assets")
+    .select("id, user_id, kind, expires_at")
+    .eq("status", "active")
+    .in("kind", ["generated_original", "edited_original"])
+    .is("pinned_at", null)
+    .gte("expires_at", expirationNoticeStart.toISOString())
+    .lte("expires_at", expirationNoticeEnd.toISOString())
+    .limit(100);
+  for (const asset of expiringSoon ?? []) {
+    const date = asset.expires_at?.slice(0, 10) || "pending";
+    await queueTransactionalEmail({
+      userId: asset.user_id,
+      type: "asset_expiring",
+      idempotencyKey: `asset-expiring:${asset.id}:${date}`,
+      data: {
+        name:
+          asset.kind === "edited_original" ? "Tu imagen editada" : "Tu creación",
+        date,
+      },
+    }).catch(() => null);
+  }
   const { data: toExpire } = await admin
     .from("assets")
     .select("id")
@@ -616,6 +835,7 @@ export async function maintainQueue() {
     recovered: recovered.data ?? 0,
     expiredRateLimits: expiredRateLimits.count ?? 0,
     cleanedUploads,
+    expirationNoticesQueued: expiringSoon?.length ?? 0,
     expiredAssets: expiredAssetIds.length,
     cleanedAssets,
   };

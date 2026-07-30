@@ -4,6 +4,7 @@ import { ArrowRight, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { trackConversion } from "@/lib/analytics/events";
 
 export function CheckoutButton({
   plan,
@@ -29,6 +30,7 @@ export function CheckoutButton({
   }
 
   async function openCheckout() {
+    trackConversion("checkout_started", { plan });
     setLoading(true);
     setMessage(null);
     try {

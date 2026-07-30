@@ -5,13 +5,18 @@ import { getSafeRedirect } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeClient } from "@/lib/stripe/client";
+import { getLaunchConfig } from "@/lib/launch/server";
+import { queueTransactionalEmail } from "@/lib/email/queue-email";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const requestedDestination = requestUrl.searchParams.get("next");
   const destination = getSafeRedirect(
-    requestUrl.searchParams.get("next"),
-    "/dashboard",
+    requestedDestination,
+    !requestedDestination && getLaunchConfig().onboardingEnabled
+      ? "/onboarding"
+      : "/dashboard",
   );
 
   if (!code) {
@@ -48,6 +53,13 @@ export async function GET(request: Request) {
     } catch {
       // Auth confirmation must not fail if a downstream billing sync is unavailable.
     }
+  }
+  if (user?.email_confirmed_at) {
+    await queueTransactionalEmail({
+      userId: user.id,
+      type: "welcome",
+      idempotencyKey: `welcome:${user.id}`,
+    }).catch(() => null);
   }
 
   const cookieStore = await cookies();

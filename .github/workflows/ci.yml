@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check:secrets
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://www.crealy.app
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
+          SUPABASE_SECRET_KEY: example-server-key
+          NEXT_PUBLIC_LAUNCH_STAGE: private_beta
+          NEXT_PUBLIC_TOOLS_ENABLED: "true"
+          OPENAI_GENERATION_ENABLED: "false"
+          STRIPE_BILLING_ENABLED: "false"
+          TRANSACTIONAL_EMAILS_ENABLED: "false"
+      - run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_SITE_URL: https://www.crealy.app
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example
+          SUPABASE_SECRET_KEY: example-server-key
+          NEXT_PUBLIC_LAUNCH_STAGE: private_beta
+          INVITE_REQUIRED: "true"
+          NEXT_PUBLIC_TOOLS_ENABLED: "true"
+          OPENAI_GENERATION_ENABLED: "false"
+          OPENAI_EDITING_ENABLED: "false"
+          STRIPE_BILLING_ENABLED: "false"
+          TRANSACTIONAL_EMAILS_ENABLED: "false"

@@ -9,12 +9,18 @@ import { FormField } from "@/components/auth/form-field";
 import { PasswordInput } from "@/components/auth/password-input";
 import { SubmitButton } from "@/components/auth/submit-button";
 import { initialAuthState } from "@/lib/auth/action-state";
+import { trackConversion } from "@/lib/analytics/events";
 
-export function SignupForm() {
+export function SignupForm({ inviteRequired = false }: { inviteRequired?: boolean }) {
   const [state, formAction] = useActionState(signUp, initialAuthState);
 
   return (
-    <form action={formAction} className="grid gap-5" noValidate>
+    <form
+      action={formAction}
+      onSubmit={() => trackConversion("signup_started")}
+      className="grid gap-5"
+      noValidate
+    >
       <AuthMessage state={state} />
       <FormField
         id="signup-name"
@@ -28,6 +34,19 @@ export function SignupForm() {
         defaultValue={state.values?.name}
         error={state.fieldErrors?.name}
       />
+      {inviteRequired && (
+        <FormField
+          id="signup-invite-code"
+          name="inviteCode"
+          type="text"
+          label="Código de invitación"
+          autoComplete="off"
+          minLength={12}
+          maxLength={160}
+          required
+          error={state.fieldErrors?.inviteCode}
+        />
+      )}
       <FormField
         id="signup-email"
         name="email"
@@ -54,8 +73,15 @@ export function SignupForm() {
         error={state.fieldErrors?.confirmPassword}
       />
       <p className="text-xs leading-5 text-white/65">
-        Al crear tu cuenta aceptas los términos de uso y la política de
-        privacidad de Crealy.
+        Al crear tu cuenta aceptas los{" "}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
+          términos de uso
+        </Link>{" "}
+        y la{" "}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+          política de privacidad
+        </Link>{" "}
+        de Crealy.
       </p>
       <SubmitButton pendingLabel="Creando cuenta…">
         Crear cuenta

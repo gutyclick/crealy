@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import type { PublicJob } from "@/types/jobs";
+import { trackConversion } from "@/lib/analytics/events";
 
 const TERMINAL = new Set(["completed", "failed", "cancelled"]);
 
@@ -58,6 +59,11 @@ export function JobProgress({
         setJob(next);
         setNetworkError(false);
         if (next.status === "completed") {
+          if (next.type === "generation") {
+            trackConversion("first_generation_completed");
+          } else if (next.type === "edit") {
+            trackConversion("first_edit_completed");
+          }
           completeRef.current?.(next);
           router.refresh();
           return;

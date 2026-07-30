@@ -9,6 +9,7 @@ import { HeroSection } from "@/components/sections/hero-section";
 import { HowItWorksSection } from "@/components/sections/how-it-works-section";
 import { PricingSection } from "@/components/sections/pricing-section";
 import { ProductPreview } from "@/components/sections/product-preview";
+import { HomeStructuredData } from "@/components/seo/home-structured-data";
 
 /*
 THESIS: Crealy convierte una intención en varias piezas listas para publicar y evita la complejidad de un editor generalista.
@@ -20,6 +21,7 @@ FORM: landing Persuade centrada, de variación 7, movimiento 7 y densidad 3; alt
 export default function Home() {
   return (
     <>
+      <HomeStructuredData />
       <Header />
       <main className="flex-1">
         <HeroSection />

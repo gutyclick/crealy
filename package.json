@@ -9,11 +9,15 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
+    "test:e2e": "playwright test",
+    "check:secrets": "tsx scripts/check-secrets.ts",
+    "validate:production-env": "tsx scripts/validate-production-env.ts",
+    "smoke:production": "tsx scripts/smoke-test-production.ts",
     "ops:jobs": "tsx scripts/ops/inspect-jobs.ts",
     "ops:credits": "tsx scripts/ops/reconcile-credits.ts",
     "ops:storage": "tsx scripts/ops/reconcile-storage.ts",
-    "ops:billing": "tsx scripts/ops/inspect-billing.ts"
-    ,"storage:migrate-to-r2": "tsx scripts/migrate-storage-to-r2.ts",
+    "ops:billing": "tsx scripts/ops/inspect-billing.ts",
+    "storage:migrate-to-r2": "tsx scripts/migrate-storage-to-r2.ts",
     "image:probe": "tsx scripts/probe-gpt-image-2.ts"
   },
   "dependencies": {
@@ -21,16 +25,20 @@
     "@aws-sdk/s3-request-presigner": "^3.1097.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.111.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "image-size": "^2.0.2",
     "lucide-react": "^1.27.0",
     "next": "16.2.12",
     "openai": "^7.1.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "resend": "^6.18.1",
     "sharp": "^0.35.3",
     "stripe": "^22.3.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -42,6 +50,8 @@
     "typescript": "^5"
   },
   "overrides": {
+    "brace-expansion": "^5.0.8",
+    "minimatch": "^10.2.6",
     "postcss": "^8.5.25",
     "sharp": "$sharp"
   }

@@ -14,8 +14,19 @@ const footerGroups = [
   {
     title: "Compañía",
     links: [
-      { label: "Sobre Crealy", href: "/#product" },
-      { label: "Contacto", href: "/#final-cta" },
+      { label: "Centro de ayuda", href: "/help" },
+      { label: "Contacto", href: "/contact" },
+      { label: "Estado", href: "/status" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacidad", href: "/privacy" },
+      { label: "Términos", href: "/terms" },
+      { label: "Cookies", href: "/cookies" },
+      { label: "Uso aceptable", href: "/acceptable-use" },
+      { label: "Reembolsos", href: "/refund-policy" },
     ],
   },
 ] as const;
@@ -51,22 +62,13 @@ export function Footer() {
           </nav>
         ))}
 
-        <div>
-          <p className="text-sm font-semibold text-foreground">Estado</p>
-          <p className="mt-4 text-sm leading-6 text-muted">
-            Área privada, generación, edición y créditos disponibles.
-          </p>
-          <p className="mt-5 text-xs leading-5 text-white/55">
-            Privacidad y términos se publicarán antes del lanzamiento.
-          </p>
-        </div>
       </Container>
 
       <Container className="flex flex-col items-center gap-3 border-t border-white/[0.07] py-6 text-center text-sm text-muted sm:flex-row sm:justify-between sm:text-left">
         <span>
           © {new Date().getFullYear()} Crealy. Todos los derechos reservados.
         </span>
-        <span>Producto en desarrollo</span>
+        <span>Beta de Crealy</span>
       </Container>
     </footer>
   );

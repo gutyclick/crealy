@@ -15,11 +15,14 @@ import {
   validatePassword,
 } from "@/lib/auth/validation";
 import { getSiteUrl } from "@/lib/env";
+import { claimBetaInvite, validateBetaInvite } from "@/lib/launch/invites";
+import { getLaunchConfig } from "@/lib/launch/server";
 import {
   enforceRateLimit,
   RATE_LIMITS,
 } from "@/lib/operations/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const genericResetMessage =
   "Si existe una cuenta asociada a ese correo, recibirás un enlace para restablecer tu contraseña.";
@@ -50,6 +53,12 @@ export async function signUp(
   _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const launch = getLaunchConfig();
+  if (!launch.registrationsEnabled) {
+    return errorState(
+      "El registro está temporalmente cerrado. Puedes volver a intentarlo más adelante.",
+    );
+  }
   if (await authRateLimited("signup")) {
     return errorState("Demasiados intentos. Espera unos minutos.");
   }
@@ -57,6 +66,7 @@ export async function signUp(
   const email = normalizeEmail(readText(formData, "email"));
   const password = readText(formData, "password");
   const confirmPassword = readText(formData, "confirmPassword");
+  const inviteCode = readText(formData, "inviteCode").trim();
   const fieldErrors: AuthActionState["fieldErrors"] = {};
 
   if (name.length < 2 || name.length > 60) {
@@ -67,6 +77,9 @@ export async function signUp(
   if (!confirmPassword || confirmPassword !== password) {
     fieldErrors.confirmPassword = "Las contraseñas deben coincidir.";
   }
+  if (launch.inviteRequired && !inviteCode) {
+    fieldErrors.inviteCode = "Introduce el código de invitación.";
+  }
 
   const presentErrors = Object.fromEntries(
     Object.entries(fieldErrors).filter(([, value]) => Boolean(value)),
@@ -76,6 +89,17 @@ export async function signUp(
     return errorState(
       "Revisa los campos e inténtalo nuevamente.",
       presentErrors,
+      { name, email },
+    );
+  }
+
+  if (
+    launch.inviteRequired &&
+    !(await validateBetaInvite(inviteCode, email))
+  ) {
+    return errorState(
+      "No pudimos validar el acceso a la beta. Revisa el código e inténtalo de nuevo.",
+      { inviteCode: "El código no está disponible o ha expirado." },
       { name, email },
     );
   }
@@ -108,9 +132,23 @@ export async function signUp(
     });
   }
 
+  if (launch.inviteRequired) {
+    const claimed = await claimBetaInvite(inviteCode, email);
+    if (!claimed) {
+      if (result.data.user?.id) {
+        await createAdminClient().auth.admin.deleteUser(result.data.user.id);
+      }
+      return errorState(
+        "No pudimos validar el acceso a la beta. Revisa el código e inténtalo de nuevo.",
+        { inviteCode: "El código no está disponible o ha expirado." },
+        { name, email },
+      );
+    }
+  }
+
   if (result.data.session) {
     revalidatePath("/", "layout");
-    redirect("/dashboard");
+    redirect(launch.onboardingEnabled ? "/onboarding" : "/dashboard");
   }
 
   const cookieStore = await cookies();
