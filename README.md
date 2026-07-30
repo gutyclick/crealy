@@ -1,5 +1,9 @@
 # Crealy
 
+Crealy incluye un centro público en `/tools` para previsualizar, comprobar y
+analizar piezas visuales. La configuración operativa y de privacidad está
+documentada en [`docs/operations/visual-tools.md`](docs/operations/visual-tools.md).
+
 Plataforma en Next.js para convertir un brief breve en una pieza visual
 generada con OpenAI, guardada de forma privada en Supabase y disponible desde
 una biblioteca personal.

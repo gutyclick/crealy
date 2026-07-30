@@ -10,6 +10,7 @@ const items = [
   { href: "/create", label: "Crear" },
   { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
+  { href: "/tools", label: "Herramientas", hideOnMobile: true },
   { href: "/settings/profile", label: "Cuenta", hideOnMobile: true },
 ] as const;
 

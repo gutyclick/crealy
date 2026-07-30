@@ -196,6 +196,39 @@ export function getCreditServerEnv() {
   };
 }
 
+export function getToolsServerEnv() {
+  return {
+    analysisModel:
+      process.env.OPENAI_ANALYSIS_MODEL?.trim() || "gpt-5.4-mini",
+    analysisEnabled: readBoolean("THUMBNAIL_ANALYSIS_ENABLED", true),
+    analysisDailyLimit: readPositiveInteger(
+      "THUMBNAIL_ANALYSIS_DAILY_LIMIT",
+      5,
+      1_000,
+    ),
+    analysisFreeDailyLimit: readNonNegativeInteger(
+      "THUMBNAIL_ANALYSIS_FREE_DAILY_LIMIT",
+      1,
+      100,
+    ),
+    analysisCreditCost: readPositiveInteger(
+      "THUMBNAIL_ANALYSIS_CREDIT_COST",
+      1,
+      100,
+    ),
+    toolsPublicRequestsPerMinute: readPositiveInteger(
+      "TOOLS_PUBLIC_REQUESTS_PER_MINUTE",
+      60,
+      10_000,
+    ),
+    youtubeRequestsPerMinute: readPositiveInteger(
+      "YOUTUBE_DOWNLOADER_REQUESTS_PER_MINUTE",
+      30,
+      10_000,
+    ),
+  };
+}
+
 export function getBillingServerEnv() {
   return {
     billingEnabled: readBoolean("STRIPE_BILLING_ENABLED", false),

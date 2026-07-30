@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
+import { getToolsServerEnv } from "@/lib/env/server";
 import { getOperationsConfig } from "@/lib/operations/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -20,7 +21,25 @@ export const RATE_LIMITS = {
   billingUser: { limit: 8, windowSeconds: 60 },
   billingIp: { limit: 15, windowSeconds: 60 },
   authIp: { limit: 12, windowSeconds: 300 },
+  toolsPublicIp: { limit: 60, windowSeconds: 60 },
+  youtubeDownloaderIp: { limit: 30, windowSeconds: 60 },
+  thumbnailAnalysisUser: { limit: 5, windowSeconds: 60 },
+  thumbnailAnalysisIp: { limit: 10, windowSeconds: 60 },
 } satisfies Record<string, Policy>;
+
+export function getToolRateLimits() {
+  const config = getToolsServerEnv();
+  return {
+    publicIp: {
+      limit: config.toolsPublicRequestsPerMinute,
+      windowSeconds: 60,
+    },
+    youtubeIp: {
+      limit: config.youtubeRequestsPerMinute,
+      windowSeconds: 60,
+    },
+  } satisfies Record<string, Policy>;
+}
 
 function clientIp(request: Request) {
   return (

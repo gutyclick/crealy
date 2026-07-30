@@ -53,7 +53,7 @@ export async function reserveCredits({
 }: {
   userId: string;
   amount: number;
-  referenceType: "generation" | "edit";
+  referenceType: "generation" | "edit" | "thumbnail_analysis";
   referenceId: string;
 }): Promise<CreditReservationResult> {
   const admin = createAdminClient();
@@ -78,6 +78,40 @@ export async function reserveCredits({
     amount: data[0].reserved_amount,
     creditsRemaining: data[0].credits_remaining,
     isExisting: data[0].is_existing,
+  };
+}
+
+export async function consumeReservedCredits({
+  userId,
+  reservationId,
+  referenceType,
+  referenceId,
+  description,
+}: {
+  userId: string;
+  reservationId: string;
+  referenceType: "thumbnail_analysis";
+  referenceId: string;
+  description: string;
+}): Promise<CreditConsumptionResult> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc(
+    "consume_reserved_credits_internal",
+    {
+      p_user_id: userId,
+      p_reservation_id: reservationId,
+      p_reference_type: referenceType,
+      p_reference_id: referenceId,
+      p_description: description,
+    },
+  );
+  if (error || !data?.[0]) {
+    throw new CreditError("credit_consumption_failed");
+  }
+  return {
+    transactionId: data[0].transaction_id,
+    amount: data[0].consumed_amount,
+    creditsRemaining: data[0].credits_remaining,
   };
 }
 

@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.crealy.app"),
   title: {
     default: "Crealy | Crea contenido visual con inteligencia artificial",
     template: `%s | ${siteConfig.name}`,

@@ -874,6 +874,42 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["rate_limit_counters"]["Insert"]>;
         Relationships: [];
       };
+      tool_analysis_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          client_request_id: string;
+          status: string;
+          image_width: number;
+          image_height: number;
+          image_mime_type: string;
+          model: string;
+          result: Json | null;
+          error_code: string | null;
+          credit_transaction_id: string | null;
+          created_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          client_request_id: string;
+          status?: string;
+          image_width: number;
+          image_height: number;
+          image_mime_type: string;
+          model: string;
+          result?: Json | null;
+          error_code?: string | null;
+          credit_transaction_id?: string | null;
+          created_at?: string;
+          completed_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["tool_analysis_requests"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {

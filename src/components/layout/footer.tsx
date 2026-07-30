@@ -8,6 +8,7 @@ const footerGroups = [
       { label: "Cómo funciona", href: "/#how-it-works" },
       { label: "Ejemplos", href: "/#examples" },
       { label: "Precios", href: "/pricing" },
+      { label: "Herramientas", href: "/tools" },
     ],
   },
   {

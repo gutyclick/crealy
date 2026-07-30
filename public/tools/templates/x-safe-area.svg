@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500">
+  <rect width="1500" height="500" fill="none"/>
+  <rect x="120" y="60" width="1260" height="380" fill="none" stroke="#DDF527" stroke-width="6"/>
+  <text x="145" y="102" fill="#DDF527" font-family="Arial, sans-serif" font-size="24" font-weight="700">ZONA SEGURA APROXIMADA</text>
+</svg>
