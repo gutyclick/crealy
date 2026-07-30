@@ -5,6 +5,7 @@ import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
 import { getGenerationCreditCost } from "@/lib/credits/get-credit-cost";
 import { getGenerationServerEnv } from "@/lib/env/server";
 import { buildProjectTitle } from "@/lib/generation/build-project-title";
+import { checkImageProvider } from "@/lib/generation/check-image-provider";
 import { validateGenerationInput } from "@/lib/generation/validate-generation-input";
 import { processQueuedJob } from "@/lib/jobs/worker";
 import { logger } from "@/lib/observability/logger";
@@ -226,6 +227,27 @@ export async function POST(request: Request) {
     );
   }
 
+  const imageProvider = await checkImageProvider();
+  if (!imageProvider.ok) {
+    logger.error("generation.provider_not_ready", {
+      userId: user.id,
+      errorCode: imageProvider.code,
+      model: imageProvider.model,
+    });
+    return errorResponse(
+      {
+        code: "generation_disabled",
+        error:
+          imageProvider.code === "provider_auth_error"
+            ? "La conexión con OpenAI necesita una clave válida. Revisa OPENAI_API_KEY en Vercel."
+            : imageProvider.code === "provider_model_unavailable"
+              ? `El modelo ${imageProvider.model} no está disponible para la cuenta configurada.`
+              : "OpenAI no está disponible en este momento. Inténtalo nuevamente en unos minutos.",
+      },
+      503,
+    );
+  }
+
   try {
     await ensureWelcomeCredits(user.id);
   } catch {
@@ -270,8 +292,11 @@ export async function POST(request: Request) {
   });
   if (error || !data?.[0]) {
     logger.error("generation.prepare_failed", {
+      correlationId: input.clientRequestId,
       userId: user.id,
       errorCode: error?.code ?? "empty_rpc_result",
+      databaseMessage: error?.message?.slice(0, 160) ?? null,
+      databaseHint: error?.hint?.slice(0, 160) ?? null,
     });
     return reservationError(error?.message ?? "");
   }

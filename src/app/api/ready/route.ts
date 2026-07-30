@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { checkImageProvider } from "@/lib/generation/check-image-provider";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -30,13 +31,35 @@ export async function GET() {
     const admin = createAdminClient();
     const { error } = await admin.from("jobs").select("id").limit(1);
     if (error) throw error;
+    const imageProvider = await checkImageProvider({ force: true });
     return NextResponse.json(
-      { status: "ready", checks: { environment: true, database: true } },
-      { headers: { "Cache-Control": "no-store" } },
+      {
+        status: imageProvider.ok ? "ready" : "not_ready",
+        checks: {
+          environment: true,
+          database: true,
+          imageProvider: imageProvider.ok,
+        },
+        imageProvider: {
+          code: imageProvider.code,
+          model: imageProvider.model,
+        },
+      },
+      {
+        status: imageProvider.ok ? 200 : 503,
+        headers: { "Cache-Control": "no-store" },
+      },
     );
   } catch {
     return NextResponse.json(
-      { status: "not_ready", checks: { environment: true, database: false } },
+      {
+        status: "not_ready",
+        checks: {
+          environment: true,
+          database: false,
+          imageProvider: false,
+        },
+      },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
