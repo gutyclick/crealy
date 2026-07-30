@@ -151,11 +151,6 @@ function Thumbnail({
       >
         {video.duration}
       </span>
-      {video.uploaded && (
-        <span className="absolute top-2 left-2 rounded-md bg-brand px-2 py-1 text-[0.6rem] font-bold text-brand-ink shadow-[0_8px_20px_rgba(0,0,0,0.2)]">
-          TU MINIATURA
-        </span>
-      )}
     </div>
   );
 }
@@ -169,6 +164,16 @@ function VideoMeta({
 }) {
   return (
     <div className="min-w-0">
+      {video.uploaded && (
+        <span
+          className={cn(
+            "mb-1 inline-flex rounded-md bg-brand font-bold text-brand-ink",
+            compact ? "px-1.5 py-0.5 text-[0.5rem]" : "px-2 py-1 text-[0.58rem]",
+          )}
+        >
+          TU MINIATURA
+        </span>
+      )}
       <p
         className={cn(
           "line-clamp-2 font-semibold leading-snug",
