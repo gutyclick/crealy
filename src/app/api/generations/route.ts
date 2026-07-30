@@ -33,7 +33,10 @@ function errorResponse(
 }
 
 function reservationError(message: string) {
-  if (message.includes("insufficient_credits")) {
+  if (
+    message.includes("insufficient_credits") ||
+    message.includes("credit_allocation_failed")
+  ) {
     return errorResponse(
       {
         code: "insufficient_credits",
