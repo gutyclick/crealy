@@ -268,7 +268,13 @@ export async function POST(request: Request) {
     p_daily_budget_usd: operations.dailyBudgetUsd,
     p_monthly_budget_usd: operations.monthlyBudgetUsd,
   });
-  if (error || !data?.[0]) return reservationError(error?.message ?? "");
+  if (error || !data?.[0]) {
+    logger.error("generation.prepare_failed", {
+      userId: user.id,
+      errorCode: error?.code ?? "empty_rpc_result",
+    });
+    return reservationError(error?.message ?? "");
+  }
 
   const queued = data[0];
   if (input.coverPlatform) {
