@@ -1,30 +1,25 @@
-import { getContentFormat } from "@/config/content-formats";
+import { getGenerationVariant } from "@/config/generation-products";
 import type { GenerationFormat, GenerationQuality } from "@/types/generation";
 
 export function mapGenerationOptions(
   format: GenerationFormat,
-  quality: GenerationQuality,
+  _quality?: GenerationQuality | "fast",
 ) {
-  const definition = getContentFormat(format);
+  void _quality;
+  const definition = getGenerationVariant(format);
+  if (!definition) throw new Error("invalid_generation_variant");
   return {
-    size: definition.requestedOpenAISize,
-    width: definition.exportWidth,
-    height: definition.exportHeight,
-    finalSize: `${definition.exportWidth}x${definition.exportHeight}`,
-    aspectRatio: `${definition.exportWidth} / ${definition.exportHeight}`,
+    size: definition.requestedProviderSize,
+    width: definition.width,
+    height: definition.height,
+    finalSize: `${definition.width}x${definition.height}`,
+    aspectRatio: `${definition.width} / ${definition.height}`,
     safeArea: definition.safeArea,
-    quality:
-      definition.contentType === "social-cover" ||
-      format === "youtube-16-9" ||
-      format === "banner-3-1"
-        ? ("high" as const)
-        : quality === "fast"
-          ? ("low" as const)
-          : ("high" as const),
+    quality: definition.quality === "standard" ? ("medium" as const) : ("high" as const),
+    creditCost: definition.creditCost,
     outputFormat: "png" as const,
     mimeType: "image/png" as const,
     extension: "png" as const,
     exportStrategy: definition.exportStrategy,
   };
 }
-

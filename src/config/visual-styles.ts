@@ -2,6 +2,7 @@ import type {
   ContentType,
   CoverPlatform,
   GenerationStyle,
+  LegacyContentType,
 } from "@/types/generation";
 
 export type VisualStyle = Exclude<
@@ -19,10 +20,12 @@ export type VisualStyleDefinition = {
 };
 
 const ALL_CONTENT_TYPES: readonly ContentType[] = [
-  "youtube-thumbnail",
+  "thumbnail",
   "social-post",
   "banner",
   "social-cover",
+  "story",
+  "profile-image",
 ];
 
 export const VISUAL_STYLES = [
@@ -130,10 +133,42 @@ export const VISUAL_STYLES = [
     promptGuidelines: ["Jerarquía informativa inmediata.", "Contraste editorial.", "Sensación de actualidad sin imitar marcas."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
+  {
+    id: "promotional",
+    label: "Promocional",
+    description: "Oferta clara, producto protagonista y acción visible.",
+    previewAsset: null,
+    promptGuidelines: ["Producto o servicio protagonista.", "Mensaje comercial directo sin saturación.", "Contraste suficiente para la llamada a la acción."],
+    compatibleContentTypes: ["social-post", "banner", "story"],
+  },
+  {
+    id: "fashion",
+    label: "Moda",
+    description: "Dirección editorial, gesto y estilismo.",
+    previewAsset: null,
+    promptGuidelines: ["Composición editorial.", "Styling cuidado y luz definida.", "Evita clichés de pasarela genéricos."],
+    compatibleContentTypes: ["social-post", "story", "profile-image"],
+  },
+  {
+    id: "food",
+    label: "Gastronomía",
+    description: "Texturas apetecibles y producto bien iluminado.",
+    previewAsset: null,
+    promptGuidelines: ["Alimento protagonista.", "Luz de estudio apetecible.", "Texturas nítidas y color creíble."],
+    compatibleContentTypes: ["social-post", "story", "banner"],
+  },
+  {
+    id: "event",
+    label: "Evento",
+    description: "Fecha, energía y lectura inmediata.",
+    previewAsset: null,
+    promptGuidelines: ["Jerarquía clara para fecha y nombre.", "Atmósfera coherente con el evento.", "Lectura rápida en móvil."],
+    compatibleContentTypes: ["social-post", "story", "banner"],
+  },
 ] as const satisfies readonly VisualStyleDefinition[];
 
 export function resolveAutomaticStyle(input: {
-  contentType: ContentType;
+  contentType: ContentType | LegacyContentType;
   coverPlatform?: CoverPlatform;
   description: string;
   primaryText?: string;
@@ -161,3 +196,38 @@ export function getVisualStyle(style: GenerationStyle) {
   return VISUAL_STYLES.find((item) => item.id === normalized);
 }
 
+const STORY_STYLES = new Set<GenerationStyle>([
+  "automatic",
+  "viral",
+  "promotional",
+  "minimal",
+  "professional",
+  "gamer",
+  "sports",
+  "fashion",
+  "food",
+  "event",
+  "educational",
+]);
+
+const PROFILE_STYLES = new Set<GenerationStyle>([
+  "automatic",
+  "minimal",
+  "professional",
+  "corporate",
+  "luxury",
+  "fashion",
+]);
+
+export function isVisualStyleCompatible(
+  style: GenerationStyle,
+  contentType: ContentType,
+) {
+  if (contentType === "story") return STORY_STYLES.has(style);
+  if (contentType === "profile-image") return PROFILE_STYLES.has(style);
+  return Boolean(
+    getVisualStyle(style)?.compatibleContentTypes.some(
+      (type) => type === contentType,
+    ),
+  );
+}

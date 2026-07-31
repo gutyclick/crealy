@@ -19,7 +19,7 @@ export function GenerationGrid({
 }) {
   if (!items.length) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-surface px-6 py-12 text-center sm:px-8 sm:py-16">
+      <div className="rounded-2xl bg-surface px-6 py-12 text-center sm:px-8 sm:py-16">
         <div className="mx-auto grid size-11 place-items-center rounded-[0.8rem] bg-white/[0.055]">
           <ImageIcon aria-hidden="true" className="size-5 text-white/55" />
         </div>
@@ -56,7 +56,7 @@ export function GenerationGrid({
           <Link
             key={item.id}
             href={`/generations/${item.id}`}
-            className="group overflow-hidden rounded-2xl border border-white/10 bg-surface transition-[border-color,transform] duration-200 hover:-translate-y-1 hover:border-white/20"
+            className="group overflow-hidden rounded-2xl bg-surface shadow-[0_18px_50px_rgba(0,0,0,.16)] transition-transform duration-300 ease-out hover:-translate-y-1"
           >
             <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-surface-elevated">
               {item.imageUrl ? (
@@ -91,6 +91,17 @@ export function GenerationGrid({
                 <time dateTime={item.createdAt}>
                   {dateFormatter.format(new Date(item.createdAt))}
                 </time>
+              </p>
+              <p className="mt-2 flex items-center gap-2 text-[11px] text-white/45">
+                <span>{item.quality === "high" ? "Alta calidad" : "Estándar"}</span>
+                {item.creditCost ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      {item.creditCost} {item.creditCost === 1 ? "crédito" : "créditos"}
+                    </span>
+                  </>
+                ) : null}
               </p>
             </div>
           </Link>

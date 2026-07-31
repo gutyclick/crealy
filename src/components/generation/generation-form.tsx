@@ -3,19 +3,20 @@
 import {
   ArrowRight,
   Check,
-  Download,
+  CircleUserRound,
   Image as ImageIcon,
   LoaderCircle,
   MonitorPlay,
   PanelsTopLeft,
   Plus,
   RectangleHorizontal,
-  RefreshCw,
+  ShieldCheck,
+  Smartphone,
   Sparkles,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,31 +25,36 @@ import {
   type ReferenceDraft,
 } from "@/components/generation/reference-image-picker";
 import {
-  DEFAULT_GENERATION_VALUES,
+  GENERATION_PRODUCTS,
+  PROFILE_BACKGROUNDS,
+  PROFILE_INTENSITIES,
+  PROFILE_MODES,
+  getGenerationProduct,
+  getGenerationVariant,
+  getVariantForPlatform,
+  getVariantForQuality,
+} from "@/config/generation-products";
+import {
   GENERATION_COLORS,
-  GENERATION_CONTENT_TYPES,
-  GENERATION_FORMATS,
-  GENERATION_QUALITIES,
   GENERATION_STYLES,
-  getContentTypeConfig,
-  getFormatConfig,
-  requiresHighQuality,
 } from "@/config/generation";
-import { COVER_PLATFORMS, PLATFORM_COVERS } from "@/config/content-formats";
-import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
+import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { trackConversion } from "@/lib/analytics/events";
+import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
 import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
 import type {
   ColorPreference,
   ContentType,
-  CoverPlatform,
   GenerationErrorResponse,
   GenerationFormat,
+  GenerationPlatform,
   GenerationQuality,
-  GenerationResponse,
   GenerationStyle,
+  ProfileBackground,
+  ProfileIntensity,
+  ProfileMode,
 } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
 
@@ -57,49 +63,59 @@ const contentIcons = {
   image: ImageIcon,
   "rectangle-horizontal": RectangleHorizontal,
   "panels-top-left": PanelsTopLeft,
+  smartphone: Smartphone,
+  "circle-user-round": CircleUserRound,
 } as const;
 
-type ResultState =
+const platformLabels: Record<GenerationPlatform, string> = {
+  youtube: "YouTube",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  x: "X",
+  linkedin: "LinkedIn",
+  tiktok: "TikTok",
+  generic: "Genérica",
+};
+
+type SubmitState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "error"; message: string }
-  | ({ status: "completed" } & GenerationResponse);
+  | { status: "error"; message: string };
 
 export function GenerationForm({
   available,
+  availableCredits,
   maxReferenceFileMb,
   initialContentType,
 }: {
   available: boolean;
+  availableCredits: number;
   maxReferenceFileMb: number;
   initialContentType?: ContentType;
 }) {
   const router = useRouter();
-  const [contentType, setContentType] = useState<ContentType>(
-    initialContentType ?? DEFAULT_GENERATION_VALUES.contentType,
+  const initialProduct = getGenerationProduct(initialContentType ?? "thumbnail");
+  const [contentType, setContentType] = useState<ContentType>(initialProduct.id);
+  const [platform, setPlatform] = useState<GenerationPlatform | undefined>(
+    initialProduct.defaultPlatform,
   );
-  const [format, setFormat] = useState<GenerationFormat>(
-    initialContentType
-      ? getContentTypeConfig(initialContentType).formats[0]
-      : DEFAULT_GENERATION_VALUES.format,
+  const [variant, setVariant] = useState<GenerationFormat>(
+    initialProduct.defaultVariant,
   );
-  const [coverPlatform, setCoverPlatform] = useState<CoverPlatform>("youtube");
   const [description, setDescription] = useState("");
   const [primaryText, setPrimaryText] = useState("");
-  const [style, setStyle] = useState<GenerationStyle>(
-    DEFAULT_GENERATION_VALUES.style,
-  );
-  const [colorPreference, setColorPreference] = useState<ColorPreference>(
-    DEFAULT_GENERATION_VALUES.colorPreference,
-  );
+  const [style, setStyle] = useState<GenerationStyle>("automatic");
+  const [colorPreference, setColorPreference] = useState<ColorPreference>("auto");
   const [customColors, setCustomColors] = useState(["#DDF527", "#10110D"]);
   const [hexDrafts, setHexDrafts] = useState(["#DDF527", "#10110D"]);
-  const [showSafeArea, setShowSafeArea] = useState(false);
-  const [quality, setQuality] = useState<GenerationQuality>(
-    DEFAULT_GENERATION_VALUES.quality,
-  );
+  const [profileMode, setProfileMode] = useState<ProfileMode>("professional");
+  const [profileIntensity, setProfileIntensity] =
+    useState<ProfileIntensity>("balanced");
+  const [profileBackground, setProfileBackground] =
+    useState<ProfileBackground>("neutral");
+  const [showSafeArea, setShowSafeArea] = useState(true);
   const [projectId, setProjectId] = useState<string>();
-  const [result, setResult] = useState<ResultState>({ status: "idle" });
+  const [result, setResult] = useState<SubmitState>({ status: "idle" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [references, setReferences] = useState<ReferenceDraft[]>([]);
   const referencesRef = useRef(references);
@@ -107,44 +123,53 @@ export function GenerationForm({
   useEffect(() => {
     referencesRef.current = references;
   }, [references]);
-
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       referencesRef.current.forEach((reference) =>
         URL.revokeObjectURL(reference.previewUrl),
       );
-    };
-  }, []);
-
-  const currentType = getContentTypeConfig(contentType);
-  const compatibleFormats = useMemo(
-    () =>
-      GENERATION_FORMATS.filter(
-        (item) =>
-          !("legacy" in item && item.legacy) &&
-          currentType.formats.some((formatId) => formatId === item.id),
-      ),
-    [currentType],
+    },
+    [],
   );
-  const currentFormat = getFormatConfig(format);
-  const highQualityRequired = requiresHighQuality(format);
-  const aspectRatio = `${currentFormat.exportWidth} / ${currentFormat.exportHeight}`;
+
+  const product = getGenerationProduct(contentType);
+  const variantDefinition = getGenerationVariant(variant)!;
+  const quality = variantDefinition.quality;
+  const creditCost = variantDefinition.creditCost;
+  const hasEnoughCredits = availableCredits >= creditCost;
+  const styles = useMemo(
+    () =>
+      GENERATION_STYLES.filter((item) =>
+        isVisualStyleCompatible(item.id, contentType),
+      ),
+    [contentType],
+  );
 
   function selectContentType(nextType: ContentType) {
-    const config = getContentTypeConfig(nextType);
+    const next = getGenerationProduct(nextType);
     setContentType(nextType);
-    setFormat(config.formats[0]);
-    if (nextType === "social-cover") setCoverPlatform("youtube");
-    setQuality(requiresHighQuality(config.formats[0]) ? "high" : "fast");
+    setPlatform(next.defaultPlatform);
+    setVariant(next.defaultVariant);
+    setStyle("automatic");
     setProjectId(undefined);
-    if (result.status === "completed") setResult({ status: "idle" });
+    setResult({ status: "idle" });
     setFieldErrors({});
   }
 
-  async function submitGeneration(event?: FormEvent) {
-    event?.preventDefault();
-    if (!available || result.status === "loading") return;
+  function selectPlatform(nextPlatform: GenerationPlatform) {
+    setPlatform(nextPlatform);
+    if (contentType === "social-cover") {
+      setVariant(getVariantForPlatform(contentType, nextPlatform).id);
+    }
+  }
 
+  function selectQuality(nextQuality: GenerationQuality) {
+    setVariant(getVariantForQuality(contentType, nextQuality).id);
+  }
+
+  async function submitGeneration(event: FormEvent) {
+    event.preventDefault();
+    if (!available || !hasEnoughCredits || result.status === "loading") return;
     setResult({ status: "loading" });
     setFieldErrors({});
 
@@ -154,9 +179,7 @@ export function GenerationForm({
           if (reference.uploadId) return reference.uploadId;
           setReferences((current) =>
             current.map((item) =>
-              item.key === reference.key
-                ? { ...item, status: "uploading" }
-                : item,
+              item.key === reference.key ? { ...item, status: "uploading" } : item,
             ),
           );
           try {
@@ -164,24 +187,18 @@ export function GenerationForm({
             setReferences((current) =>
               current.map((item) =>
                 item.key === reference.key
-                  ? {
-                      ...item,
-                      uploadId: upload.uploadId,
-                      status: "uploaded",
-                    }
+                  ? { ...item, uploadId: upload.uploadId, status: "uploaded" }
                   : item,
               ),
             );
             return upload.uploadId;
-          } catch (uploadError) {
+          } catch (error) {
             setReferences((current) =>
               current.map((item) =>
-                item.key === reference.key
-                  ? { ...item, status: "error" }
-                  : item,
+                item.key === reference.key ? { ...item, status: "error" } : item,
               ),
             );
-            throw uploadError;
+            throw error;
           }
         }),
       );
@@ -193,40 +210,39 @@ export function GenerationForm({
           clientRequestId: crypto.randomUUID(),
           projectId,
           contentType,
-          coverPlatform:
-            contentType === "social-cover" ? coverPlatform : undefined,
+          platform,
           description,
-          primaryText: primaryText.trim() || undefined,
+          primaryText: product.acceptsText ? primaryText.trim() || undefined : undefined,
           style,
           colorPreference,
-          customColors:
-            colorPreference === "custom" ? customColors : undefined,
-          format,
+          customColors: colorPreference === "custom" ? customColors : undefined,
+          variant,
+          format: variant,
           quality,
-          referenceUploadIds:
-            referenceUploadIds.length > 0 ? referenceUploadIds : undefined,
+          referenceUploadIds: referenceUploadIds.length ? referenceUploadIds : undefined,
+          profileMode: contentType === "profile-image" ? profileMode : undefined,
+          profileIntensity:
+            contentType === "profile-image" ? profileIntensity : undefined,
+          profileBackground:
+            contentType === "profile-image" ? profileBackground : undefined,
+          showSafeArea: contentType === "story" ? showSafeArea : undefined,
         }),
       });
       const payload = await readApiResponse<
-        | QueuedGenerationResponse
-        | GenerationErrorResponse
+        QueuedGenerationResponse | GenerationErrorResponse
       >(response, "No pudimos completar la generación.");
-
       if (!response.ok || "error" in payload) {
-        if ("fields" in payload && payload.fields) {
-          setFieldErrors(payload.fields);
-        }
+        if ("fields" in payload && payload.fields) setFieldErrors(payload.fields);
         throw new Error(
-          "error" in payload
-            ? payload.error
-            : "No pudimos completar la generación.",
+          "error" in payload ? payload.error : "No pudimos completar la generación.",
         );
       }
-
-      trackConversion("first_generation_started", {
+      trackConversion("generation_started", {
         content_type: contentType,
-        platform: contentType === "social-cover" ? coverPlatform : undefined,
+        platform,
         style,
+        variant,
+        credit_cost: creditCost,
       });
       setProjectId(payload.projectId);
       router.push(`/generations/${payload.generationId}?job=${payload.jobId}`);
@@ -241,142 +257,156 @@ export function GenerationForm({
     }
   }
 
-  function resetCreation() {
-    references.forEach((reference) =>
-      URL.revokeObjectURL(reference.previewUrl),
-    );
-    setReferences([]);
-    setProjectId(undefined);
-    setDescription("");
-    setPrimaryText("");
-    setResult({ status: "idle" });
-    setFieldErrors({});
-  }
-
   return (
     <form
       onSubmit={submitGeneration}
-      className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.88fr)_minmax(30rem,1.12fr)]"
+      className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]"
     >
-      <div
-        inert={result.status === "loading"}
-        aria-disabled={result.status === "loading"}
-        className="rounded-2xl border border-white/10 bg-surface p-5 sm:p-7"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-brand">Nuevo diseño</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-foreground">
-              Dale forma a tu idea.
-            </h1>
-          </div>
-          <Sparkles aria-hidden="true" className="mt-1 size-5 text-brand" />
+      <div className="min-w-0 rounded-2xl bg-surface p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-8">
+        <div className="max-w-2xl">
+          <p className="text-sm font-semibold text-brand">Nueva creación</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
+            Dale una dirección clara a tu idea.
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-muted">
+            Elige el destino primero. Crealy ajustará medidas, calidad y coste sin
+            mostrar opciones incompatibles.
+          </p>
         </div>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-muted">
-          Define lo esencial. Crealy se encarga de convertirlo en una pieza
-          lista para trabajar.
-        </p>
 
-        <fieldset className="mt-8">
-          <legend className="text-sm font-semibold text-foreground">
-            ¿Qué quieres crear?
-          </legend>
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {GENERATION_CONTENT_TYPES.filter(
-              (item) => !("legacy" in item && item.legacy),
-            ).map((item) => {
-              const Icon = contentIcons[item.icon];
-              const selected = contentType === item.id;
+        <fieldset className="mt-9">
+          <legend className="text-sm font-semibold text-foreground">1. ¿Qué vas a crear?</legend>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {GENERATION_PRODUCTS.map((item) => {
+              const Icon = contentIcons[item.icon as keyof typeof contentIcons];
+              const selected = item.id === contentType;
               return (
-                <label
+                <button
                   key={item.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => selectContentType(item.id)}
                   className={cn(
-                    "group cursor-pointer rounded-xl border p-3.5 transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
+                    "min-h-24 rounded-xl px-4 py-3 text-left transition-[background-color,color,box-shadow] focus-visible:outline-brand",
                     selected
-                      ? "border-brand/70 bg-brand/[0.06]"
-                      : "border-white/10 bg-background hover:border-white/20",
+                      ? "bg-brand text-brand-ink shadow-[0_14px_34px_rgba(221,245,39,.12)]"
+                      : "bg-background text-muted hover:bg-white/[0.055] hover:text-foreground",
                   )}
                 >
-                  <input
-                    type="radio"
-                    name="contentType"
-                    value={item.id}
-                    checked={selected}
-                    onChange={() => selectContentType(item.id)}
-                    className="sr-only"
-                  />
-                  <Icon
-                    aria-hidden="true"
-                    className={cn(
-                      "size-4.5",
-                      selected ? "text-brand" : "text-white/55",
-                    )}
-                  />
-                  <span className="mt-4 block text-sm font-semibold text-foreground">
-                    {item.label}
-                  </span>
-                  <span className="mt-1 hidden text-xs leading-5 text-muted sm:block">
+                  <Icon aria-hidden="true" className="size-5" />
+                  <span className="mt-4 block text-sm font-bold">{item.label}</span>
+                  <span className={cn("mt-1 block text-xs", selected ? "text-black/65" : "text-muted")}>
                     {item.description}
                   </span>
-                </label>
+                </button>
               );
             })}
           </div>
+          {fieldErrors.contentType ? <FieldError message={fieldErrors.contentType} /> : null}
         </fieldset>
 
-        <fieldset className="mt-6">
-          <legend className="text-sm font-semibold text-foreground">
-            {contentType === "social-cover"
-              ? "Elige la plataforma"
-              : "Elige el tamaño"}
-          </legend>
-          <p className="mt-1 text-xs leading-5 text-muted">
-            {contentType === "social-cover"
-              ? "Aplicamos las dimensiones y zonas seguras propias de cada red."
-              : "Mostramos únicamente los tamaños compatibles con la categoría seleccionada."}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(contentType === "social-cover"
-              ? COVER_PLATFORMS.map((platform) => ({
-                  ...getFormatConfig(platform.format),
-                  platform: platform.id,
-                  label: platform.description,
-                }))
-              : compatibleFormats
-            ).map((item) => (
-              <label
-                key={item.id}
-                className={cn(
-                  "cursor-pointer rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
-                  format === item.id
-                    ? "border-brand/65 bg-brand/[0.07] text-brand"
-                    : "border-white/12 text-muted hover:border-white/25 hover:text-foreground",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="format"
-                  value={item.id}
-                  checked={format === item.id}
-                  onChange={() => {
-                    setFormat(item.id);
-                    if ("platform" in item) setCoverPlatform(item.platform);
-                    if (requiresHighQuality(item.id)) setQuality("high");
-                  }}
-                  className="sr-only"
-                />
-                {item.label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        {product.platforms.length ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">
+              2. Plataforma
+            </legend>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {product.platforms.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={platform === item}
+                  onClick={() => selectPlatform(item)}
+                  className={cn(
+                    "min-h-11 rounded-xl px-4 text-sm font-semibold transition-colors",
+                    platform === item
+                      ? "bg-white text-black"
+                      : "bg-background text-muted hover:text-foreground",
+                  )}
+                >
+                  {platformLabels[item]}
+                </button>
+              ))}
+            </div>
+            {fieldErrors.platform ? <FieldError message={fieldErrors.platform} /> : null}
+          </fieldset>
+        ) : null}
 
-        <div className="mt-7">
-          <label
-            htmlFor="description"
-            className="text-sm font-semibold text-foreground"
-          >
-            Describe lo que quieres crear
+        {product.selectableQuality ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">
+              3. Calidad
+            </legend>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {(["standard", "high"] as const).map((item) => {
+                const target = getVariantForQuality(contentType, item);
+                const selected = quality === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => selectQuality(item)}
+                    className={cn(
+                      "rounded-xl p-4 text-left transition-colors",
+                      selected
+                        ? "bg-brand/[0.09] text-foreground ring-1 ring-brand/65"
+                        : "bg-background text-muted hover:text-foreground",
+                    )}
+                  >
+                    <span className="flex items-center justify-between gap-3 text-sm font-bold">
+                      {target.label}
+                      <span className="text-xs text-brand">
+                        {target.creditCost} {target.creditCost === 1 ? "crédito" : "créditos"}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-muted">
+                      {target.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : product.variants.length > 1 && contentType !== "social-cover" ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">
+              3. Tamaño
+            </legend>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {product.variants.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={variant === item.id}
+                  onClick={() => setVariant(item.id)}
+                  className={cn(
+                    "rounded-xl p-4 text-left transition-colors",
+                    variant === item.id
+                      ? "bg-brand/[0.09] ring-1 ring-brand/65"
+                      : "bg-background hover:bg-white/[0.055]",
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-3 text-sm font-bold text-foreground">
+                    {item.label}
+                    {item.recommended ? (
+                      <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] text-brand-ink">
+                        Recomendado
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted">
+                    {item.shortLabel} · {item.creditCost} {item.creditCost === 1 ? "crédito" : "créditos"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+
+        <div className="mt-8">
+          <label htmlFor="description" className="text-sm font-semibold text-foreground">
+            4. Describe la pieza
           </label>
           <textarea
             id="description"
@@ -385,442 +415,349 @@ export function GenerationForm({
             minLength={10}
             maxLength={1500}
             required
+            aria-invalid={Boolean(fieldErrors.description)}
+            aria-describedby="description-help"
             rows={5}
-            placeholder={currentType.example}
-            aria-describedby={
-              fieldErrors.description ? "description-error" : "description-hint"
-            }
-            className="mt-3 w-full resize-y rounded-xl border border-white/12 bg-background px-4 py-3 text-sm leading-6 text-foreground outline-none transition-colors placeholder:text-white/35 focus:border-brand/65"
+            placeholder={product.example}
+            className="mt-3 w-full resize-y rounded-xl bg-background px-4 py-3 text-sm leading-6 text-foreground outline-none ring-1 ring-white/10 transition-shadow placeholder:text-white/35 focus:ring-brand/65"
           />
-          <div className="mt-2 flex items-start justify-between gap-4 text-xs">
-            <p
-              id={fieldErrors.description ? "description-error" : "description-hint"}
-              className={fieldErrors.description ? "text-red-300" : "text-muted"}
-            >
-              {fieldErrors.description ||
-                "Incluye el tema, el tono y aquello que debe destacar."}
-            </p>
-            <span className="shrink-0 text-white/45">{description.length}/1500</span>
+          <div id="description-help" className="mt-2 flex justify-between gap-4 text-xs text-muted">
+            <span>{fieldErrors.description ?? "Explica el objetivo, el sujeto y qué debe destacar."}</span>
+            <span>{description.length}/1500</span>
           </div>
         </div>
 
-        <ReferenceImagePicker
-          references={references}
-          setReferences={setReferences}
-          maxFileMb={maxReferenceFileMb}
-          disabled={result.status === "loading"}
-        />
+        {product.acceptsText ? (
+          <div className="mt-6">
+            <label htmlFor="primaryText" className="text-sm font-semibold text-foreground">
+              Texto visible <span className="font-normal text-muted">(opcional)</span>
+            </label>
+            <input
+              id="primaryText"
+              value={primaryText}
+              onChange={(event) => setPrimaryText(event.target.value)}
+              maxLength={120}
+              placeholder="Ej. Crea más. Publica mejor."
+              className="mt-3 h-12 w-full rounded-xl bg-background px-4 text-sm text-foreground outline-none ring-1 ring-white/10 placeholder:text-white/35 focus:ring-brand/65"
+            />
+            <p className="mt-2 text-xs leading-5 text-muted">
+              Usa una frase breve. La tipografía generada puede variar ligeramente.
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-6">
-          <label
-            htmlFor="primaryText"
-            className="text-sm font-semibold text-foreground"
-          >
-            Texto principal{" "}
-            <span className="font-normal text-muted">(opcional)</span>
-          </label>
-          <input
-            id="primaryText"
-            value={primaryText}
-            onChange={(event) => setPrimaryText(event.target.value)}
-            maxLength={120}
-            placeholder="Ej. Crea más. Publica mejor."
-            className="mt-3 h-12 w-full rounded-xl border border-white/12 bg-background px-4 text-sm text-foreground outline-none transition-colors placeholder:text-white/35 focus:border-brand/65"
+          <ReferenceImagePicker
+            references={references}
+            setReferences={setReferences}
+            maxFileMb={maxReferenceFileMb}
+            disabled={result.status === "loading"}
           />
-          <p className="mt-2 text-xs leading-5 text-muted">
-            La IA intentará respetarlo, aunque puede presentar pequeñas
-            variaciones tipográficas.
-          </p>
+          {contentType === "profile-image" ? (
+            <p className="mt-3 flex gap-2 text-xs leading-5 text-muted">
+              <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
+              Sube una foto, logo u objeto si necesitas fidelidad. Conservaremos sus rasgos
+              y geometría, aunque toda generación puede presentar variaciones.
+            </p>
+          ) : null}
         </div>
 
-        <fieldset className="mt-6">
-          <legend className="text-sm font-semibold text-foreground">
-            Estilo visual
-          </legend>
-          <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
-            {GENERATION_STYLES.map((item) => (
+        <fieldset className="mt-7">
+          <legend className="text-sm font-semibold text-foreground">5. Estilo visual</legend>
+          <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
+            {styles.map((item) => (
               <button
                 type="button"
                 key={item.id}
                 aria-pressed={style === item.id}
                 onClick={() => setStyle(item.id)}
                 className={cn(
-                  "group relative min-w-44 snap-start overflow-hidden rounded-xl border text-left outline-none focus-visible:ring-2 focus-visible:ring-brand sm:min-w-0",
-                  style === item.id
-                    ? "border-brand/70"
-                    : "border-white/10 hover:border-white/25",
+                  "group relative min-w-40 snap-start overflow-hidden rounded-xl bg-background text-left outline-none ring-1 focus-visible:ring-2 focus-visible:ring-brand sm:min-w-0",
+                  style === item.id ? "ring-brand/70" : "ring-white/10",
                 )}
               >
-                <span className="relative block aspect-[16/10] overflow-hidden bg-[radial-gradient(circle_at_25%_25%,rgba(221,245,39,.24),transparent_40%),linear-gradient(135deg,#20231a,#080906)]">
+                <span className="relative block aspect-[16/9] overflow-hidden bg-[#171812]">
                   {item.previewAsset ? (
                     <Image
                       src={item.previewAsset}
                       alt={`Ejemplo de estilo ${item.label}`}
                       fill
-                      sizes="(max-width: 640px) 176px, 220px"
-                      className="object-cover opacity-75 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-95"
+                      sizes="180px"
+                      className="object-cover opacity-80 transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                     />
                   ) : (
                     <span className="absolute inset-0 grid place-items-center text-2xl text-brand">✦</span>
                   )}
                 </span>
-                <span className="block bg-black/80 px-3 py-2.5">
-                  <span className="flex items-center justify-between gap-2 text-xs font-semibold text-white">
-                    {item.label}
-                    {style === item.id ? <Check aria-hidden="true" className="size-3.5 text-brand" /> : null}
-                  </span>
-                  <span className="mt-1 block text-[11px] leading-4 text-white/55">
-                    {item.description}
-                  </span>
+                <span className="flex items-center justify-between gap-2 px-3 py-3 text-xs font-semibold text-foreground">
+                  {item.label}
+                  {style === item.id ? <Check aria-hidden="true" className="size-3.5 text-brand" /> : null}
                 </span>
               </button>
             ))}
           </div>
         </fieldset>
 
-        <div className="mt-6">
-          <label className="text-sm font-semibold text-foreground">
-            Color
-            <select
-              value={colorPreference}
-              onChange={(event) =>
-                setColorPreference(event.target.value as ColorPreference)
-              }
-              className="mt-3 h-12 w-full rounded-xl border border-white/12 bg-background px-3 text-sm font-normal text-foreground outline-none focus:border-brand/65"
-            >
-              {GENERATION_COLORS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+        <div className="mt-7">
+          <label htmlFor="colorPreference" className="text-sm font-semibold text-foreground">
+            6. Color
           </label>
+          <select
+            id="colorPreference"
+            value={colorPreference}
+            onChange={(event) => setColorPreference(event.target.value as ColorPreference)}
+            className="mt-3 h-12 w-full rounded-xl bg-background px-3 text-sm text-foreground outline-none ring-1 ring-white/10 focus:ring-brand/65"
+          >
+            {GENERATION_COLORS.map((item) => (
+              <option key={item.id} value={item.id}>{item.label}</option>
+            ))}
+          </select>
+          {colorPreference === "custom" ? (
+            <ColorPalette
+              colors={customColors}
+              drafts={hexDrafts}
+              setColors={setCustomColors}
+              setDrafts={setHexDrafts}
+              setFieldErrors={setFieldErrors}
+              error={fieldErrors.customColors}
+            />
+          ) : null}
         </div>
 
-        {colorPreference === "custom" ? (
-          <div className="mt-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {customColors.map((color, index) => (
-                <div
-                  key={index}
-                  className="flex min-h-12 items-center gap-2 rounded-xl border border-white/12 bg-background px-3 text-xs font-medium text-muted"
-                >
-                  <input
-                    type="color"
-                    aria-label={`Color personalizado ${index + 1}`}
-                    value={color}
-                    onChange={(event) =>
-                      {
-                        setCustomColors((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index ? event.target.value.toUpperCase() : item,
-                        ),
-                        );
-                        setHexDrafts((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index ? event.target.value.toUpperCase() : item,
-                          ),
-                        );
-                      }
-                    }
-                    className="size-7 cursor-pointer rounded border-0 bg-transparent p-0"
-                  />
-                  <input
-                    value={hexDrafts[index] ?? color}
-                    aria-label={`Hexadecimal del color ${index + 1}`}
-                    maxLength={7}
-                    onChange={(event) =>
-                      setHexDrafts((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index ? event.target.value : item,
-                        ),
-                      )
-                    }
-                    onBlur={() => {
-                      const normalized = normalizeHexColor(hexDrafts[index] ?? "");
-                      if (!normalized) {
-                        setFieldErrors((current) => ({
-                          ...current,
-                          customColors: "Usa #RGB o #RRGGBB.",
-                        }));
-                        return;
-                      }
-                      setCustomColors((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index ? normalized : item,
-                        ),
-                      );
-                      setHexDrafts((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index ? normalized : item,
-                        ),
-                      );
-                      setFieldErrors((current) => {
-                        const next = { ...current };
-                        delete next.customColors;
-                        return next;
-                      });
-                    }}
-                    className="min-w-0 flex-1 bg-transparent font-mono text-xs uppercase text-foreground outline-none"
-                  />
-                  {customColors.length > 1 ? (
-                    <button
-                      type="button"
-                      aria-label={`Quitar color ${index + 1}`}
-                      onClick={() => {
-                        setCustomColors((current) =>
-                          current.filter((_, itemIndex) => itemIndex !== index),
-                        );
-                        setHexDrafts((current) =>
-                          current.filter((_, itemIndex) => itemIndex !== index),
-                        );
-                      }}
-                      className="grid size-7 place-items-center rounded-lg hover:bg-white/[0.07] hover:text-foreground"
-                    >
-                      <X aria-hidden="true" className="size-3.5" />
-                    </button>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-            {customColors.length < 5 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomColors((current) => [...current, "#FFFFFF"]);
-                  setHexDrafts((current) => [...current, "#FFFFFF"]);
-                }}
-                className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/12 px-3 text-xs font-semibold text-muted hover:border-white/25 hover:text-foreground"
-              >
-                <Plus aria-hidden="true" className="size-4" />
-                Añadir color ({customColors.length}/5)
-              </button>
-            ) : (
-              <p className="mt-3 text-xs text-muted">Paleta completa · 5 colores</p>
-            )}
-            <p className="mt-2 text-xs text-muted" aria-live="polite">
-              {fieldErrors.customColors ?? `${customColors.length} de 5 colores seleccionados.`}
-            </p>
+        {contentType === "profile-image" ? (
+          <div className="mt-7 grid gap-5 sm:grid-cols-3">
+            <SelectField label="Modo" value={profileMode} onChange={(value) => setProfileMode(value as ProfileMode)} options={PROFILE_MODES} />
+            <SelectField label="Transformación" value={profileIntensity} onChange={(value) => setProfileIntensity(value as ProfileIntensity)} options={PROFILE_INTENSITIES} />
+            <SelectField label="Fondo" value={profileBackground} onChange={(value) => setProfileBackground(value as ProfileBackground)} options={PROFILE_BACKGROUNDS} />
           </div>
         ) : null}
 
-        {highQualityRequired ? (
-          <div className="mt-6 rounded-xl border border-brand/25 bg-brand/[0.055] px-4 py-3">
-            <p className="text-sm font-semibold text-foreground">Alta calidad incluida</p>
-            <p className="mt-1 text-xs leading-5 text-muted">
-              {contentType === "social-cover"
-                ? "Las portadas se generan en alta calidad para conservar detalles y texto."
-                : "Este formato se genera en alta calidad para conservar detalle y texto."}
-            </p>
+        {contentType === "story" ? (
+          <label className="mt-7 flex cursor-pointer items-start gap-3 rounded-xl bg-background p-4">
+            <input
+              type="checkbox"
+              checked={showSafeArea}
+              onChange={(event) => setShowSafeArea(event.target.checked)}
+              className="mt-0.5 size-4 accent-[#DDF527]"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-foreground">Proteger zona segura 9:16</span>
+              <span className="mt-1 block text-xs leading-5 text-muted">Evita colocar texto o rostros bajo los controles de la plataforma.</span>
+            </span>
+          </label>
+        ) : null}
+
+        {result.status === "error" ? (
+          <div role="alert" className="mt-7 rounded-xl bg-red-950/40 px-4 py-3 text-sm leading-6 text-red-100">
+            <strong className="block font-semibold">No pudimos preparar la generación.</strong>
+            {result.message}
           </div>
-        ) : (
-        <fieldset className="mt-6">
-          <legend className="text-sm font-semibold text-foreground">
-            Calidad
-          </legend>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {GENERATION_QUALITIES.map((item) => (
-              <label
-                key={item.id}
-                className={cn(
-                  "cursor-pointer rounded-xl border p-3.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
-                  quality === item.id
-                    ? "border-brand/65 bg-brand/[0.06]"
-                    : "border-white/12 bg-background",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="quality"
-                  value={item.id}
-                  checked={quality === item.id}
-                  onChange={() => setQuality(item.id)}
-                  className="sr-only"
-                />
-                <span className="block text-sm font-semibold text-foreground">
-                  {item.label}
-                </span>
-                <span className="mt-1 block text-xs leading-5 text-muted">
-                  {item.description}
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        )}
+        ) : null}
+
+        <div
+          role="status"
+          aria-live="polite"
+          className="mt-7 rounded-xl bg-background p-4 lg:hidden"
+        >
+          <p className="text-xs font-semibold text-brand">Resumen de salida</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">
+            {variantDefinition.width} × {variantDefinition.height} ·{" "}
+            {creditCost} {creditCost === 1 ? "crédito" : "créditos"}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Saldo después de generar: {Math.max(0, availableCredits - creditCost)}
+          </p>
+        </div>
 
         <button
           type="submit"
-          disabled={!available || result.status === "loading"}
-          className={cn(
-            "mt-7 flex h-13 w-full items-center justify-center gap-2 rounded-xl border px-5 text-sm font-bold transition-[background-color,border-color,color,transform] hover:-translate-y-0.5 active:translate-y-0 disabled:pointer-events-none disabled:opacity-45",
-            result.status === "completed"
-              ? "border-white/14 bg-white/[0.035] text-foreground hover:bg-white/[0.07]"
-              : "border-transparent bg-brand text-brand-ink shadow-[0_14px_38px_rgba(221,245,39,0.12)] hover:bg-[var(--brand-hover)]",
-          )}
+          disabled={!available || !hasEnoughCredits || result.status === "loading"}
+          className="mt-7 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink shadow-[0_16px_40px_rgba(221,245,39,.12)] transition-transform hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-40"
         >
           {result.status === "loading" ? (
-            <>
-              <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-              Creando tu imagen…
-            </>
+            <><LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> Preparando tu creación…</>
           ) : (
-            <>
-              {result.status === "completed"
-                ? "Aplicar cambios y generar"
-                : "Generar imagen"}
-              <ArrowRight aria-hidden="true" className="size-4" />
-            </>
+            <>Generar por {creditCost} {creditCost === 1 ? "crédito" : "créditos"} <ArrowRight aria-hidden="true" className="size-4" /></>
           )}
         </button>
-        {!available ? (
-          <p className="mt-3 text-center text-xs leading-5 text-amber-200">
-            La generación no está disponible en este momento. Inténtalo de
-            nuevo más tarde.
+        {!hasEnoughCredits ? (
+          <p role="status" aria-live="polite" className="mt-3 text-center text-sm text-amber-100">
+            Necesitas {creditCost - availableCredits} {creditCost - availableCredits === 1 ? "crédito más" : "créditos más"}.{" "}
+            <Link href="/settings/billing" className="font-semibold underline">Ver planes</Link>
+          </p>
+        ) : !available ? (
+          <p className="mt-3 text-center text-sm text-amber-100">
+            La generación está temporalmente en mantenimiento.
           </p>
         ) : null}
       </div>
 
-      <section
-        aria-label="Resultado de la generación"
-        aria-live="polite"
-        className="lg:sticky lg:top-6"
-      >
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0c0d0a] p-4 sm:p-6">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Tu resultado
-              </h2>
-              <p className="mt-1 text-xs text-muted">
-                {currentType.fullLabel} · {currentFormat.shortLabel}
-              </p>
+      <aside aria-live="polite" className="hidden lg:sticky lg:top-24 lg:block">
+        <div className="overflow-hidden rounded-2xl bg-[#10110d] shadow-[0_24px_80px_rgba(0,0,0,.3)]">
+          <div className="relative min-h-64 overflow-hidden p-6">
+            <div aria-hidden="true" className="absolute -right-16 -top-12 size-56 rounded-full bg-brand/[0.09] blur-3xl" />
+            <div className="relative flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold text-brand">Salida preparada</p>
+                <h2 className="mt-2 text-xl font-semibold text-foreground">{product.fullLabel}</h2>
+              </div>
+              <Sparkles aria-hidden="true" className="size-5 text-brand" />
             </div>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-medium text-muted">
-              {quality === "fast" ? "Borrador rápido" : "Alta calidad"}
-            </span>
-          </div>
-          {format === "youtube-cover" && result.status === "completed" ? (
-            <button
-              type="button"
-              aria-pressed={showSafeArea}
-              onClick={() => setShowSafeArea((current) => !current)}
-              className="mb-3 inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/12 px-3 text-xs font-semibold text-muted hover:border-white/25 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              <span aria-hidden="true" className="size-2 rounded-full bg-brand" />
-              {showSafeArea ? "Ocultar área segura" : "Mostrar área segura"}
-            </button>
-          ) : null}
-
-          <div
-            style={{ aspectRatio }}
-            className={cn(
-              "relative grid max-h-[70vh] w-full place-items-center overflow-hidden rounded-xl border border-white/[0.08] bg-surface",
-              result.status === "completed" ? "" : "min-h-64",
-            )}
-          >
             <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(221,245,39,0.07),transparent_45%)]"
-            />
-            {result.status === "completed" ? (
-              <>
-                {/* Signed URLs vary by provider, so this remains a native image. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={result.imageUrl}
-                  alt={`Diseño generado: ${description}`}
-                  className="relative size-full object-contain"
-                />
-                {format === "youtube-cover" && showSafeArea ? (
-                  <div
-                    aria-label="Área visible en todos los dispositivos"
-                    className="pointer-events-none absolute border-2 border-brand"
-                    style={{
-                      left: `${(PLATFORM_COVERS.youtube.safeArea.x / PLATFORM_COVERS.youtube.exportWidth) * 100}%`,
-                      top: `${(PLATFORM_COVERS.youtube.safeArea.y / PLATFORM_COVERS.youtube.exportHeight) * 100}%`,
-                      width: `${(PLATFORM_COVERS.youtube.safeArea.width / PLATFORM_COVERS.youtube.exportWidth) * 100}%`,
-                      height: `${(PLATFORM_COVERS.youtube.safeArea.height / PLATFORM_COVERS.youtube.exportHeight) * 100}%`,
-                      boxShadow: "0 0 0 100vmax rgba(0,0,0,.48)",
-                    }}
-                  >
-                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-black/80 px-3 py-1 text-[10px] font-semibold text-white">
-                      Visible en todos los dispositivos
-                    </span>
-                  </div>
-                ) : null}
-              </>
-            ) : result.status === "loading" ? (
-              <div className="relative max-w-sm px-8 text-center">
-                <div className="generation-orbit mx-auto grid size-16 place-items-center rounded-2xl border border-brand/25 bg-brand/[0.06]">
-                  <Sparkles aria-hidden="true" className="size-6 text-brand" />
-                </div>
-                <h3 className="mt-6 text-lg font-semibold text-foreground">
-                  Estamos dando forma a tu idea.
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-muted">
-                  La imagen puede tardar hasta un par de minutos. Puedes dejar
-                  esta pestaña abierta.
-                </p>
-              </div>
-            ) : (
-              <div className="relative max-w-sm px-8 text-center">
-                <div className="mx-auto grid size-14 place-items-center rounded-2xl border border-white/10 bg-white/[0.035]">
-                  <ImageIcon aria-hidden="true" className="size-5 text-white/45" />
-                </div>
-                <h3 className="mt-5 text-lg font-semibold text-foreground">
-                  {result.status === "error"
-                    ? "La imagen no pudo generarse."
-                    : "Tu próxima pieza empieza aquí."}
-                </h3>
-                <p
+              className={cn(
+                "relative mt-8 grid max-h-52 place-items-center overflow-hidden rounded-xl bg-black/50 ring-1 ring-white/10",
+                contentType === "profile-image" && "rounded-full",
+              )}
+              style={{ aspectRatio: `${variantDefinition.width}/${variantDefinition.height}` }}
+            >
+              <ImageIcon aria-hidden="true" className="size-7 text-white/25" />
+              {(contentType === "story" && showSafeArea) || contentType === "profile-image" ? (
+                <div
+                  aria-hidden="true"
                   className={cn(
-                    "mt-2 text-sm leading-6",
-                    result.status === "error" ? "text-red-200" : "text-muted",
+                    "absolute border border-brand/70",
+                    contentType === "profile-image" ? "inset-[12%] rounded-full" : "inset-x-[8%] inset-y-[12%] rounded-lg",
                   )}
-                >
-                  {result.status === "error"
-                    ? result.message
-                    : "Completa el brief y verás el resultado en este lienzo."}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {result.status === "completed" ? (
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <a
-                href={`/api/generations/${result.generationId}/download`}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-bold text-brand-ink transition-colors hover:bg-[var(--brand-hover)]"
-              >
-                <Download aria-hidden="true" className="size-4" />
-                Descargar PNG
-              </a>
-              <button
-                type="button"
-                onClick={() => submitGeneration()}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/14 text-sm font-semibold text-foreground transition-colors hover:bg-white/[0.05]"
-              >
-                <RefreshCw aria-hidden="true" className="size-4" />
-                Generar otra versión
-              </button>
-              <Link
-                href={`/generations/${result.generationId}`}
-                className="inline-flex min-h-10 items-center justify-center text-sm font-medium text-muted hover:text-foreground sm:col-span-1"
-              >
-                Ver detalle
-              </Link>
-              <button
-                type="button"
-                onClick={resetCreation}
-                className="min-h-10 text-sm font-medium text-muted hover:text-foreground"
-              >
-                Crear algo nuevo
-              </button>
+                />
+              ) : null}
             </div>
-          ) : null}
+          </div>
+          <dl className="divide-y divide-white/8 border-t border-white/8 px-6">
+            <SummaryRow label="Plataforma" value={platform ? platformLabels[platform] : "Uso general"} />
+            <SummaryRow label="Tamaño final" value={`${variantDefinition.width} × ${variantDefinition.height}`} />
+            <SummaryRow label="Calidad" value={quality === "high" ? "Alta" : "Estándar"} />
+            <SummaryRow label="Coste" value={`${creditCost} ${creditCost === 1 ? "crédito" : "créditos"}`} strong />
+          </dl>
+          <div className="border-t border-white/8 px-6 py-4 text-xs text-muted">
+            Saldo después de generar: <strong className="text-foreground">{Math.max(0, availableCredits - creditCost)}</strong>
+          </div>
         </div>
-      </section>
+      </aside>
     </form>
+  );
+}
+
+function FieldError({ message }: { message: string }) {
+  return <p role="alert" className="mt-2 text-xs text-red-200">{message}</p>;
+}
+
+function SummaryRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 text-sm">
+      <dt className="text-muted">{label}</dt>
+      <dd className={strong ? "font-bold text-brand" : "font-semibold text-foreground"}>{value}</dd>
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly { id: string; label: string }[];
+}) {
+  return (
+    <label className="text-sm font-semibold text-foreground">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-3 h-12 w-full rounded-xl bg-background px-3 text-sm font-normal text-foreground outline-none ring-1 ring-white/10 focus:ring-brand/65"
+      >
+        {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function ColorPalette({
+  colors,
+  drafts,
+  setColors,
+  setDrafts,
+  setFieldErrors,
+  error,
+}: {
+  colors: string[];
+  drafts: string[];
+  setColors: React.Dispatch<React.SetStateAction<string[]>>;
+  setDrafts: React.Dispatch<React.SetStateAction<string[]>>;
+  setFieldErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  error?: string;
+}) {
+  return (
+    <div className="mt-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {colors.map((color, index) => (
+          <div key={`${index}-${color}`} className="flex min-h-12 items-center gap-2 rounded-xl bg-background px-3 ring-1 ring-white/10">
+            <input
+              type="color"
+              aria-label={`Color ${index + 1}`}
+              value={color}
+              onChange={(event) => {
+                const next = event.target.value.toUpperCase();
+                setColors((current) => current.map((item, i) => i === index ? next : item));
+                setDrafts((current) => current.map((item, i) => i === index ? next : item));
+              }}
+              className="size-7 bg-transparent p-0"
+            />
+            <input
+              aria-label={`Hexadecimal ${index + 1}`}
+              value={drafts[index] ?? color}
+              maxLength={7}
+              onChange={(event) => setDrafts((current) => current.map((item, i) => i === index ? event.target.value : item))}
+              onBlur={() => {
+                const normalized = normalizeHexColor(drafts[index] ?? "");
+                if (!normalized) {
+                  setFieldErrors((current) => ({ ...current, customColors: "Usa #RGB o #RRGGBB." }));
+                  return;
+                }
+                setColors((current) => current.map((item, i) => i === index ? normalized : item));
+                setDrafts((current) => current.map((item, i) => i === index ? normalized : item));
+                setFieldErrors((current) => {
+                  const next = { ...current };
+                  delete next.customColors;
+                  return next;
+                });
+              }}
+              className="min-w-0 flex-1 bg-transparent font-mono text-xs uppercase text-foreground outline-none"
+            />
+            {colors.length > 1 ? (
+              <button
+                type="button"
+                aria-label={`Quitar color ${index + 1}`}
+                onClick={() => {
+                  setColors((current) => current.filter((_, i) => i !== index));
+                  setDrafts((current) => current.filter((_, i) => i !== index));
+                }}
+                className="grid size-7 place-items-center text-muted hover:text-foreground"
+              >
+                <X aria-hidden="true" className="size-3.5" />
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      {colors.length < 5 ? (
+        <button
+          type="button"
+          onClick={() => {
+            setColors((current) => [...current, "#FFFFFF"]);
+            setDrafts((current) => [...current, "#FFFFFF"]);
+          }}
+          className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-background px-3 text-xs font-semibold text-muted hover:text-foreground"
+        >
+          <Plus aria-hidden="true" className="size-4" /> Añadir color ({colors.length}/5)
+        </button>
+      ) : null}
+      <p className={cn("mt-2 text-xs", error ? "text-red-200" : "text-muted")}>
+        {error ?? `${colors.length} de 5 colores seleccionados.`}
+      </p>
+    </div>
   );
 }

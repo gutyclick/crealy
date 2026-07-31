@@ -1,12 +1,38 @@
 export type ContentType =
-  | "youtube-thumbnail"
+  | "thumbnail"
   | "social-post"
   | "banner"
-  | "social-cover";
+  | "social-cover"
+  | "story"
+  | "profile-image";
+
+export type LegacyContentType = "youtube-thumbnail";
 
 export type CoverPlatform = "youtube" | "facebook" | "x" | "linkedin";
+export type StoryPlatform = "instagram" | "facebook" | "tiktok" | "generic";
+export type ProfilePlatform = "instagram" | "facebook" | "x" | "linkedin";
+export type GenerationPlatform =
+  | CoverPlatform
+  | StoryPlatform
+  | ProfilePlatform;
 
 export type GenerationFormat =
+  | "thumbnail-standard"
+  | "thumbnail-high"
+  | "post-square"
+  | "post-portrait"
+  | "banner-small"
+  | "banner-standard"
+  | "banner-large"
+  | "banner-2k"
+  | "cover-youtube"
+  | "cover-facebook"
+  | "cover-x"
+  | "cover-linkedin"
+  | "story-standard"
+  | "story-high"
+  | "profile-master"
+  // Legacy values remain readable while existing rows are migrated lazily.
   | "youtube-16-9"
   | "youtube-cover"
   | "social-square"
@@ -15,7 +41,6 @@ export type GenerationFormat =
   | "facebook-cover"
   | "x-cover"
   | "linkedin-cover"
-  // Kept so existing database rows remain readable.
   | "social-cover-panorama";
 
 export type GenerationStyle =
@@ -32,9 +57,12 @@ export type GenerationStyle =
   | "technology"
   | "luxury"
   | "news"
-  // Historical value remains readable for queued and completed generations.
+  | "promotional"
+  | "fashion"
+  | "food"
+  | "event"
+  // Historical values.
   | "auto"
-  // Historical values remain readable for queued and completed generations.
   | "photographic"
   | "illustration"
   | "advertising";
@@ -48,22 +76,45 @@ export type ColorPreference =
   | "custom";
 
 export type ColorMode = "automatic" | "preset" | "custom";
+export type GenerationQuality = "standard" | "high";
+export type LegacyGenerationQuality = "fast";
 
-export type GenerationQuality = "fast" | "high";
+export type ProfileMode =
+  | "enhance"
+  | "professional"
+  | "black-and-white"
+  | "creative"
+  | "illustrated"
+  | "studio"
+  | "brand";
+export type ProfileIntensity = "subtle" | "balanced" | "creative";
+export type ProfileBackground =
+  | "auto"
+  | "white"
+  | "black"
+  | "neutral"
+  | "custom"
+  | "gradient";
 
 export type GenerationInput = {
   clientRequestId: string;
   projectId?: string;
   contentType: ContentType;
+  platform?: GenerationPlatform;
   coverPlatform?: CoverPlatform;
   description: string;
   primaryText?: string;
   style: GenerationStyle;
   colorPreference: ColorPreference;
   customColors?: string[];
+  variant: GenerationFormat;
   format: GenerationFormat;
   quality: GenerationQuality;
   referenceUploadIds?: string[];
+  profileMode?: ProfileMode;
+  profileIntensity?: ProfileIntensity;
+  profileBackground?: ProfileBackground;
+  showSafeArea?: boolean;
 };
 
 export type GenerationReferenceImage = {
@@ -112,8 +163,11 @@ export type GenerationListItem = {
   projectId: string;
   projectTitle: string;
   contentType: ContentType;
+  platform: GenerationPlatform | null;
   coverPlatform: CoverPlatform | null;
   format: GenerationFormat;
+  quality: GenerationQuality;
+  creditCost: number | null;
   status: GenerationStatus;
   imageUrl: string | null;
   createdAt: string;

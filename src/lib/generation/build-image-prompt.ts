@@ -1,64 +1,98 @@
 import "server-only";
 
-import { getContentFormat, getPlatformCover } from "@/config/content-formats";
-import { GENERATION_COLORS, getContentTypeConfig } from "@/config/generation";
 import {
-  getVisualStyle,
-  resolveAutomaticStyle,
-} from "@/config/visual-styles";
+  getGenerationProduct,
+  getGenerationVariant,
+} from "@/config/generation-products";
+import { GENERATION_COLORS } from "@/config/generation";
+import { getVisualStyle, resolveAutomaticStyle } from "@/config/visual-styles";
 import type { GenerationInput } from "@/types/generation";
 
 function palettePrompt(input: GenerationInput) {
   if (input.colorPreference !== "custom" || !input.customColors?.length) {
-    const label =
+    return `Dirección de color: ${
       GENERATION_COLORS.find((item) => item.id === input.colorPreference)?.label ??
-      "Automático";
-    return `Dirección de color: ${label}.`;
+      "Automático"
+    }.`;
   }
-  const [primary, secondary, ...accents] = input.customColors;
   return [
-    "Paleta visual:",
-    `- Principal: ${primary}.`,
-    ...(secondary ? [`- Secundario: ${secondary}.`] : []),
-    ...(accents.length ? [`- Acentos: ${accents.join(", ")}.`] : []),
-    "- Respeta su jerarquía y conserva contraste suficiente; pueden existir variaciones mínimas de renderizado.",
+    "Paleta solicitada, en orden de prioridad:",
+    ...input.customColors.map((color, index) => `- ${index + 1}: ${color}.`),
+    "- Conserva contraste suficiente; admite solo variaciones mínimas de renderizado.",
   ].join("\n");
 }
 
+function productGuidelines(input: GenerationInput) {
+  switch (input.contentType) {
+    case "thumbnail":
+      return [
+        "Debe funcionar como miniatura de YouTube a tamaño pequeño.",
+        "Usa un foco dominante, silueta clara y máximo tres grupos visuales.",
+        "Si hay rostro, conserva expresión legible sin deformar identidad.",
+      ];
+    case "social-post":
+      return [
+        "Diseña una pieza de feed, no una captura de una interfaz.",
+        "La lectura debe ser inmediata en móvil.",
+      ];
+    case "banner":
+      return [
+        "Construye una composición panorámica adaptable.",
+        "Reserva espacio negativo real para el mensaje principal.",
+      ];
+    case "social-cover":
+      return [
+        `Es una portada de ${input.platform}; no una publicación ni un mockup.`,
+        "Extiende el fondo de forma natural fuera del área segura.",
+      ];
+    case "story":
+      return [
+        `Es una historia vertical para ${input.platform}.`,
+        "Respeta una composición 9:16 y evita las zonas ocupadas por controles de la aplicación.",
+        input.showSafeArea
+          ? "Mantén todo texto y rostro dentro de la zona segura central."
+          : "Mantén los elementos esenciales alejados de los extremos.",
+      ];
+    case "profile-image":
+      return [
+        `Crea un avatar para ${input.platform}.`,
+        `Modo: ${input.profileMode}; intensidad de transformación: ${input.profileIntensity}; fondo: ${input.profileBackground}.`,
+        "Entrega un máster cuadrado que también funcione recortado como círculo.",
+        "FIDELIDAD OBLIGATORIA: conserva identidad, edad aparente, rasgos faciales, tono de piel, proporciones, logotipo, geometría y colores del material de referencia.",
+        "No embellezcas, rejuvenezcas, cambies género, etnia, peinado ni expresión salvo petición explícita.",
+      ];
+  }
+}
+
 export function buildImagePrompt(input: GenerationInput) {
-  const type = getContentTypeConfig(input.contentType);
-  const format = getContentFormat(input.format);
-  const platform =
-    input.contentType === "social-cover" && input.coverPlatform
-      ? getPlatformCover(input.coverPlatform)
-      : null;
+  const product = getGenerationProduct(input.contentType);
+  const variant = getGenerationVariant(input.variant);
+  if (!variant) throw new Error("invalid_generation_variant");
   const resolvedStyle =
     input.style === "automatic" || input.style === "auto"
       ? resolveAutomaticStyle(input)
       : input.style;
   const style = getVisualStyle(resolvedStyle);
-  const visibleText = input.primaryText
-    ? `Incluye este texto visible y prioriza su legibilidad: "${input.primaryText}".`
-    : "No añadas titulares, palabras, logotipos ni marcas de agua no solicitados.";
+  const visibleText =
+    product.acceptsText && input.primaryText
+      ? `Incluye únicamente este texto visible y prioriza su legibilidad: "${input.primaryText}".`
+      : "No añadas titulares, palabras, logotipos ni marcas de agua no solicitados.";
 
   return [
-    `Crea una ${type.fullLabel.toLowerCase()} profesional${platform ? ` para ${platform.label}` : ""}.`,
-    `Resolución de salida solicitada: ${format.exportWidth} × ${format.exportHeight}.`,
+    `Crea una ${product.fullLabel.toLowerCase()} profesional.`,
+    `Salida final: ${variant.width} × ${variant.height}. Variante: ${variant.label}. Calidad: ${variant.quality}.`,
     "",
     "Brief:",
     input.description,
     "",
-    "Composición:",
-    ...(platform?.promptGuidelines ?? [
-      "Mantén una jerarquía visual clara.",
-      "Conserva los elementos esenciales dentro del área segura.",
-    ]).map((guideline) => `- ${guideline}`),
-    "- Evita detalles diminutos, elementos cortados y fondos confusos.",
-    "- No incluyas marcas o personajes conocidos.",
+    "Reglas del producto:",
+    ...productGuidelines(input).map((line) => `- ${line}`),
+    ...variant.promptGuidelines.map((line) => `- ${line}`),
+    "- Evita detalles diminutos, elementos cortados, marcas conocidas y fondos confusos.",
     "",
-    `Estilo ${style?.label ?? "Profesional"}:`,
+    `Dirección visual — ${style?.label ?? "Profesional"}:`,
     ...(style?.promptGuidelines ?? ["Composición limpia y equilibrada."]).map(
-      (guideline) => `- ${guideline}`,
+      (line) => `- ${line}`,
     ),
     "",
     palettePrompt(input),
@@ -68,13 +102,13 @@ export function buildImagePrompt(input: GenerationInput) {
     ...(input.referenceUploadIds?.length
       ? [
           "",
-          "Referencias:",
-          "- Integra solo los elementos relevantes.",
-          "- Conserva identidad, edad aparente, rasgos, geometría, materiales y colores de personas u objetos; no los modifiques salvo petición explícita.",
+          "Material de referencia:",
+          "- Integra solo lo relevante para el brief.",
+          "- La referencia tiene prioridad sobre cualquier inferencia estética.",
+          "- No modifiques personas, objetos, logotipos ni rasgos salvo petición explícita del usuario.",
         ]
       : []),
     "",
-    "Entrega una sola pieza terminada, sin mockup, marcos ni explicación.",
+    "Entrega una sola pieza terminada, sin mockup, marcos, etiquetas técnicas ni explicación.",
   ].join("\n");
 }
-

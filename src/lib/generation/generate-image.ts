@@ -2,7 +2,7 @@ import "server-only";
 
 import OpenAI, { toFile } from "openai";
 
-import { getContentFormat } from "@/config/content-formats";
+import { getGenerationVariant } from "@/config/generation-products";
 import { getGenerationServerEnv } from "@/lib/env/server";
 import { GenerationError, mapOpenAIError } from "@/lib/generation/generation-errors";
 import {
@@ -37,12 +37,14 @@ export async function generateImage(
   referenceImages: GenerationReferenceImage[] = [],
 ) {
   const { imageModel } = getGenerationServerEnv();
-  const definition = getContentFormat(input.format);
+  const resolvedDefinition = getGenerationVariant(input.variant);
+  if (!resolvedDefinition) throw new Error("invalid_generation_variant");
+  const definition = resolvedDefinition;
   const baseResolutionInput = {
     model: imageModel,
     contentType: input.contentType,
     coverPlatform: input.coverPlatform,
-    format: input.format,
+    variant: input.variant,
   };
   let resolved = resolveImageSize(baseResolutionInput);
   let fallbackUsed = false;
@@ -50,13 +52,7 @@ export async function generateImage(
   async function requestImage(size: string) {
     const client = getOpenAIClient();
     const quality =
-      input.contentType === "social-cover" ||
-      input.format === "youtube-16-9" ||
-      input.format === "banner-3-1"
-        ? ("high" as const)
-        : input.quality === "fast"
-          ? ("low" as const)
-          : ("high" as const);
+      definition.quality === "high" ? ("high" as const) : ("medium" as const);
     return referenceImages.length > 0
       ? client.images.edit({
           model: imageModel,
@@ -147,8 +143,7 @@ export async function generateImage(
       model: imageModel,
       size: resolved.providerSize,
       finalSize: `${finalImage.width}x${finalImage.height}`,
-      quality:
-        input.contentType === "social-cover" ? ("high" as const) : input.quality,
+      quality: input.quality,
       outputFormat: "png" as const,
       mimeType: "image/png" as const,
       extension: "png" as const,

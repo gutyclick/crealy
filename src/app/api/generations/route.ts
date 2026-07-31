@@ -2,7 +2,7 @@ import { after, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 
 import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
-import { getGenerationCreditCost } from "@/lib/credits/get-credit-cost";
+import { getGenerationCreditCost } from "@/lib/credits/get-generation-credit-cost";
 import { getGenerationServerEnv } from "@/lib/env/server";
 import { buildProjectTitle } from "@/lib/generation/build-project-title";
 import { checkImageProvider } from "@/lib/generation/check-image-provider";
@@ -10,6 +10,7 @@ import { validateGenerationInput } from "@/lib/generation/validate-generation-in
 import { processQueuedJob } from "@/lib/jobs/worker";
 import { logger } from "@/lib/observability/logger";
 import { getOperationsConfig } from "@/lib/operations/config";
+import { getGenerationVariant } from "@/config/generation-products";
 import {
   enforceRateLimit,
   RATE_LIMITS,
@@ -264,6 +265,19 @@ export async function POST(request: Request) {
   }
 
   const input = validation.data;
+  const variantDefinition = getGenerationVariant(input.variant);
+  if (!variantDefinition) {
+    return errorResponse(
+      { code: "invalid_request", error: "La variante seleccionada no está disponible." },
+      400,
+    );
+  }
+  const creditCost = getGenerationCreditCost({
+    contentType: input.contentType,
+    variant: input.variant,
+    platform: input.platform,
+    quality: input.quality,
+  });
   const admin = createAdminClient();
   const estimatedCost =
     input.quality === "high"
@@ -286,7 +300,7 @@ export async function POST(request: Request) {
     p_input_hash: createHash("sha256")
       .update(JSON.stringify(input))
       .digest("hex"),
-    p_credit_cost: getGenerationCreditCost(input.quality),
+    p_credit_cost: creditCost,
     p_daily_limit: generationConfig.dailyLimit,
     p_cooldown_seconds: generationConfig.cooldownSeconds,
     p_estimated_cost_usd: estimatedCost,
@@ -305,10 +319,34 @@ export async function POST(request: Request) {
   }
 
   const queued = data[0];
-  if (input.coverPlatform) {
+  let referenceAssetId: string | null = null;
+  if (input.referenceUploadIds?.[0]) {
+    const { data: referenceUpload } = await admin
+      .from("user_uploads")
+      .select("asset_id")
+      .eq("id", input.referenceUploadIds[0])
+      .eq("user_id", user.id)
+      .maybeSingle();
+    referenceAssetId = referenceUpload?.asset_id ?? null;
+  }
+  {
     const { error: platformError } = await admin
       .from("generations")
-      .update({ cover_platform: input.coverPlatform })
+      .update({
+        platform: input.platform ?? null,
+        cover_platform: input.coverPlatform ?? null,
+        variant: input.variant,
+        credit_cost: creditCost,
+        requested_width: variantDefinition.width,
+        requested_height: variantDefinition.height,
+        profile_mode: input.profileMode ?? null,
+        reference_asset_id: referenceAssetId,
+        generation_metadata: {
+          profileIntensity: input.profileIntensity ?? null,
+          profileBackground: input.profileBackground ?? null,
+          showSafeArea: input.showSafeArea ?? false,
+        },
+      })
       .eq("id", queued.generation_id)
       .eq("user_id", user.id);
     if (platformError) return reservationError(platformError.message);

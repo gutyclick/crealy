@@ -7,6 +7,9 @@ import {
   isGenerationAvailable,
 } from "@/lib/env/server";
 import type { ContentType } from "@/types/generation";
+import { requireUser } from "@/lib/auth/require-user";
+import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
+import { normalizeContentType } from "@/config/generation-products";
 
 /*
 THESIS: Crear debe sentirse como dirigir una pieza visual, no operar un panel técnico.
@@ -22,10 +25,12 @@ export const metadata: Metadata = {
 };
 
 const CONTENT_TYPES = new Set<ContentType>([
-  "youtube-thumbnail",
+  "thumbnail",
   "social-post",
   "banner",
   "social-cover",
+  "story",
+  "profile-image",
 ]);
 
 export default async function CreatePage({
@@ -34,10 +39,11 @@ export default async function CreatePage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const requestedType = (await searchParams).type;
+  const normalizedType = requestedType ? normalizeContentType(requestedType) : null;
   const initialContentType =
-    requestedType && CONTENT_TYPES.has(requestedType as ContentType)
-      ? (requestedType as ContentType)
-      : undefined;
+    normalizedType && CONTENT_TYPES.has(normalizedType) ? normalizedType : undefined;
+  const user = await requireUser();
+  const billing = await getUserBillingState(user.id).catch(() => null);
   let maxReferenceFileMb = 10;
   try {
     maxReferenceFileMb =
@@ -51,6 +57,7 @@ export default async function CreatePage({
       <Container>
         <GenerationForm
           available={isGenerationAvailable()}
+          availableCredits={billing?.credits.available ?? 0}
           maxReferenceFileMb={maxReferenceFileMb}
           initialContentType={initialContentType}
         />

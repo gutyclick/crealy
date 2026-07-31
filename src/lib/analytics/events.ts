@@ -10,6 +10,7 @@ export type ConversionEvent =
   | "onboarding_started"
   | "onboarding_completed"
   | "first_generation_started"
+  | "generation_started"
   | "first_generation_completed"
   | "first_edit_completed"
   | "tool_opened"
@@ -28,6 +29,8 @@ type SafeProperties = Partial<{
   status: string;
   source: string;
   duration_bucket: string;
+  variant: string;
+  credit_cost: number;
 }>;
 
 export function trackConversion(
@@ -37,4 +40,3 @@ export function trackConversion(
   if (process.env.NEXT_PUBLIC_VERCEL_ANALYTICS_ENABLED !== "true") return;
   track(event, properties);
 }
-

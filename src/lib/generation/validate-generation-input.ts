@@ -1,45 +1,33 @@
 import {
-  GENERATION_COLORS,
-  GENERATION_CONTENT_TYPES,
-  GENERATION_FORMATS,
-  GENERATION_QUALITIES,
-  GENERATION_STYLES,
-  getContentTypeConfig,
-  requiresHighQuality,
-} from "@/config/generation";
-import { PLATFORM_COVERS } from "@/config/content-formats";
+  PROFILE_BACKGROUNDS,
+  PROFILE_INTENSITIES,
+  PROFILE_MODES,
+  getGenerationProduct,
+  getGenerationVariant,
+  normalizeContentType,
+  normalizeGenerationVariant,
+} from "@/config/generation-products";
+import { GENERATION_COLORS, GENERATION_STYLES } from "@/config/generation";
+import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { validateColorPalette } from "@/lib/colors/validate-color-palette";
 import type {
   ColorPreference,
-  ContentType,
-  CoverPlatform,
-  GenerationFormat,
   GenerationInput,
+  GenerationPlatform,
   GenerationQuality,
   GenerationStyle,
+  ProfileBackground,
+  ProfileIntensity,
+  ProfileMode,
 } from "@/types/generation";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const CONTENT_TYPES = new Set<ContentType>(
-  GENERATION_CONTENT_TYPES.map((item) => item.id),
-);
-const FORMATS = new Set<GenerationFormat>(
-  GENERATION_FORMATS.map((item) => item.id),
-);
-const STYLES = new Set<GenerationStyle>(
-  GENERATION_STYLES.map((item) => item.id),
-);
-const COLORS = new Set<ColorPreference>(
-  GENERATION_COLORS.map((item) => item.id),
-);
-const QUALITIES = new Set<GenerationQuality>(
-  GENERATION_QUALITIES.map((item) => item.id),
-);
-const COVER_PLATFORMS = new Set<CoverPlatform>(
-  Object.keys(PLATFORM_COVERS) as CoverPlatform[],
-);
+const STYLES = new Set<string>(GENERATION_STYLES.map((item) => item.id));
+const COLORS = new Set<string>(GENERATION_COLORS.map((item) => item.id));
+const PROFILE_MODE_IDS = new Set(PROFILE_MODES.map((item) => item.id));
+const PROFILE_INTENSITY_IDS = new Set(PROFILE_INTENSITIES.map((item) => item.id));
+const PROFILE_BACKGROUND_IDS = new Set(PROFILE_BACKGROUNDS.map((item) => item.id));
 
 type ValidationResult =
   | { success: true; data: GenerationInput }
@@ -51,130 +39,110 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function validateGenerationInput(rawInput: unknown): ValidationResult {
   if (!isRecord(rawInput)) {
-    return {
-      success: false,
-      fields: { form: "La solicitud no tiene un formato válido." },
-    };
+    return { success: false, fields: { form: "La solicitud no tiene un formato válido." } };
   }
 
   const fields: Record<string, string> = {};
   const description =
-    typeof rawInput.description === "string"
-      ? rawInput.description.trim()
-      : "";
+    typeof rawInput.description === "string" ? rawInput.description.trim() : "";
   const primaryText =
-    typeof rawInput.primaryText === "string"
-      ? rawInput.primaryText.trim()
-      : "";
-  const contentType = rawInput.contentType;
-  const coverPlatform = rawInput.coverPlatform;
-  const format = rawInput.format;
-  const style = rawInput.style;
+    typeof rawInput.primaryText === "string" ? rawInput.primaryText.trim() : "";
+  const contentType =
+    typeof rawInput.contentType === "string"
+      ? normalizeContentType(rawInput.contentType)
+      : null;
+  const rawVariant =
+    typeof rawInput.variant === "string"
+      ? rawInput.variant
+      : typeof rawInput.format === "string"
+        ? rawInput.format
+        : "";
+  const variant = normalizeGenerationVariant(rawVariant);
+  const isLegacyVariant = Boolean(variant && variant !== rawVariant);
+  const definition = variant ? getGenerationVariant(variant) : null;
+  const product = contentType ? getGenerationProduct(contentType) : null;
+  const rawPlatform =
+    typeof rawInput.platform === "string"
+      ? rawInput.platform
+      : typeof rawInput.coverPlatform === "string"
+        ? rawInput.coverPlatform
+        : undefined;
+  const platform = rawPlatform as GenerationPlatform | undefined;
+  const style = rawInput.style === "auto" ? "automatic" : rawInput.style;
   const colorPreference = rawInput.colorPreference;
-  const quality = rawInput.quality;
-  const clientRequestId = rawInput.clientRequestId;
-  const projectId = rawInput.projectId;
-  const referenceUploadIds = rawInput.referenceUploadIds;
+  const requestedQuality =
+    rawInput.quality === "fast" ? "standard" : rawInput.quality;
+  const quality = definition?.quality ?? requestedQuality;
 
   if (description.length < 10) {
     fields.description = "Describe tu idea con al menos 10 caracteres.";
   } else if (description.length > 1_500) {
     fields.description = "La descripción no puede superar 1.500 caracteres.";
   }
-
   if (primaryText.length > 120) {
     fields.primaryText = "El texto principal no puede superar 120 caracteres.";
   }
-
-  if (
-    typeof contentType !== "string" ||
-    !CONTENT_TYPES.has(contentType as ContentType)
-  ) {
-    fields.contentType = "Elige un tipo de contenido válido.";
+  if (!contentType || !product) fields.contentType = "Elige un tipo de contenido válido.";
+  if (!variant || !definition) fields.variant = "Elige una variante válida.";
+  if (product && definition && definition.contentType !== product.id) {
+    fields.variant = "La variante no corresponde al tipo de contenido.";
   }
 
-  if (typeof format !== "string" || !FORMATS.has(format as GenerationFormat)) {
-    fields.format = "Elige un formato válido.";
-  }
-
-  if (
-    typeof contentType === "string" &&
-    CONTENT_TYPES.has(contentType as ContentType) &&
-    typeof format === "string" &&
-    FORMATS.has(format as GenerationFormat) &&
-    !getContentTypeConfig(contentType as ContentType).formats.some(
-      (allowedFormat) => allowedFormat === format,
-    )
-  ) {
-    fields.format = "El formato no es compatible con el tipo seleccionado.";
-  }
-
-  if (contentType === "social-cover") {
-    if (
-      typeof coverPlatform !== "string" ||
-      !COVER_PLATFORMS.has(coverPlatform as CoverPlatform)
-    ) {
-      fields.coverPlatform = "Elige la plataforma de la portada.";
-    } else if (
-      typeof format === "string" &&
-      PLATFORM_COVERS[coverPlatform as CoverPlatform].format !== format
-    ) {
-      fields.format = "El tamaño no corresponde a la plataforma seleccionada.";
+  if (product?.platforms.length) {
+    if (!platform || !product.platforms.includes(platform)) {
+      fields.platform = "Elige una plataforma compatible.";
     }
-    if (quality !== "high") {
-      fields.quality = "Las portadas solo se generan en calidad alta.";
-    }
-  } else if (coverPlatform !== undefined) {
-    fields.coverPlatform = "La plataforma solo aplica a portadas.";
+  } else if (platform) {
+    fields.platform = "Este producto no necesita una plataforma.";
   }
-
-  if (typeof style !== "string" || !STYLES.has(style as GenerationStyle)) {
-    fields.style = "Elige un estilo visual válido.";
+  if (definition?.platform && platform !== definition.platform) {
+    fields.variant = "La variante no corresponde a la plataforma.";
   }
-
-  if (
-    typeof colorPreference !== "string" ||
-    !COLORS.has(colorPreference as ColorPreference)
-  ) {
-    fields.colorPreference = "Elige una preferencia de color válida.";
-  }
-
-  if (
-    typeof quality !== "string" ||
-    !QUALITIES.has(quality as GenerationQuality)
-  ) {
+  if (requestedQuality !== undefined && requestedQuality !== "standard" && requestedQuality !== "high") {
     fields.quality = "Elige un nivel de calidad válido.";
   }
-
   if (
-    typeof clientRequestId !== "string" ||
-    !UUID_PATTERN.test(clientRequestId)
+    product?.selectableQuality &&
+    definition &&
+    !isLegacyVariant &&
+    requestedQuality !== undefined &&
+    definition.quality !== requestedQuality
   ) {
+    fields.quality = "La calidad no corresponde a la variante seleccionada.";
+  }
+  if (typeof style !== "string" || !STYLES.has(style as GenerationStyle)) {
+    fields.style = "Elige un estilo visual válido.";
+  } else if (
+    product &&
+    !isVisualStyleCompatible(style as GenerationStyle, product.id)
+  ) {
+    fields.style = "Ese estilo no está disponible para este tipo de contenido.";
+  }
+  if (typeof colorPreference !== "string" || !COLORS.has(colorPreference as ColorPreference)) {
+    fields.colorPreference = "Elige una preferencia de color válida.";
+  }
+  if (typeof rawInput.clientRequestId !== "string" || !UUID_PATTERN.test(rawInput.clientRequestId)) {
     fields.form = "No pudimos identificar esta solicitud. Inténtalo de nuevo.";
   }
-
   if (
-    projectId !== undefined &&
-    (typeof projectId !== "string" || !UUID_PATTERN.test(projectId))
+    rawInput.projectId !== undefined &&
+    (typeof rawInput.projectId !== "string" || !UUID_PATTERN.test(rawInput.projectId))
   ) {
     fields.form = "El proyecto seleccionado no es válido.";
   }
 
-  let normalizedReferenceIds: string[] | undefined;
-  if (referenceUploadIds !== undefined) {
+  let referenceUploadIds: string[] | undefined;
+  if (rawInput.referenceUploadIds !== undefined) {
     if (
-      !Array.isArray(referenceUploadIds) ||
-      referenceUploadIds.length > 4 ||
-      referenceUploadIds.some(
-        (id) => typeof id !== "string" || !UUID_PATTERN.test(id),
-      )
+      !Array.isArray(rawInput.referenceUploadIds) ||
+      rawInput.referenceUploadIds.length > 4 ||
+      rawInput.referenceUploadIds.some((id) => typeof id !== "string" || !UUID_PATTERN.test(id))
     ) {
-      fields.referenceUploadIds =
-        "Puedes usar hasta cuatro imágenes de referencia válidas.";
-    } else if (new Set(referenceUploadIds).size !== referenceUploadIds.length) {
+      fields.referenceUploadIds = "Puedes usar hasta cuatro imágenes de referencia válidas.";
+    } else if (new Set(rawInput.referenceUploadIds).size !== rawInput.referenceUploadIds.length) {
       fields.referenceUploadIds = "No repitas una imagen de referencia.";
-    } else if (referenceUploadIds.length) {
-      normalizedReferenceIds = referenceUploadIds as string[];
+    } else if (rawInput.referenceUploadIds.length) {
+      referenceUploadIds = rawInput.referenceUploadIds as string[];
     }
   }
 
@@ -185,31 +153,55 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     else customColors = palette.colors;
   }
 
-  if (Object.keys(fields).length > 0) {
+  let profileMode: ProfileMode | undefined;
+  let profileIntensity: ProfileIntensity | undefined;
+  let profileBackground: ProfileBackground | undefined;
+  if (contentType === "profile-image") {
+    profileMode =
+      typeof rawInput.profileMode === "string" &&
+      PROFILE_MODE_IDS.has(rawInput.profileMode as ProfileMode)
+        ? (rawInput.profileMode as ProfileMode)
+        : undefined;
+    profileIntensity =
+      typeof rawInput.profileIntensity === "string" &&
+      PROFILE_INTENSITY_IDS.has(rawInput.profileIntensity as ProfileIntensity)
+        ? (rawInput.profileIntensity as ProfileIntensity)
+        : undefined;
+    profileBackground =
+      typeof rawInput.profileBackground === "string" &&
+      PROFILE_BACKGROUND_IDS.has(rawInput.profileBackground as ProfileBackground)
+        ? (rawInput.profileBackground as ProfileBackground)
+        : undefined;
+    if (!profileMode) fields.profileMode = "Elige un modo de retrato.";
+    if (!profileIntensity) fields.profileIntensity = "Elige la intensidad del cambio.";
+    if (!profileBackground) fields.profileBackground = "Elige un fondo.";
+  }
+
+  if (Object.keys(fields).length || !contentType || !variant || !definition || !platform && product?.platforms.length) {
     return { success: false, fields };
   }
 
   return {
     success: true,
     data: {
-      clientRequestId: clientRequestId as string,
-      ...(typeof projectId === "string" ? { projectId } : {}),
-      contentType: contentType as ContentType,
-      ...(contentType === "social-cover"
-        ? { coverPlatform: coverPlatform as CoverPlatform }
-        : {}),
+      clientRequestId: rawInput.clientRequestId as string,
+      ...(typeof rawInput.projectId === "string" ? { projectId: rawInput.projectId } : {}),
+      contentType,
+      ...(platform ? { platform } : {}),
+      ...(contentType === "social-cover" ? { coverPlatform: platform as GenerationInput["coverPlatform"] } : {}),
       description,
-      ...(primaryText ? { primaryText } : {}),
+      ...(primaryText && product?.acceptsText ? { primaryText } : {}),
       style: style as GenerationStyle,
       colorPreference: colorPreference as ColorPreference,
       ...(customColors ? { customColors } : {}),
-      format: format as GenerationFormat,
-      quality: requiresHighQuality(format as GenerationFormat)
-        ? "high"
-        : (quality as GenerationQuality),
-      ...(normalizedReferenceIds
-        ? { referenceUploadIds: normalizedReferenceIds }
-        : {}),
+      variant,
+      format: variant,
+      quality: quality as GenerationQuality,
+      ...(referenceUploadIds ? { referenceUploadIds } : {}),
+      ...(profileMode ? { profileMode } : {}),
+      ...(profileIntensity ? { profileIntensity } : {}),
+      ...(profileBackground ? { profileBackground } : {}),
+      ...(typeof rawInput.showSafeArea === "boolean" ? { showSafeArea: rawInput.showSafeArea } : {}),
     },
   };
 }

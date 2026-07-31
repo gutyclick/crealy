@@ -23,6 +23,10 @@ import { getOperationsConfig } from "@/lib/operations/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { JobRecord } from "@/types/jobs";
 import type { GenerationInput } from "@/types/generation";
+import {
+  normalizeContentType,
+  normalizeGenerationVariant,
+} from "@/config/generation-products";
 import { getPrivateStorage } from "@/lib/storage/provider";
 import { generationAssetPath } from "@/lib/storage/storage-paths";
 
@@ -123,7 +127,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   const { data: generation, error } = await admin
     .from("generations")
     .select(
-      "id, user_id, project_id, status, user_prompt, content_type, cover_platform, requested_format, style, quality, primary_text, color_preference, custom_colors, credit_reservation_id",
+      "id, user_id, project_id, status, user_prompt, content_type, platform, cover_platform, requested_format, variant, style, quality, primary_text, color_preference, custom_colors, credit_reservation_id, profile_mode, generation_metadata",
     )
     .eq("id", job.resource_id)
     .eq("user_id", job.user_id)
@@ -150,10 +154,28 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     return;
   }
 
+  const normalizedContentType = normalizeContentType(generation.content_type);
+  const normalizedVariant = normalizeGenerationVariant(
+    generation.variant || generation.requested_format,
+  );
+  if (!normalizedContentType || !normalizedVariant) {
+    throw new Error("generation_taxonomy_invalid");
+  }
+  const generationMetadata =
+    generation.generation_metadata &&
+    typeof generation.generation_metadata === "object"
+      ? generation.generation_metadata as Record<string, unknown>
+      : {};
+  const normalizedQuality =
+    generation.quality === "fast" ? "standard" : generation.quality;
   const input: GenerationInput = {
     clientRequestId: job.idempotency_key.replace("generation:", ""),
     projectId: generation.project_id,
-    contentType: generation.content_type as GenerationInput["contentType"],
+    contentType: normalizedContentType,
+    platform:
+      (generation.platform as GenerationInput["platform"]) ??
+      (generation.cover_platform as GenerationInput["platform"]) ??
+      undefined,
     coverPlatform:
       (generation.cover_platform as GenerationInput["coverPlatform"]) ?? undefined,
     description: generation.user_prompt,
@@ -162,8 +184,19 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     colorPreference:
       generation.color_preference as GenerationInput["colorPreference"],
     customColors: generation.custom_colors ?? undefined,
-    format: generation.requested_format as GenerationInput["format"],
-    quality: generation.quality as GenerationInput["quality"],
+    variant: normalizedVariant,
+    format: normalizedVariant,
+    quality: normalizedQuality as GenerationInput["quality"],
+    profileMode:
+      (generation.profile_mode as GenerationInput["profileMode"]) ?? undefined,
+    profileIntensity:
+      (generationMetadata.profileIntensity as GenerationInput["profileIntensity"]) ?? undefined,
+    profileBackground:
+      (generationMetadata.profileBackground as GenerationInput["profileBackground"]) ?? undefined,
+    showSafeArea:
+      typeof generationMetadata.showSafeArea === "boolean"
+        ? generationMetadata.showSafeArea
+        : undefined,
   };
 
   const { data: referenceRows, error: referenceError } = await admin

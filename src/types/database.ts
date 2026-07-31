@@ -726,20 +726,26 @@ export type Database = {
           error_code: string | null
           export_height: number | null
           export_width: number | null
+          generation_metadata: Json
           height: number | null
           id: string
           mime_type: string | null
           model: string | null
           output_size: string | null
+          platform: string | null
           preview_asset_id: string | null
           primary_text: string | null
+          profile_mode: string | null
           project_id: string
           provider: string
           provider_height: number | null
           provider_request_id: string | null
           provider_width: number | null
           quality: string
+          reference_asset_id: string | null
+          requested_height: number | null
           requested_format: string
+          requested_width: number | null
           size_fallback_reason: string | null
           size_fallback_used: boolean
           status: string
@@ -747,6 +753,7 @@ export type Database = {
           style: string
           user_id: string
           user_prompt: string
+          variant: string | null
           width: number | null
         }
         Insert: {
@@ -765,20 +772,26 @@ export type Database = {
           error_code?: string | null
           export_height?: number | null
           export_width?: number | null
+          generation_metadata?: Json
           height?: number | null
           id?: string
           mime_type?: string | null
           model?: string | null
           output_size?: string | null
+          platform?: string | null
           preview_asset_id?: string | null
           primary_text?: string | null
+          profile_mode?: string | null
           project_id: string
           provider?: string
           provider_height?: number | null
           provider_request_id?: string | null
           provider_width?: number | null
           quality: string
+          reference_asset_id?: string | null
+          requested_height?: number | null
           requested_format: string
+          requested_width?: number | null
           size_fallback_reason?: string | null
           size_fallback_used?: boolean
           status?: string
@@ -786,6 +799,7 @@ export type Database = {
           style: string
           user_id: string
           user_prompt: string
+          variant?: string | null
           width?: number | null
         }
         Update: {
@@ -804,20 +818,26 @@ export type Database = {
           error_code?: string | null
           export_height?: number | null
           export_width?: number | null
+          generation_metadata?: Json
           height?: number | null
           id?: string
           mime_type?: string | null
           model?: string | null
           output_size?: string | null
+          platform?: string | null
           preview_asset_id?: string | null
           primary_text?: string | null
+          profile_mode?: string | null
           project_id?: string
           provider?: string
           provider_height?: number | null
           provider_request_id?: string | null
           provider_width?: number | null
           quality?: string
+          reference_asset_id?: string | null
+          requested_height?: number | null
           requested_format?: string
+          requested_width?: number | null
           size_fallback_reason?: string | null
           size_fallback_used?: boolean
           status?: string
@@ -825,9 +845,17 @@ export type Database = {
           style?: string
           user_id?: string
           user_prompt?: string
+          variant?: string | null
           width?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "generations_reference_asset_id_fkey"
+            columns: ["reference_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "generations_asset_id_fkey"
             columns: ["asset_id"]

@@ -40,9 +40,11 @@ export default async function DashboardPage() {
     profile?.full_name?.trim().split(/\s+/)[0] ||
     metadataName.split(/\s+/)[0] ||
     localEmailName;
-  const [recentGenerations, recentEditSessions, activeJobsResult, billing, preferences] =
+  const [recentGenerationsResult, recentEditSessions, activeJobsResult, billing] =
     await Promise.all([
-      listGenerations(user.id, 8),
+      listGenerations(user.id, 8, { throwOnError: true })
+        .then((items) => ({ items, available: true }))
+        .catch(() => ({ items: [], available: false })),
       listRecentEditSessions(user.id, 4),
       supabase
         .from("jobs")
@@ -53,17 +55,13 @@ export default async function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(5),
       getUserBillingState(user.id).catch(() => null),
-      supabase
-        .from("user_preferences")
-        .select("onboarding_completed_at")
-        .eq("user_id", user.id)
-        .maybeSingle(),
     ]);
 
   return (
     <DashboardHome
       firstName={firstName || undefined}
-      recentGenerations={recentGenerations}
+      recentGenerations={recentGenerationsResult.items}
+      creationsAvailable={recentGenerationsResult.available}
       recentEditSessions={recentEditSessions}
       activeJobs={(activeJobsResult.data ?? []).map((job) => ({
         id: job.id,
@@ -72,15 +70,10 @@ export default async function DashboardPage() {
         resourceId: job.resource_id,
         createdAt: job.created_at,
       }))}
-      plan={billing?.effectivePlan.key ?? "free"}
-      credits={billing?.credits.available ?? 0}
-      onboardingChecklist={{
-        emailConfirmed: Boolean(user.email_confirmed_at),
-        profileCompleted: Boolean(profile?.full_name?.trim()),
-        onboardingCompleted: Boolean(preferences.data?.onboarding_completed_at),
-        firstDesignCreated: recentGenerations.length > 0,
-        editorTried: recentEditSessions.length > 0,
-      }}
+      plan={billing?.effectivePlan.key ?? null}
+      credits={billing?.credits.available ?? null}
+      billingAvailable={Boolean(billing)}
+      jobsAvailable={!activeJobsResult.error}
     />
   );
 }
