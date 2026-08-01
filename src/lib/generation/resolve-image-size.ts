@@ -2,7 +2,10 @@ import {
   getGenerationProduct,
   getGenerationVariant,
 } from "@/config/generation-products";
-import { getImageModelCapabilities } from "@/config/image-models";
+import {
+  getImageModelCapabilities,
+  isValidFlexibleImageSize,
+} from "@/config/image-models";
 import type {
   ContentType,
   GenerationFormat,
@@ -43,10 +46,12 @@ export function resolveImageSize(input: ResolveImageSizeInput): ResolvedImageSiz
   const capabilities = getImageModelCapabilities(input.model);
   const definition = definitionFor(input);
   const requestedSize = input.requestedSize ?? definition.requestedProviderSize;
-  const pixelCount = definition.width * definition.height;
   const direct =
     capabilities.supportsFlexibleSizes &&
-    (!capabilities.maxRecommendedPixels || pixelCount <= capabilities.maxRecommendedPixels);
+    isValidFlexibleImageSize(
+      requestedSize,
+      capabilities.maxRecommendedPixels ?? 8_294_400,
+    );
   const providerSize = direct ? requestedSize : definition.fallbackProviderSize;
   return {
     requestedSize,

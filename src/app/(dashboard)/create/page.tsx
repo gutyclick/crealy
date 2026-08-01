@@ -10,6 +10,7 @@ import type { ContentType } from "@/types/generation";
 import { requireUser } from "@/lib/auth/require-user";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { normalizeContentType } from "@/config/generation-products";
+import { createClient } from "@/lib/supabase/server";
 
 /*
 THESIS: Crear debe sentirse como dirigir una pieza visual, no operar un panel técnico.
@@ -43,7 +44,20 @@ export default async function CreatePage({
   const initialContentType =
     normalizedType && CONTENT_TYPES.has(normalizedType) ? normalizedType : undefined;
   const user = await requireUser();
-  const billing = await getUserBillingState(user.id).catch(() => null);
+  let availableCredits: number | null = null;
+  try {
+    availableCredits = (await getUserBillingState(user.id)).credits.available;
+  } catch {
+    // Billing metadata must never turn a transient read failure into a fake
+    // zero balance that blocks creation. The API remains authoritative.
+    const supabase = await createClient();
+    const { data: account } = await supabase
+      .from("credit_accounts")
+      .select("available_balance")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    availableCredits = account?.available_balance ?? null;
+  }
   let maxReferenceFileMb = 10;
   try {
     maxReferenceFileMb =
@@ -57,7 +71,7 @@ export default async function CreatePage({
       <Container>
         <GenerationForm
           available={isGenerationAvailable()}
-          availableCredits={billing?.credits.available ?? 0}
+          availableCredits={availableCredits}
           maxReferenceFileMb={maxReferenceFileMb}
           initialContentType={initialContentType}
         />

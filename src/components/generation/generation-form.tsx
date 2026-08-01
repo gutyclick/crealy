@@ -89,7 +89,7 @@ export function GenerationForm({
   initialContentType,
 }: {
   available: boolean;
-  availableCredits: number;
+  availableCredits: number | null;
   maxReferenceFileMb: number;
   initialContentType?: ContentType;
 }) {
@@ -136,7 +136,8 @@ export function GenerationForm({
   const variantDefinition = getGenerationVariant(variant)!;
   const quality = variantDefinition.quality;
   const creditCost = variantDefinition.creditCost;
-  const hasEnoughCredits = availableCredits >= creditCost;
+  const hasEnoughCredits =
+    availableCredits === null || availableCredits >= creditCost;
   const styles = useMemo(
     () =>
       GENERATION_STYLES.filter((item) =>
@@ -565,7 +566,7 @@ export function GenerationForm({
             {creditCost} {creditCost === 1 ? "crédito" : "créditos"}
           </p>
           <p className="mt-1 text-xs text-muted">
-            Saldo después de generar: {Math.max(0, availableCredits - creditCost)}
+            Saldo después de generar: {availableCredits === null ? "se verificará al enviar" : Math.max(0, availableCredits - creditCost)}
           </p>
         </div>
 
@@ -580,7 +581,7 @@ export function GenerationForm({
             <>Generar por {creditCost} {creditCost === 1 ? "crédito" : "créditos"} <ArrowRight aria-hidden="true" className="size-4" /></>
           )}
         </button>
-        {!hasEnoughCredits ? (
+        {!hasEnoughCredits && availableCredits !== null ? (
           <p role="status" aria-live="polite" className="mt-3 text-center text-sm text-amber-100">
             Necesitas {creditCost - availableCredits} {creditCost - availableCredits === 1 ? "crédito más" : "créditos más"}.{" "}
             <Link href="/settings/billing" className="font-semibold underline">Ver planes</Link>
@@ -629,7 +630,7 @@ export function GenerationForm({
             <SummaryRow label="Coste" value={`${creditCost} ${creditCost === 1 ? "crédito" : "créditos"}`} strong />
           </dl>
           <div className="border-t border-white/8 px-6 py-4 text-xs text-muted">
-            Saldo después de generar: <strong className="text-foreground">{Math.max(0, availableCredits - creditCost)}</strong>
+            Saldo después de generar: <strong className="text-foreground">{availableCredits === null ? "Se verificará al enviar" : Math.max(0, availableCredits - creditCost)}</strong>
           </div>
         </div>
       </aside>

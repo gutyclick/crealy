@@ -8,6 +8,7 @@ import {
   normalizeGenerationVariant,
 } from "../src/config/generation-products";
 import { GENERATION_STYLES } from "../src/config/generation";
+import { isValidFlexibleImageSize } from "../src/config/image-models";
 import { PLATFORM_COVERS } from "../src/config/content-formats";
 import { resolveAutomaticStyle } from "../src/config/visual-styles";
 import { normalizeHexColor } from "../src/lib/colors/normalize-hex-color";
@@ -73,6 +74,26 @@ test("all six creation products and their required defaults are present", () => 
   );
   assert.equal(getGenerationVariant("banner-standard")?.recommended, true);
   assert.equal(getGenerationVariant("profile-master")?.creditCost, 2);
+});
+
+test("every product has a GPT Image 2 compatible provider size or fallback", () => {
+  for (const product of GENERATION_PRODUCTS) {
+    for (const variant of product.variants) {
+      assert.equal(
+        isValidFlexibleImageSize(variant.requestedProviderSize) ||
+          isValidFlexibleImageSize(variant.fallbackProviderSize),
+        true,
+        `${variant.id} has no compatible provider canvas`,
+      );
+    }
+  }
+});
+
+test("flexible GPT Image 2 sizes enforce documented geometry limits", () => {
+  assert.equal(isValidFlexibleImageSize("1920x1088"), true);
+  assert.equal(isValidFlexibleImageSize("1920x1080"), false);
+  assert.equal(isValidFlexibleImageSize("1024x512"), false);
+  assert.equal(isValidFlexibleImageSize("2560x1440"), true);
 });
 
 test("credit cost is recomputed from product and variant, not client input", () => {

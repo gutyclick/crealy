@@ -33,7 +33,7 @@ function errorResponse(
   return NextResponse.json(body, { status, headers });
 }
 
-function reservationError(message: string) {
+function reservationError(message: string, correlationId?: string) {
   if (
     message.includes("insufficient_credits") ||
     message.includes("credit_allocation_failed")
@@ -105,7 +105,10 @@ function reservationError(message: string) {
     );
   }
   return errorResponse(
-    { code: "internal_error", error: "No pudimos preparar la generación." },
+    {
+      code: "internal_error",
+      error: `No pudimos preparar la generación.${correlationId ? ` Referencia: ${correlationId.slice(0, 8)}.` : ""}`,
+    },
     500,
   );
 }
@@ -315,7 +318,7 @@ export async function POST(request: Request) {
       databaseMessage: error?.message?.slice(0, 160) ?? null,
       databaseHint: error?.hint?.slice(0, 160) ?? null,
     });
-    return reservationError(error?.message ?? "");
+    return reservationError(error?.message ?? "", input.clientRequestId);
   }
 
   const queued = data[0];
@@ -349,7 +352,16 @@ export async function POST(request: Request) {
       })
       .eq("id", queued.generation_id)
       .eq("user_id", user.id);
-    if (platformError) return reservationError(platformError.message);
+    if (platformError) {
+      logger.error("generation.metadata_failed", {
+        correlationId: input.clientRequestId,
+        userId: user.id,
+        resourceId: queued.generation_id,
+        errorCode: platformError.code,
+        databaseMessage: platformError.message.slice(0, 160),
+      });
+      return reservationError(platformError.message, input.clientRequestId);
+    }
   }
   await admin
     .from("jobs")
