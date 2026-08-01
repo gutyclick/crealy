@@ -19,6 +19,10 @@ import {
   DashboardNavigation,
   MobileDashboardNavigation,
 } from "@/components/dashboard/dashboard-navigation";
+import {
+  CreationNotificationCenter,
+  type CreationNotification,
+} from "@/components/dashboard/creation-notification-center";
 import { Container } from "@/components/layout/container";
 import { Logo } from "@/components/ui/logo";
 
@@ -26,6 +30,7 @@ type DashboardHeaderProps = {
   displayName: string;
   email: string;
   credits: number | null;
+  initialNotifications: CreationNotification[];
 };
 
 const accountItems = [
@@ -36,7 +41,7 @@ const accountItems = [
   { href: "/settings/account", label: "Datos de la cuenta", icon: Settings },
 ] as const;
 
-export function DashboardHeader({ displayName, email, credits }: DashboardHeaderProps) {
+export function DashboardHeader({ displayName, email, credits, initialNotifications }: DashboardHeaderProps) {
   const initial = displayName.charAt(0).toUpperCase() || "C";
   const [openMenu, setOpenMenu] = useState<"navigation" | "account" | null>(null);
   const navigationMenuRef = useRef<HTMLDivElement>(null);
@@ -79,6 +84,8 @@ export function DashboardHeader({ displayName, email, credits }: DashboardHeader
         </div>
 
         <div className="flex items-center gap-1.5 justify-self-end">
+          <CreationNotificationCenter initialNotifications={initialNotifications} />
+
           <div ref={navigationMenuRef} className="relative lg:hidden">
             <button
               type="button"

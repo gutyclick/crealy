@@ -2,7 +2,6 @@
 
 import {
   ArrowRight,
-  ArrowUpRight,
   Check,
   CircleUserRound,
   Image as ImageIcon,
@@ -24,7 +23,7 @@ import {
   ReferenceImagePicker,
   type ReferenceDraft,
 } from "@/components/generation/reference-image-picker";
-import { JobProgress } from "@/components/jobs/job-progress";
+import { CREATION_QUEUED_EVENT } from "@/components/dashboard/creation-notification-center";
 import {
   GENERATION_PRODUCTS,
   PROFILE_BACKGROUNDS,
@@ -95,13 +94,6 @@ type SubmitState =
   | { status: "loading" }
   | { status: "error"; message: string };
 
-type QueuedCreation = {
-  jobId: string;
-  generationId: string;
-  label: string;
-  completed: boolean;
-};
-
 export function GenerationForm({
   available,
   availableCredits,
@@ -140,7 +132,6 @@ export function GenerationForm({
   const [result, setResult] = useState<SubmitState>({ status: "idle" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [references, setReferences] = useState<ReferenceDraft[]>([]);
-  const [queuedCreations, setQueuedCreations] = useState<QueuedCreation[]>([]);
   const referencesRef = useRef(references);
 
   useEffect(() => {
@@ -290,15 +281,18 @@ export function GenerationForm({
         variant,
         credit_cost: creditCost,
       });
-      setQueuedCreations((current) => [
-        {
+      window.dispatchEvent(
+        new CustomEvent(CREATION_QUEUED_EVENT, {
+          detail: {
           jobId: payload.jobId,
           generationId: payload.generationId,
           label: `${product.label} · ${variantDefinition.width} × ${variantDefinition.height}`,
-          completed: false,
-        },
-        ...current,
-      ]);
+            status: payload.status,
+            createdAt: new Date().toISOString(),
+            unread: true,
+          },
+        }),
+      );
       setProjectId(undefined);
       setDescription("");
       setPrimaryText("");
@@ -343,57 +337,6 @@ export function GenerationForm({
             </span>
           </div>
         </div>
-
-        {queuedCreations.length ? (
-          <section aria-labelledby="creation-queue-title" className="mt-7 rounded-2xl bg-background p-4 sm:p-5">
-            <div className="mb-4 flex items-end justify-between gap-4">
-              <div>
-                <h2 id="creation-queue-title" className="text-base font-semibold text-foreground">
-                  Cola de creación
-                </h2>
-                <p className="mt-1 text-xs leading-5 text-muted">
-                  Puedes preparar otra pieza mientras estas generaciones avanzan.
-                </p>
-              </div>
-              <span className="shrink-0 text-xs font-semibold text-brand">
-                {queuedCreations.length} {queuedCreations.length === 1 ? "trabajo" : "trabajos"}
-              </span>
-            </div>
-            <div className="grid gap-3">
-              {queuedCreations.map((creation) => (
-                <div key={creation.jobId}>
-                  <div className="mb-2 flex items-center justify-between gap-3 px-1">
-                    <p className="truncate text-xs font-medium text-muted">{creation.label}</p>
-                    {creation.completed ? (
-                      <Link
-                        href={`/generations/${creation.generationId}`}
-                        className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-brand hover:text-[var(--brand-hover)]"
-                      >
-                        Ver resultado <ArrowUpRight aria-hidden="true" className="size-3.5" />
-                      </Link>
-                    ) : null}
-                  </div>
-                  <JobProgress
-                    jobId={creation.jobId}
-                    compact
-                    onComplete={() =>
-                      setQueuedCreations((current) =>
-                        current.map((item) =>
-                          item.jobId === creation.jobId ? { ...item, completed: true } : item,
-                        ),
-                      )
-                    }
-                    onDismiss={() =>
-                      setQueuedCreations((current) =>
-                        current.filter((item) => item.jobId !== creation.jobId),
-                      )
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
 
         <fieldset className="mt-9">
           <legend className="text-sm font-semibold text-foreground">¿Qué vas a crear?</legend>

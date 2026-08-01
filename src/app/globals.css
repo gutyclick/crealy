@@ -471,6 +471,19 @@ a {
   }
 }
 
+@keyframes creation-toast-enter {
+  from {
+    opacity: 0;
+    clip-path: inset(12% 0 0 0 round 1rem);
+    transform: translate3d(0, 0.75rem, 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 round 1rem);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
@@ -504,6 +517,10 @@ a {
 
   .creation-heading-swap {
     animation: creation-heading-swap 420ms var(--ease-out) both;
+  }
+
+  .creation-toast {
+    animation: creation-toast-enter 420ms var(--ease-out) both;
   }
 
   .dashboard-sheet--one {

@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth/require-user";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
+import { createClient } from "@/lib/supabase/server";
+import type { JobStatus } from "@/types/jobs";
 
 export const metadata: Metadata = {
   robots: {
@@ -26,6 +28,15 @@ export default async function DashboardLayout({
       : "";
   const fallbackName = user.email?.split("@")[0] || "Tu cuenta";
   let credits: number | null = null;
+  const supabase = await createClient();
+  const { data: activeJobs } = await supabase
+    .from("jobs")
+    .select("id, status, resource_id, created_at")
+    .eq("user_id", user.id)
+    .eq("job_type", "generation")
+    .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
+    .order("created_at", { ascending: false })
+    .limit(8);
   try {
     await ensureWelcomeCredits(user.id);
     const billing = await getUserBillingState(user.id);
@@ -43,6 +54,14 @@ export default async function DashboardLayout({
         displayName={metadataName || fallbackName}
         email={user.email || "Cuenta de Crealy"}
         credits={credits}
+        initialNotifications={(activeJobs ?? []).map((job) => ({
+          jobId: job.id,
+          generationId: job.resource_id,
+          label: "Diseño en proceso",
+          status: job.status as JobStatus,
+          createdAt: job.created_at,
+          unread: true,
+        }))}
       />
       {children}
       <FeedbackWidget />
