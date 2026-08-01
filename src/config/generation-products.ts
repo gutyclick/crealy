@@ -72,7 +72,7 @@ export const GENERATION_PRODUCTS = [
     selectableQuality: true,
     platforms: ["youtube"],
     defaultPlatform: "youtube",
-    defaultVariant: "thumbnail-high",
+    defaultVariant: "thumbnail-standard",
     variants: [
       {
         id: "thumbnail-standard",
@@ -102,7 +102,7 @@ export const GENERATION_PRODUCTS = [
         requestedProviderSize: "1920x1088",
         fallbackProviderSize: "1536x1024",
         quality: "high",
-        creditCost: 2,
+        creditCost: 3,
         safeArea: safe(1920, 1080),
         exportStrategy: "cover",
         platform: "youtube",

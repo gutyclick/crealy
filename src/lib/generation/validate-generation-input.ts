@@ -11,6 +11,7 @@ import {
 } from "@/config/generation-products";
 import { GENERATION_COLORS, GENERATION_STYLES } from "@/config/generation";
 import { isVisualStyleCompatible } from "@/config/visual-styles";
+import { THUMBNAIL_PRESETS, THUMBNAIL_TEXT_MODES } from "@/config/thumbnail-creation";
 import { validateColorPalette } from "@/lib/colors/validate-color-palette";
 import type {
   ColorPreference,
@@ -21,6 +22,8 @@ import type {
   ProfileBackground,
   ProfileIntensity,
   ProfileMode,
+  ThumbnailPreset,
+  ThumbnailTextMode,
 } from "@/types/generation";
 
 const UUID_PATTERN =
@@ -30,6 +33,8 @@ const COLORS = new Set<string>(GENERATION_COLORS.map((item) => item.id));
 const PROFILE_MODE_IDS = new Set(PROFILE_MODES.map((item) => item.id));
 const PROFILE_INTENSITY_IDS = new Set(PROFILE_INTENSITIES.map((item) => item.id));
 const PROFILE_BACKGROUND_IDS = new Set(PROFILE_BACKGROUNDS.map((item) => item.id));
+const THUMBNAIL_PRESET_IDS = new Set(THUMBNAIL_PRESETS.map((item) => item.id));
+const THUMBNAIL_TEXT_MODE_IDS = new Set(THUMBNAIL_TEXT_MODES.map((item) => item.id));
 
 type ValidationResult =
   | { success: true; data: GenerationInput }
@@ -76,8 +81,10 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     rawInput.quality === "fast" ? "standard" : rawInput.quality;
   const quality = requestedQuality ?? (definition ? getDefaultQuality(definition) : undefined);
 
-  if (description.length < 10) {
-    fields.description = "Describe tu idea con al menos 10 caracteres.";
+  if (description.length < (contentType === "thumbnail" ? 3 : 10)) {
+    fields.description = contentType === "thumbnail"
+      ? "Cuéntanos de qué trata el video."
+      : "Describe tu idea con al menos 10 caracteres.";
   } else if (description.length > 1_500) {
     fields.description = "La descripción no puede superar 1.500 caracteres.";
   }
@@ -131,6 +138,12 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   ) {
     fields.form = "El proyecto seleccionado no es válido.";
   }
+  if (
+    rawInput.parentGenerationId !== undefined &&
+    (typeof rawInput.parentGenerationId !== "string" || !UUID_PATTERN.test(rawInput.parentGenerationId))
+  ) {
+    fields.form = "La miniatura de origen no es válida.";
+  }
 
   let referenceUploadIds: string[] | undefined;
   if (rawInput.referenceUploadIds !== undefined) {
@@ -178,6 +191,34 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     if (!profileBackground) fields.profileBackground = "Elige un fondo.";
   }
 
+  let videoTitle: string | undefined;
+  let thumbnailPreset: ThumbnailPreset | undefined;
+  let thumbnailTextMode: ThumbnailTextMode | undefined;
+  if (contentType === "thumbnail") {
+    videoTitle = typeof rawInput.videoTitle === "string"
+      ? rawInput.videoTitle.trim()
+      : undefined;
+    if (videoTitle && videoTitle.length > 240) {
+      fields.videoTitle = "El título no puede superar 240 caracteres.";
+    }
+    thumbnailPreset =
+      typeof rawInput.thumbnailPreset === "string" &&
+      THUMBNAIL_PRESET_IDS.has(rawInput.thumbnailPreset as ThumbnailPreset)
+        ? rawInput.thumbnailPreset as ThumbnailPreset
+        : "impactful";
+    thumbnailTextMode =
+      typeof rawInput.thumbnailTextMode === "string" &&
+      THUMBNAIL_TEXT_MODE_IDS.has(rawInput.thumbnailTextMode as ThumbnailTextMode)
+        ? rawInput.thumbnailTextMode as ThumbnailTextMode
+        : "automatic";
+    if (thumbnailTextMode === "custom" && !primaryText) {
+      fields.primaryText = "Escribe el texto que debe aparecer en la miniatura.";
+    }
+    if (thumbnailTextMode === "custom" && primaryText.trim().split(/\s+/).length > 5) {
+      fields.primaryText = "Usa un máximo de cinco palabras.";
+    }
+  }
+
   if (Object.keys(fields).length || !contentType || !variant || !definition || !platform && product?.platforms.length) {
     return { success: false, fields };
   }
@@ -203,6 +244,15 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       ...(profileIntensity ? { profileIntensity } : {}),
       ...(profileBackground ? { profileBackground } : {}),
       ...(typeof rawInput.showSafeArea === "boolean" ? { showSafeArea: rawInput.showSafeArea } : {}),
+      ...(videoTitle ? { videoTitle } : {}),
+      ...(thumbnailPreset ? { thumbnailPreset } : {}),
+      ...(thumbnailTextMode ? { thumbnailTextMode } : {}),
+      ...(rawInput.generationIntent === "variation" || rawInput.generationIntent === "additional_concept"
+        ? { generationIntent: rawInput.generationIntent }
+        : { generationIntent: "initial" }),
+      ...(typeof rawInput.parentGenerationId === "string"
+        ? { parentGenerationId: rawInput.parentGenerationId }
+        : {}),
     },
   };
 }

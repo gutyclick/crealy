@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { ContentType, GenerationFormat } from "@/types/generation";
 import { editGeneration } from "@/app/(dashboard)/edit/actions";
 import { getPrivateStorage } from "@/lib/storage/provider";
+import { ThumbnailFollowupActions } from "@/components/generation/thumbnail-followup-actions";
+import type { ThumbnailPreset, ThumbnailTextMode } from "@/types/generation";
 
 export const metadata: Metadata = {
   title: "Detalle de creación",
@@ -30,7 +32,7 @@ export default async function GenerationDetailPage({
   const { data } = await supabase
     .from("generations")
     .select(
-      "id, user_prompt, content_type, requested_format, style, quality, primary_text, storage_path, status, created_at, projects(title)",
+      "id, project_id, user_prompt, content_type, requested_format, style, quality, primary_text, storage_path, status, created_at, generation_metadata, projects(title)",
     )
     .eq("id", id)
     .eq("user_id", user.id)
@@ -60,6 +62,18 @@ export default async function GenerationDetailPage({
   const project = data.projects as unknown as { title: string } | null;
   const contentType = getContentTypeConfig(data.content_type as ContentType);
   const format = getFormatConfig(data.requested_format as GenerationFormat);
+  const generationMetadata =
+    data.generation_metadata && typeof data.generation_metadata === "object"
+      ? data.generation_metadata as Record<string, unknown>
+      : {};
+  const { data: referenceRows } = data.content_type === "thumbnail"
+    ? await supabase
+        .from("generation_references")
+        .select("upload_id")
+        .eq("generation_id", data.id)
+        .eq("user_id", user.id)
+        .order("position")
+    : { data: [] };
 
   return (
     <main className="py-8 sm:py-12">
@@ -137,7 +151,7 @@ export default async function GenerationDetailPage({
                     className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink hover:bg-[var(--brand-hover)]"
                   >
                     <WandSparkles aria-hidden="true" className="size-4" />
-                    Editar imagen
+                    {data.content_type === "thumbnail" ? "Regenerar con cambios" : "Editar imagen"}
                   </button>
                 </form>
                 <a
@@ -147,6 +161,23 @@ export default async function GenerationDetailPage({
                   <Download aria-hidden="true" className="size-4" />
                   Descargar PNG
                 </a>
+                {data.content_type === "thumbnail" ? (
+                  <>
+                    <ThumbnailFollowupActions
+                      generationId={data.id}
+                      projectId={data.project_id}
+                      topic={data.user_prompt}
+                      videoTitle={typeof generationMetadata.videoTitle === "string" ? generationMetadata.videoTitle : undefined}
+                      preset={(generationMetadata.thumbnailPreset as ThumbnailPreset) || "impactful"}
+                      textMode={(generationMetadata.thumbnailTextMode as ThumbnailTextMode) || "automatic"}
+                      primaryText={data.primary_text ?? undefined}
+                      referenceUploadIds={(referenceRows ?? []).map((item) => item.upload_id)}
+                    />
+                    <p className="pt-2 text-center text-xs leading-5 text-muted">
+                      Guardada automáticamente en tu historial.
+                    </p>
+                  </>
+                ) : null}
               </div>
             ) : null}
           </aside>

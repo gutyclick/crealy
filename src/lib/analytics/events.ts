@@ -11,6 +11,8 @@ export type ConversionEvent =
   | "onboarding_completed"
   | "first_generation_started"
   | "generation_started"
+  | "thumbnail_variation_requested"
+  | "thumbnail_concepts_requested"
   | "first_generation_completed"
   | "first_edit_completed"
   | "tool_opened"

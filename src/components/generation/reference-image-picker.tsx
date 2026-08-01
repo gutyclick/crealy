@@ -21,11 +21,13 @@ export function ReferenceImagePicker({
   references,
   setReferences,
   maxFileMb,
+  maxFiles = 4,
   disabled,
 }: {
   references: ReferenceDraft[];
   setReferences: Dispatch<SetStateAction<ReferenceDraft[]>>;
   maxFileMb: number;
+  maxFiles?: number;
   disabled: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,9 +35,9 @@ export function ReferenceImagePicker({
 
   function addFiles(files: File[]) {
     setError(null);
-    const remaining = 4 - references.length;
+    const remaining = maxFiles - references.length;
     if (remaining <= 0) {
-      setError("Ya seleccionaste el máximo de cuatro referencias.");
+      setError(maxFiles === 1 ? "Ya seleccionaste una foto." : `Ya seleccionaste el máximo de ${maxFiles} referencias.`);
       return;
     }
 
@@ -68,7 +70,7 @@ export function ReferenceImagePicker({
     }
 
     if (files.length > remaining) {
-      setError("Puedes usar un máximo de cuatro imágenes.");
+      setError(maxFiles === 1 ? "Puedes usar una sola foto." : `Puedes usar un máximo de ${maxFiles} imágenes.`);
     }
     if (accepted.length) {
       setReferences((current) => [...current, ...accepted]);
@@ -87,14 +89,15 @@ export function ReferenceImagePicker({
     <fieldset className="mt-7">
       <div className="flex items-end justify-between gap-4">
         <legend className="text-sm font-semibold text-foreground">
-          Personas, productos o referencias{" "}
+          {maxFiles === 1 ? "Tu foto" : "Personas, productos o referencias"}{" "}
           <span className="font-normal text-muted">(opcional)</span>
         </legend>
-        <span className="text-xs text-white/45">{references.length}/4</span>
+        <span className="text-xs text-white/45">{references.length}/{maxFiles}</span>
       </div>
       <p className="mt-2 text-xs leading-5 text-muted">
-        Crealy intentará preservar identidad y rasgos distintivos, salvo que
-        pidas cambiarlos expresamente en el brief.
+        {maxFiles === 1
+          ? "Si subes una foto, será la protagonista e intentaremos conservar tu identidad."
+          : "Crealy intentará preservar identidad y rasgos distintivos, salvo que pidas cambiarlos expresamente en el brief."}
       </p>
       <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-white/55">
         <Clock3 aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-brand" />
@@ -163,7 +166,7 @@ export function ReferenceImagePicker({
           </div>
         ))}
 
-        {references.length < 4 ? (
+        {references.length < maxFiles ? (
           <button
             type="button"
             disabled={disabled}

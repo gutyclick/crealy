@@ -22,6 +22,7 @@ import {
   resolveImageSize,
 } from "../src/lib/generation/resolve-image-size";
 import { validateGenerationInput } from "../src/lib/generation/validate-generation-input";
+import { THUMBNAIL_PRESETS, THUMBNAIL_TEXT_MODES } from "../src/config/thumbnail-creation";
 
 const validInput = {
   clientRequestId: "3f1ac702-4a56-4c80-9f7c-ae48ce8b1193",
@@ -45,10 +46,26 @@ test("thumbnail quality maps to its canonical variant, dimensions and cost", () 
   const high = mapGenerationOptions("thumbnail-high", "high");
   assert.equal(high.finalSize, "1920x1080");
   assert.equal(high.quality, "high");
-  assert.equal(high.creditCost, 2);
+  assert.equal(high.creditCost, 3);
 
   const validated = validateGenerationInput(validInput);
   assert.equal(validated.success, true);
+  if (validated.success) {
+    assert.equal(validated.data.thumbnailPreset, "impactful");
+    assert.equal(validated.data.thumbnailTextMode, "automatic");
+  }
+});
+
+test("thumbnail creation exposes presets and explicit text modes", () => {
+  assert.deepEqual(THUMBNAIL_PRESETS.map((item) => item.id), [
+    "impactful", "curiosity", "result", "comparison", "minimal", "cinematic",
+  ]);
+  assert.deepEqual(THUMBNAIL_TEXT_MODES.map((item) => item.id), ["automatic", "custom", "none"]);
+  assert.equal(validateGenerationInput({
+    ...validInput,
+    thumbnailPreset: "curiosity",
+    thumbnailTextMode: "custom",
+  }).success, false);
 });
 
 test("legacy thumbnail taxonomy remains readable and normalizes at validation", () => {
@@ -130,7 +147,7 @@ test("credit cost is recomputed from product and variant, not client input", () 
   assert.equal(
     getGenerationCreditCost({
       contentType: "thumbnail",
-      variant: "thumbnail-high",
+      variant: "thumbnail-standard",
       platform: "youtube",
       quality: "standard",
     }),

@@ -30,6 +30,11 @@ import {
 import { getPrivateStorage } from "@/lib/storage/provider";
 import { getCreatedAssetRetentionDays } from "@/lib/storage/retention-policy";
 import { generationAssetPath } from "@/lib/storage/storage-paths";
+import {
+  buildCorrectiveThumbnailPrompt,
+  evaluateThumbnail,
+  planThumbnail,
+} from "@/lib/generation/thumbnail-orchestrator";
 
 async function retentionDaysForUser(userId: string) {
   const { data } = await createAdminClient()
@@ -218,6 +223,14 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       typeof generationMetadata.showSafeArea === "boolean"
         ? generationMetadata.showSafeArea
         : undefined,
+    videoTitle:
+      typeof generationMetadata.videoTitle === "string"
+        ? generationMetadata.videoTitle
+        : undefined,
+    thumbnailPreset:
+      (generationMetadata.thumbnailPreset as GenerationInput["thumbnailPreset"]) ?? undefined,
+    thumbnailTextMode:
+      (generationMetadata.thumbnailTextMode as GenerationInput["thumbnailTextMode"]) ?? undefined,
   };
 
   const { data: referenceRows, error: referenceError } = await admin
@@ -228,13 +241,16 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .order("position");
   if (referenceError) throw referenceError;
   const referenceIds = referenceRows?.map((row) => row.upload_id) ?? [];
+  input.referenceUploadIds = referenceIds.length ? referenceIds : undefined;
   const references = await loadGenerationReferences(
     admin,
     generation.user_id,
     referenceIds,
     getEditingServerEnv(),
   );
-  const enhancedPrompt = buildImagePrompt(input);
+  const thumbnailPlan =
+    input.contentType === "thumbnail" ? await planThumbnail(input) : null;
+  const enhancedPrompt = thumbnailPlan?.finalPrompt ?? buildImagePrompt(input);
   const outputOptions = mapGenerationOptions(input.format, input.quality);
 
   const { error: processingError } = await admin
@@ -251,7 +267,44 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .in("status", ["pending", "processing"]);
   if (processingError) throw processingError;
 
-  const generated = await generateImage(input, enhancedPrompt, references);
+  let generated = await generateImage(input, enhancedPrompt, references);
+  let thumbnailEvaluation = null;
+  let wasAutomaticallyRegenerated = false;
+  if (thumbnailPlan) {
+    try {
+      const firstEvaluation = await evaluateThumbnail({
+        buffer: generated.imageBuffer,
+        mimeType: generated.mimeType,
+        input,
+        plan: thumbnailPlan,
+      });
+      thumbnailEvaluation = firstEvaluation;
+      if (!firstEvaluation.approved) {
+        wasAutomaticallyRegenerated = true;
+        const corrected = await generateImage(
+          input,
+          buildCorrectiveThumbnailPrompt(thumbnailPlan, firstEvaluation),
+          references,
+        );
+        const correctedEvaluation = await evaluateThumbnail({
+          buffer: corrected.imageBuffer,
+          mimeType: corrected.mimeType,
+          input,
+          plan: thumbnailPlan,
+        });
+        if (correctedEvaluation.score >= firstEvaluation.score) {
+          generated = corrected;
+          thumbnailEvaluation = correctedEvaluation;
+        }
+      }
+    } catch (evaluationError) {
+      logger.warn("generation.thumbnail_evaluation_failed", {
+        jobId: job.id,
+        resourceId: generation.id,
+        errorCode: evaluationError instanceof Error ? evaluationError.message : "unknown",
+      });
+    }
+  }
   await getPrivateStorage()
     .put(storagePath, generated.imageBuffer, generated.mimeType)
     .catch(() => {
@@ -350,6 +403,29 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       export_height: generated.exportHeight,
       size_fallback_used: generated.sizeFallbackUsed,
       size_fallback_reason: generated.sizeFallbackReason,
+      generation_metadata: {
+        ...generationMetadata,
+        ...(thumbnailPlan
+          ? {
+              detectedNiche: thumbnailPlan.detectedNiche,
+              nicheConfidence: thumbnailPlan.nicheConfidence,
+              creativeBrief: thumbnailPlan.brief,
+              concepts: thumbnailPlan.concepts,
+              generatedText: thumbnailPlan.selectedConcept.thumbnailText,
+              archetype: thumbnailPlan.selectedConcept.archetype,
+              conceptStrategy: thumbnailPlan.selectedConcept.strategy,
+              selectedConcept: thumbnailPlan.selectedConcept,
+              finalPrompt: thumbnailPlan.finalPrompt,
+              evaluationScore: thumbnailEvaluation?.score ?? null,
+              criticalErrors: thumbnailEvaluation?.criticalErrors ?? [],
+              evaluationProblems: thumbnailEvaluation?.problems ?? [],
+              wasAutomaticallyRegenerated,
+              shownResult: wasAutomaticallyRegenerated && thumbnailEvaluation
+                ? "best_after_correction"
+                : "initial",
+            }
+          : {}),
+      },
     })
     .eq("id", generation.id)
     .eq("user_id", generation.user_id);

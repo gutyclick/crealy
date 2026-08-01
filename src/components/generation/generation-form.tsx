@@ -41,6 +41,7 @@ import {
   GENERATION_COLORS,
   GENERATION_STYLES,
 } from "@/config/generation";
+import { THUMBNAIL_PRESETS, THUMBNAIL_TEXT_MODES } from "@/config/thumbnail-creation";
 import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { trackConversion } from "@/lib/analytics/events";
 import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
@@ -58,6 +59,8 @@ import type {
   ProfileBackground,
   ProfileIntensity,
   ProfileMode,
+  ThumbnailPreset,
+  ThumbnailTextMode,
 } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
 
@@ -118,6 +121,9 @@ export function GenerationForm({
   );
   const [description, setDescription] = useState("");
   const [primaryText, setPrimaryText] = useState("");
+  const [videoTitle, setVideoTitle] = useState("");
+  const [thumbnailPreset, setThumbnailPreset] = useState<ThumbnailPreset>("impactful");
+  const [thumbnailTextMode, setThumbnailTextMode] = useState<ThumbnailTextMode>("automatic");
   const [style, setStyle] = useState<GenerationStyle>("automatic");
   const [colorPreference, setColorPreference] = useState<ColorPreference>("auto");
   const [customColors, setCustomColors] = useState(["#DDF527", "#10110D"]);
@@ -263,6 +269,9 @@ export function GenerationForm({
           profileBackground:
             contentType === "profile-image" ? profileBackground : undefined,
           showSafeArea: contentType === "story" ? showSafeArea : undefined,
+          videoTitle: contentType === "thumbnail" ? videoTitle.trim() || undefined : undefined,
+          thumbnailPreset: contentType === "thumbnail" ? thumbnailPreset : undefined,
+          thumbnailTextMode: contentType === "thumbnail" ? thumbnailTextMode : undefined,
         }),
       });
       const payload = await readApiResponse<
@@ -296,6 +305,7 @@ export function GenerationForm({
       setProjectId(undefined);
       setDescription("");
       setPrimaryText("");
+      setVideoTitle("");
       setResult({ status: "idle" });
     } catch (error) {
       const message =
@@ -396,7 +406,7 @@ export function GenerationForm({
           </fieldset>
         ) : null}
 
-        {selectableVariants.length > 1 ? (
+        {contentType !== "thumbnail" && selectableVariants.length > 1 ? (
           <fieldset className="mt-7">
             <legend className="text-sm font-semibold text-foreground">
               Tamaño
@@ -430,7 +440,39 @@ export function GenerationForm({
           </fieldset>
         ) : null}
 
-        {supportedQualities.length > 1 ? (
+        {contentType === "thumbnail" ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">Calidad</legend>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {([
+                { quality: "standard" as const, variant: "thumbnail-standard" as const, label: "Estándar", detail: "1280 × 720 · ideal para crear y publicar.", cost: 1 },
+                { quality: "high" as const, variant: "thumbnail-high" as const, label: "HD", detail: "1920 × 1080 · mayor detalle para la versión final.", cost: 3 },
+              ]).map((item) => (
+                <button
+                  key={item.quality}
+                  type="button"
+                  aria-pressed={quality === item.quality && variant === item.variant}
+                  onClick={() => {
+                    setVariant(item.variant);
+                    setQuality(item.quality);
+                  }}
+                  className={cn(
+                    "rounded-xl p-4 text-left transition-colors",
+                    quality === item.quality && variant === item.variant
+                      ? "bg-brand/[0.09] ring-1 ring-brand/65"
+                      : "bg-background hover:bg-white/[0.055]",
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-3 text-sm font-bold text-foreground">
+                    {item.label}
+                    <span className="text-xs text-brand">{item.cost} {item.cost === 1 ? "crédito" : "créditos"}</span>
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-muted">{item.detail}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : supportedQualities.length > 1 ? (
           <fieldset className="mt-7">
             <legend className="text-sm font-semibold text-foreground">
               Calidad
@@ -479,28 +521,120 @@ export function GenerationForm({
 
         <div className="mt-8">
           <label htmlFor="description" className="text-sm font-semibold text-foreground">
-            Describe la pieza
+            {contentType === "thumbnail" ? "¿De qué trata tu video?" : "Describe la pieza"}
           </label>
           <textarea
             id="description"
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            minLength={10}
+            minLength={contentType === "thumbnail" ? 3 : 10}
             maxLength={1500}
             required
             aria-invalid={Boolean(fieldErrors.description)}
             aria-describedby="description-help"
             rows={5}
-            placeholder={product.example}
+            placeholder={contentType === "thumbnail"
+              ? "Ejemplo: Probé ChatGPT durante 30 días para crear un negocio"
+              : product.example}
             className="mt-3 w-full resize-y rounded-xl bg-background px-4 py-3 text-sm leading-6 text-foreground outline-none ring-1 ring-white/10 transition-shadow placeholder:text-white/35 focus:ring-brand/65"
           />
           <div id="description-help" className="mt-2 flex justify-between gap-4 text-xs text-muted">
-            <span>{fieldErrors.description ?? "Explica el objetivo, el sujeto y qué debe destacar."}</span>
+            <span>{fieldErrors.description ?? (contentType === "thumbnail"
+              ? "Puedes escribir una idea corta o el título completo del video."
+              : "Explica el objetivo, el sujeto y qué debe destacar.")}</span>
             <span>{description.length}/1500</span>
           </div>
         </div>
 
-        {product.acceptsText ? (
+        {contentType === "thumbnail" ? (
+          <div className="mt-6">
+            <label htmlFor="videoTitle" className="text-sm font-semibold text-foreground">
+              Título del video <span className="font-normal text-muted">(opcional)</span>
+            </label>
+            <input
+              id="videoTitle"
+              value={videoTitle}
+              onChange={(event) => setVideoTitle(event.target.value)}
+              maxLength={240}
+              placeholder="Ej. Construí un negocio con IA en 30 días"
+              className="mt-3 h-12 w-full rounded-xl bg-background px-4 text-sm text-foreground outline-none ring-1 ring-white/10 placeholder:text-white/35 focus:ring-brand/65"
+            />
+            <p className="mt-2 text-xs leading-5 text-muted">
+              Ayuda a crear una miniatura que complemente el título sin repetirlo.
+            </p>
+            {fieldErrors.videoTitle ? <FieldError message={fieldErrors.videoTitle} /> : null}
+          </div>
+        ) : null}
+
+        {contentType === "thumbnail" ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">Dirección visual</legend>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {THUMBNAIL_PRESETS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={thumbnailPreset === item.id}
+                  onClick={() => setThumbnailPreset(item.id)}
+                  className={cn(
+                    "rounded-xl p-4 text-left transition-colors",
+                    thumbnailPreset === item.id
+                      ? "bg-brand/[0.09] ring-1 ring-brand/65"
+                      : "bg-background hover:bg-white/[0.055]",
+                  )}
+                >
+                  <span className="flex items-center justify-between text-sm font-semibold text-foreground">
+                    {item.label}
+                    {thumbnailPreset === item.id ? <Check aria-hidden="true" className="size-4 text-brand" /> : null}
+                  </span>
+                  <span className="mt-1.5 block text-xs leading-5 text-muted">{item.description}</span>
+                </button>
+              ))}
+            </div>
+            {fieldErrors.thumbnailPreset ? <FieldError message={fieldErrors.thumbnailPreset} /> : null}
+          </fieldset>
+        ) : null}
+
+        {contentType === "thumbnail" ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">Texto de la miniatura</legend>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {THUMBNAIL_TEXT_MODES.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={thumbnailTextMode === item.id}
+                  onClick={() => setThumbnailTextMode(item.id)}
+                  className={cn(
+                    "rounded-xl p-4 text-left transition-colors",
+                    thumbnailTextMode === item.id
+                      ? "bg-brand/[0.09] ring-1 ring-brand/65"
+                      : "bg-background hover:bg-white/[0.055]",
+                  )}
+                >
+                  <span className="text-sm font-semibold text-foreground">{item.label}</span>
+                  <span className="mt-1.5 block text-xs leading-5 text-muted">{item.description}</span>
+                </button>
+              ))}
+            </div>
+            {thumbnailTextMode === "custom" ? (
+              <div className="mt-3">
+                <label htmlFor="primaryText" className="sr-only">Texto exacto</label>
+                <input
+                  id="primaryText"
+                  value={primaryText}
+                  onChange={(event) => setPrimaryText(event.target.value)}
+                  maxLength={80}
+                  placeholder="Ej. SOLO UNA SIRVE"
+                  className="h-12 w-full rounded-xl bg-background px-4 text-sm text-foreground outline-none ring-1 ring-white/10 placeholder:text-white/35 focus:ring-brand/65"
+                />
+                <p className="mt-2 text-xs text-muted">Máximo cinco palabras.</p>
+              </div>
+            ) : null}
+            {fieldErrors.thumbnailTextMode ? <FieldError message={fieldErrors.thumbnailTextMode} /> : null}
+            {fieldErrors.primaryText ? <FieldError message={fieldErrors.primaryText} /> : null}
+          </fieldset>
+        ) : product.acceptsText ? (
           <div className="mt-6">
             <label htmlFor="primaryText" className="text-sm font-semibold text-foreground">
               Texto visible <span className="font-normal text-muted">(opcional)</span>
@@ -524,6 +658,7 @@ export function GenerationForm({
             references={references}
             setReferences={setReferences}
             maxFileMb={maxReferenceFileMb}
+            maxFiles={contentType === "thumbnail" ? 1 : 4}
             disabled={result.status === "loading"}
           />
           {contentType === "profile-image" ? (
@@ -535,7 +670,7 @@ export function GenerationForm({
           ) : null}
         </div>
 
-        <fieldset className="mt-7">
+        {contentType !== "thumbnail" ? <fieldset className="mt-7">
           <legend className="text-sm font-semibold text-foreground">Estilo visual</legend>
           <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
             {styles.map((item) => (
@@ -569,9 +704,9 @@ export function GenerationForm({
               </button>
             ))}
           </div>
-        </fieldset>
+        </fieldset> : null}
 
-        <div className="mt-7">
+        {contentType !== "thumbnail" ? <div className="mt-7">
           <label htmlFor="colorPreference" className="text-sm font-semibold text-foreground">
             Color
           </label>
@@ -595,7 +730,7 @@ export function GenerationForm({
               error={fieldErrors.customColors}
             />
           ) : null}
-        </div>
+        </div> : null}
 
         {contentType === "profile-image" ? (
           <div className="mt-7 grid gap-5 sm:grid-cols-3">
@@ -650,7 +785,7 @@ export function GenerationForm({
           {result.status === "loading" ? (
             <><LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> Preparando tu creación…</>
           ) : (
-            <>Generar por {creditCost} {creditCost === 1 ? "crédito" : "créditos"} <ArrowRight aria-hidden="true" className="size-4" /></>
+            <>{contentType === "thumbnail" ? "Generar miniatura" : "Generar"} · {creditCost} {creditCost === 1 ? "crédito" : "créditos"} <ArrowRight aria-hidden="true" className="size-4" /></>
           )}
         </button>
         <p className="mx-auto mt-3 max-w-xl text-center text-xs leading-5 text-white/50">

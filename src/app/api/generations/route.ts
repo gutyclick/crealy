@@ -357,6 +357,15 @@ export async function POST(request: Request) {
           profileIntensity: input.profileIntensity ?? null,
           profileBackground: input.profileBackground ?? null,
           showSafeArea: input.showSafeArea ?? false,
+          videoTitle: input.videoTitle ?? null,
+          thumbnailPreset: input.thumbnailPreset ?? null,
+          thumbnailTextMode: input.thumbnailTextMode ?? null,
+          generationCount: 1,
+          downloaded: false,
+          variationRequested: false,
+          selectedByUser: false,
+          generationIntent: input.generationIntent ?? "initial",
+          parentGenerationId: input.parentGenerationId ?? null,
         },
       })
       .eq("id", queued.generation_id)
@@ -371,6 +380,22 @@ export async function POST(request: Request) {
       });
       return reservationError(platformError.message, input.clientRequestId);
     }
+  }
+  if (input.parentGenerationId) {
+    const { data: parent } = await admin
+      .from("generations")
+      .select("generation_metadata")
+      .eq("id", input.parentGenerationId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const parentMetadata = parent?.generation_metadata && typeof parent.generation_metadata === "object"
+      ? parent.generation_metadata as Record<string, unknown>
+      : {};
+    await admin
+      .from("generations")
+      .update({ generation_metadata: { ...parentMetadata, variationRequested: true, selectedByUser: true } })
+      .eq("id", input.parentGenerationId)
+      .eq("user_id", user.id);
   }
   await admin
     .from("jobs")

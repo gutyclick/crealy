@@ -78,6 +78,75 @@ export type ColorPreference =
 export type ColorMode = "automatic" | "preset" | "custom";
 export type GenerationQuality = "standard" | "high";
 export type LegacyGenerationQuality = "fast";
+export type ThumbnailPreset =
+  | "impactful"
+  | "curiosity"
+  | "result"
+  | "comparison"
+  | "minimal"
+  | "cinematic";
+export type ThumbnailTextMode = "automatic" | "custom" | "none";
+export type ThumbnailNiche =
+  | "technology_ai"
+  | "finance_business"
+  | "gaming"
+  | "education"
+  | "productivity"
+  | "fitness_health"
+  | "entertainment"
+  | "travel"
+  | "beauty_lifestyle"
+  | "reactions_news"
+  | "general";
+export type ThumbnailArchetype =
+  | "result"
+  | "curiosity"
+  | "comparison"
+  | "warning"
+  | "transformation"
+  | "extreme_moment";
+export type ThumbnailConceptStrategy = "clarity" | "emotion" | "curiosity";
+
+export type ThumbnailConcept = {
+  strategy: ThumbnailConceptStrategy;
+  archetype: ThumbnailArchetype;
+  concept: string;
+  thumbnailText: string;
+  mainSubject: string;
+  composition: string;
+  score: number;
+};
+
+export type ThumbnailCreativePlan = {
+  detectedNiche: ThumbnailNiche;
+  nicheConfidence: number;
+  brief: {
+    topic: string;
+    videoTitle: string;
+    niche: ThumbnailNiche;
+    contentType: string;
+    audience: string;
+    mainPromise: string;
+    primaryEmotion: string;
+    secondaryEmotion: string;
+    mainSubject: string;
+    supportingObject: string;
+    recommendedText: string;
+    visualPriority: string;
+    avoid: string[];
+  };
+  concepts: ThumbnailConcept[];
+  selectedConcept: ThumbnailConcept;
+  finalPrompt: string;
+};
+
+export type ThumbnailEvaluation = {
+  approved: boolean;
+  score: number;
+  criticalErrors: string[];
+  problems: string[];
+  corrections: string[];
+};
 
 export type ProfileMode =
   | "enhance"
@@ -115,6 +184,11 @@ export type GenerationInput = {
   profileIntensity?: ProfileIntensity;
   profileBackground?: ProfileBackground;
   showSafeArea?: boolean;
+  videoTitle?: string;
+  thumbnailPreset?: ThumbnailPreset;
+  thumbnailTextMode?: ThumbnailTextMode;
+  generationIntent?: "initial" | "variation" | "additional_concept";
+  parentGenerationId?: string;
 };
 
 export type GenerationReferenceImage = {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { getPrivateStorage } from "@/lib/storage/provider";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -25,7 +26,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
   const { data: generation } = await supabase
     .from("generations")
-    .select("storage_path, mime_type, content_type, completed_at")
+    .select("storage_path, mime_type, content_type, completed_at, generation_metadata")
     .eq("id", id)
     .eq("user_id", user.id)
     .eq("status", "completed")
@@ -54,6 +55,15 @@ export async function GET(_request: Request, { params }: RouteContext) {
     .replace("social-", "")
     .replace(/[^a-z0-9-]/gi, "");
   const filename = `crealy-${typeName || "imagen"}-${date}.png`;
+
+  const metadata = generation.generation_metadata && typeof generation.generation_metadata === "object"
+    ? generation.generation_metadata as Record<string, unknown>
+    : {};
+  await createAdminClient()
+    .from("generations")
+    .update({ generation_metadata: { ...metadata, downloaded: true, selectedByUser: true } })
+    .eq("id", id)
+    .eq("user_id", user.id);
 
   return new Response(new Uint8Array(file), {
     headers: {
