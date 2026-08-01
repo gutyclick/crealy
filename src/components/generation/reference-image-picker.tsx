@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, ImagePlus, LoaderCircle, X } from "lucide-react";
+import { Check, Clock3, ImagePlus, LoaderCircle, X } from "lucide-react";
+import Link from "next/link";
 import type { Dispatch, SetStateAction } from "react";
 import { useRef, useState } from "react";
 
@@ -94,6 +95,13 @@ export function ReferenceImagePicker({
       <p className="mt-2 text-xs leading-5 text-muted">
         Crealy intentará preservar identidad y rasgos distintivos, salvo que
         pidas cambiarlos expresamente en el brief.
+      </p>
+      <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-white/55">
+        <Clock3 aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-brand" />
+        <span>
+          Las referencias se eliminan automáticamente del servidor 7 días después
+          de subirlas. <Link href="/terms" className="text-foreground underline decoration-white/30 hover:decoration-brand">Ver política</Link>
+        </span>
       </p>
 
       <input

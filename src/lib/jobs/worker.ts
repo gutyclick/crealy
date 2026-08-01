@@ -28,7 +28,28 @@ import {
   normalizeGenerationVariant,
 } from "@/config/generation-products";
 import { getPrivateStorage } from "@/lib/storage/provider";
+import { getCreatedAssetRetentionDays } from "@/lib/storage/retention-policy";
 import { generationAssetPath } from "@/lib/storage/storage-paths";
+
+async function retentionDaysForUser(userId: string) {
+  const { data } = await createAdminClient()
+    .from("subscriptions")
+    .select("plan_key, status, current_period_end, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const periodEnd = data?.current_period_end
+    ? new Date(data.current_period_end)
+    : null;
+  const hasActivePlan = Boolean(
+    data &&
+      (data.status === "active" || data.status === "trialing") &&
+      periodEnd &&
+      periodEnd > new Date(),
+  );
+  return getCreatedAssetRetentionDays(hasActivePlan ? data?.plan_key : "free");
+}
 
 async function recordOutput(jobId: string, buffer: Buffer) {
   const admin = createAdminClient();
@@ -244,7 +265,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     preview: true,
   });
   await getPrivateStorage().put(previewPath, previewBuffer, "image/webp");
-  const retentionDays = Number(process.env.FREE_ASSET_RETENTION_DAYS || 30);
+  const retentionDays = await retentionDaysForUser(generation.user_id);
   const previewRetentionDays = Number(process.env.PREVIEW_RETENTION_DAYS || 180);
   const originalExpiresAt = new Date(
     Date.now() + retentionDays * 86_400_000,
@@ -465,8 +486,9 @@ async function processEdit(job: JobRecord, startedAt: number) {
   const previewPath = `${version.user_id}/edits/${version.session_id}/previews/${version.id}.webp`;
   const provider = getPrivateStorage();
   await provider.put(previewPath, previewBuffer, "image/webp");
+  const retentionDays = await retentionDaysForUser(version.user_id);
   const expiresAt = new Date(
-    Date.now() + Number(process.env.FREE_ASSET_RETENTION_DAYS || 30) * 86_400_000,
+    Date.now() + retentionDays * 86_400_000,
   ).toISOString();
   const previewExpiresAt = new Date(
     Date.now() + Number(process.env.PREVIEW_RETENTION_DAYS || 180) * 86_400_000,

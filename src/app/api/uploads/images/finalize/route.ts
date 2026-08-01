@@ -5,6 +5,7 @@ import { getEditingServerEnv } from "@/lib/env/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPrivateStorage } from "@/lib/storage/provider";
+import { getUploadedFileRetentionDays } from "@/lib/storage/retention-policy";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -164,6 +165,9 @@ export async function POST(request: Request) {
       file_size_bytes: buffer.length,
       width: metadata.width,
       height: metadata.height,
+      expires_at: new Date(
+        Date.now() + getUploadedFileRetentionDays() * 86_400_000,
+      ).toISOString(),
     })
     .eq("id", pendingAsset.id)
     .eq("user_id", user.id);
@@ -184,10 +188,9 @@ export async function POST(request: Request) {
     height: metadata.height,
     purpose: body.purpose,
     asset_id: pendingAsset.id,
-    expires_at:
-      body.purpose === "reference"
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        : null,
+    expires_at: new Date(
+      Date.now() + getUploadedFileRetentionDays() * 86_400_000,
+    ).toISOString(),
   });
   if (insertError && !insertError.message.includes("duplicate")) {
     await storage.remove(storagePath).catch(() => undefined);

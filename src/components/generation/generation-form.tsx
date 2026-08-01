@@ -710,6 +710,13 @@ export function GenerationForm({
             <>Generar por {creditCost} {creditCost === 1 ? "crédito" : "créditos"} <ArrowRight aria-hidden="true" className="size-4" /></>
           )}
         </button>
+        <p className="mx-auto mt-3 max-w-xl text-center text-xs leading-5 text-white/50">
+          Conservamos tus creaciones durante 7 días en Free y Starter, 30 días en
+          Creator y 90 días en Pro. Descarga lo que quieras guardar.{" "}
+          <Link href="/terms" className="text-foreground underline decoration-white/30 hover:decoration-brand">
+            Ver política
+          </Link>
+        </p>
         {!hasEnoughCredits && availableCredits !== null ? (
           <p role="status" aria-live="polite" className="mt-3 text-center text-sm text-amber-100">
             Necesitas {creditCost - availableCredits} {creditCost - availableCredits === 1 ? "crédito más" : "créditos más"}.{" "}

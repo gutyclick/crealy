@@ -5,14 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/require-user";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-function retentionDays(plan: string) {
-  return Number(
-    plan === "free"
-      ? process.env.FREE_ASSET_RETENTION_DAYS || 30
-      : process.env.PRO_ASSET_RETENTION_DAYS || 90,
-  );
-}
+import { getCreatedAssetRetentionDays } from "@/lib/storage/retention-policy";
 
 export async function pinAsset(formData: FormData) {
   const user = await requireUser("/settings/storage");
@@ -50,7 +43,7 @@ export async function unpinAsset(formData: FormData) {
   const assetId = String(formData.get("assetId") ?? "");
   const billing = await getUserBillingState(user.id);
   const expiresAt = new Date(
-    Date.now() + retentionDays(billing.effectivePlan.key) * 86_400_000,
+    Date.now() + getCreatedAssetRetentionDays(billing.effectivePlan.key) * 86_400_000,
   ).toISOString();
   await createAdminClient()
     .from("assets")

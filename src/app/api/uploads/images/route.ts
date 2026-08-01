@@ -4,6 +4,7 @@ import { getEditingServerEnv } from "@/lib/env/server";
 import { inspectImage, safeUploadName } from "@/lib/editing/image-metadata";
 import { createClient } from "@/lib/supabase/server";
 import { getPrivateStorage } from "@/lib/storage/provider";
+import { getUploadedFileRetentionDays } from "@/lib/storage/retention-policy";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -162,7 +163,9 @@ export async function POST(request: Request) {
       width: metadata.width,
       height: metadata.height,
       purpose: "edit",
-      expires_at: null,
+      expires_at: new Date(
+        Date.now() + getUploadedFileRetentionDays() * 86_400_000,
+      ).toISOString(),
     })
     .select("id")
     .single();

@@ -31,6 +31,13 @@ const sections = [
     ],
   },
   {
+    title: "Conservación de archivos",
+    paragraphs: [
+      "Los archivos que subes como originales o referencias se eliminan automáticamente del servidor 7 días después de la carga.",
+      "Las creaciones se conservan durante 7 días en los planes Free y Starter, 30 días en Creator y 90 días en Pro. Debes descargar antes de ese plazo cualquier archivo que quieras conservar. Los plazos pueden cambiar con aviso previo cuando sea necesario para operar el servicio.",
+    ],
+  },
+  {
     title: "Disponibilidad y cambios",
     paragraphs: [
       "Crealy puede limitar temporalmente generación, edición, billing o herramientas por mantenimiento, proveedores, presupuesto o seguridad, procurando mantener historial y descargas cuando sea posible.",
