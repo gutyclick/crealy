@@ -10,7 +10,7 @@ const items = [
   { href: "/create", label: "Crear" },
   { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
-  { href: "/tools", label: "Herramientas" },
+  { href: "/dashboard/tools", label: "Herramientas" },
 ] as const;
 
 export function DashboardNavigation() {

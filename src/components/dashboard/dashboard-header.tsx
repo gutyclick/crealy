@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Bell,
   ChevronDown,
@@ -11,6 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
 import {
@@ -37,6 +40,36 @@ const accountItems = [
 
 export function DashboardHeader({ displayName, email, credits }: DashboardHeaderProps) {
   const initial = displayName.charAt(0).toUpperCase() || "C";
+  const [openMenu, setOpenMenu] = useState<"navigation" | "account" | null>(null);
+  const navigationMenuRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!openMenu) return;
+
+    function closeOnOutsideClick(event: PointerEvent) {
+      const target = event.target as Node;
+      if (
+        !navigationMenuRef.current?.contains(target) &&
+        !accountMenuRef.current?.contains(target)
+      ) {
+        setOpenMenu(null);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenMenu(null);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [openMenu]);
+
+  const closeMenus = () => setOpenMenu(null);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-background/92 backdrop-blur-xl">
@@ -48,22 +81,32 @@ export function DashboardHeader({ displayName, email, credits }: DashboardHeader
         </div>
 
         <div className="flex items-center gap-1.5 justify-self-end">
-          <details className="group/nav relative lg:hidden">
-            <summary
+          <div ref={navigationMenuRef} className="relative lg:hidden">
+            <button
+              type="button"
               aria-label="Abrir navegación"
+              aria-expanded={openMenu === "navigation"}
+              aria-controls="dashboard-mobile-navigation"
+              onClick={() => setOpenMenu((current) => current === "navigation" ? null : "navigation")}
               className="grid size-11 cursor-pointer list-none place-items-center rounded-[0.7rem] text-muted transition-colors hover:bg-white/[0.05] hover:text-foreground"
             >
               <Menu aria-hidden="true" className="size-5" />
-            </summary>
-            <div className="absolute right-0 top-[calc(100%+0.65rem)] w-64 overflow-hidden rounded-[0.8rem] border border-white/10 bg-surface-elevated shadow-[0_18px_50px_rgba(0,0,0,0.42)]">
-              <p className="px-5 pb-2 pt-4 text-xs font-medium text-muted">Navegación</p>
-              <MobileDashboardNavigation />
-            </div>
-          </details>
+            </button>
+            {openMenu === "navigation" ? (
+              <div id="dashboard-mobile-navigation" className="absolute right-0 top-[calc(100%+0.65rem)] w-64 overflow-hidden rounded-[0.8rem] border border-white/10 bg-surface-elevated shadow-[0_18px_50px_rgba(0,0,0,0.42)]" onClick={closeMenus}>
+                <p className="px-5 pb-2 pt-4 text-xs font-medium text-muted">Navegación</p>
+                <MobileDashboardNavigation />
+              </div>
+            ) : null}
+          </div>
 
-          <details className="group/account relative">
-            <summary
+          <div ref={accountMenuRef} className="relative">
+            <button
+              type="button"
               aria-label="Abrir menú de usuario"
+              aria-expanded={openMenu === "account"}
+              aria-controls="dashboard-account-menu"
+              onClick={() => setOpenMenu((current) => current === "account" ? null : "account")}
               className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[0.7rem] px-1.5 py-1 transition-colors hover:bg-white/[0.05] sm:gap-3 sm:px-2"
             >
               <span
@@ -82,11 +125,12 @@ export function DashboardHeader({ displayName, email, credits }: DashboardHeader
               </span>
               <ChevronDown
                 aria-hidden="true"
-                className="size-4 text-muted transition-transform group-open/account:rotate-180"
+                className={`size-4 text-muted transition-transform ${openMenu === "account" ? "rotate-180" : ""}`}
               />
-            </summary>
+            </button>
 
-            <div className="absolute right-0 top-[calc(100%+0.65rem)] z-20 w-[min(19rem,calc(100vw-2rem))] rounded-[0.8rem] border border-white/10 bg-surface-elevated p-2 shadow-[0_18px_50px_rgba(0,0,0,0.42)]">
+            {openMenu === "account" ? (
+            <div id="dashboard-account-menu" className="absolute right-0 top-[calc(100%+0.65rem)] z-20 w-[min(19rem,calc(100vw-2rem))] rounded-[0.8rem] border border-white/10 bg-surface-elevated p-2 shadow-[0_18px_50px_rgba(0,0,0,0.42)]" onClick={closeMenus}>
               <div className="border-b border-white/[0.08] px-3 pb-3 pt-2">
                 <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
                 <p className="mt-0.5 truncate text-xs text-muted">{email}</p>
@@ -128,7 +172,8 @@ export function DashboardHeader({ displayName, email, credits }: DashboardHeader
                 </button>
               </form>
             </div>
-          </details>
+            ) : null}
+          </div>
         </div>
       </Container>
     </header>

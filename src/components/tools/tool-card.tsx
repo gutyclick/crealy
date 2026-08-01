@@ -24,12 +24,18 @@ const icons = {
   compare: Columns2,
 };
 
-export function ToolCard({ tool }: { tool: ToolDefinition }) {
+export function ToolCard({
+  tool,
+  href,
+}: {
+  tool: ToolDefinition;
+  href?: string;
+}) {
   const Icon = icons[tool.icon];
 
   return (
     <Link
-      href={tool.href}
+      href={href ?? tool.href}
       className="group flex min-h-52 min-w-0 max-w-full flex-col justify-between overflow-hidden rounded-2xl bg-surface p-6 shadow-[0_18px_45px_rgba(0,0,0,0.18)] transition-[background-color,transform,box-shadow] duration-300 hover:-translate-y-1 hover:bg-surface-elevated hover:shadow-[0_24px_60px_rgba(0,0,0,0.28)] max-sm:w-[calc(100vw-2.5rem)]"
     >
       <div className="flex items-start justify-between gap-4">
