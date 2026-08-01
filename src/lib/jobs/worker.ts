@@ -32,6 +32,7 @@ import { getCreatedAssetRetentionDays } from "@/lib/storage/retention-policy";
 import { generationAssetPath } from "@/lib/storage/storage-paths";
 import {
   buildCorrectiveThumbnailPrompt,
+  buildFallbackThumbnailPlan,
   evaluateThumbnail,
   planThumbnail,
 } from "@/lib/generation/thumbnail-orchestrator";
@@ -248,8 +249,32 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     referenceIds,
     getEditingServerEnv(),
   );
-  const thumbnailPlan =
-    input.contentType === "thumbnail" ? await planThumbnail(input) : null;
+  let thumbnailPlan = null;
+  if (input.contentType === "thumbnail") {
+    try {
+      thumbnailPlan = await planThumbnail(input);
+    } catch (planError) {
+      thumbnailPlan = buildFallbackThumbnailPlan(input);
+      logger.warn("generation.thumbnail_plan_fallback", {
+        jobId: job.id,
+        resourceId: generation.id,
+        errorCode:
+          typeof planError === "object" &&
+          planError !== null &&
+          "code" in planError
+            ? String(planError.code || "provider_error").slice(0, 80)
+            : "provider_error",
+        providerStatus:
+          typeof planError === "object" &&
+          planError !== null &&
+          "status" in planError
+            ? Number(planError.status) || null
+            : null,
+        providerMessage:
+          planError instanceof Error ? planError.message.slice(0, 240) : "unknown",
+      });
+    }
+  }
   const enhancedPrompt = thumbnailPlan?.finalPrompt ?? buildImagePrompt(input);
   const outputOptions = mapGenerationOptions(input.format, input.quality);
 

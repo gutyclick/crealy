@@ -78,6 +78,84 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
   ].join("\n");
 }
 
+function fallbackNiche(topic: string): ThumbnailNiche {
+  const value = topic.toLowerCase();
+  if (/(ia|inteligencia artificial|chatgpt|tecnolog|software|app)/.test(value)) return "technology_ai";
+  if (/(dinero|finanza|negocio|venta|inversi|empresa)/.test(value)) return "finance_business";
+  if (/(juego|gaming|gamer|playstation|xbox|nintendo)/.test(value)) return "gaming";
+  if (/(tutorial|curso|aprend|enseñ|educa)/.test(value)) return "education";
+  if (/(productiv|hábito|organiza|tiempo)/.test(value)) return "productivity";
+  if (/(fitness|salud|gym|entrena|peso)/.test(value)) return "fitness_health";
+  if (/(viaje|turismo|hotel|vuelo|país)/.test(value)) return "travel";
+  if (/(belleza|maquillaje|moda|estilo de vida)/.test(value)) return "beauty_lifestyle";
+  if (/(noticia|reacci|actualidad|última hora)/.test(value)) return "reactions_news";
+  if (/(historia|entretenimiento|celebridad|película)/.test(value)) return "entertainment";
+  return "general";
+}
+
+export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCreativePlan {
+  const niche = fallbackNiche(input.description);
+  const requestedText =
+    input.thumbnailTextMode === "custom"
+      ? input.primaryText?.trim() ?? ""
+      : input.thumbnailTextMode === "none"
+        ? ""
+        : "¿QUÉ PASÓ?";
+  const concepts: ThumbnailConcept[] = [
+    {
+      strategy: "clarity",
+      archetype: "result",
+      concept: "Mostrar el resultado principal de forma inmediata y sin elementos innecesarios.",
+      thumbnailText: requestedText,
+      mainSubject: input.referenceUploadIds?.length ? "La persona de referencia como protagonista" : "El resultado principal del tema",
+      composition: "Sujeto dominante en primer plano, resultado visible al lado opuesto y fondo simple.",
+      score: 88,
+    },
+    {
+      strategy: "emotion",
+      archetype: "extreme_moment",
+      concept: "Representar el momento de mayor tensión o sorpresa relacionado con el tema.",
+      thumbnailText: requestedText,
+      mainSubject: input.referenceUploadIds?.length ? "La persona de referencia con expresión legible" : "Un momento narrativo reconocible",
+      composition: "Primer plano emocional con un único elemento secundario que explique la situación.",
+      score: 82,
+    },
+    {
+      strategy: "curiosity",
+      archetype: "curiosity",
+      concept: "Insinuar la respuesta sin revelarla por completo para abrir una pregunta visual honesta.",
+      thumbnailText: requestedText,
+      mainSubject: input.referenceUploadIds?.length ? "La persona de referencia observando el elemento clave" : "El elemento inesperado del tema",
+      composition: "Foco principal grande, elemento parcialmente revelado y espacio limpio para el texto.",
+      score: 80,
+    },
+  ];
+  const selectedConcept = concepts[0];
+  const brief = {
+    topic: input.description,
+    videoTitle: input.videoTitle ?? "",
+    niche,
+    contentType: "Miniatura de YouTube",
+    audience: "Audiencia interesada en el tema del video",
+    mainPromise: "Comunicar el valor central del video en menos de un segundo",
+    primaryEmotion: input.thumbnailPreset === "curiosity" ? "curiosidad" : "interés",
+    secondaryEmotion: "confianza",
+    mainSubject: selectedConcept.mainSubject,
+    supportingObject: "Un solo elemento relacionado directamente con el tema",
+    recommendedText: requestedText,
+    visualPriority: "Sujeto, resultado y texto en ese orden",
+    avoid: [...THUMBNAIL_AVOID],
+  };
+  const planWithoutPrompt = {
+    detectedNiche: niche,
+    nicheConfidence: niche === "general" ? 0.35 : 0.72,
+    brief,
+    concepts,
+    selectedConcept,
+  };
+  return { ...planWithoutPrompt, finalPrompt: buildFinalPrompt(input, planWithoutPrompt) };
+}
+
 export async function planThumbnail(input: GenerationInput): Promise<ThumbnailCreativePlan> {
   const { responsesModel } = getEditingServerEnv();
   const preset = THUMBNAIL_PRESETS.find((item) => item.id === input.thumbnailPreset) ?? THUMBNAIL_PRESETS[0];
