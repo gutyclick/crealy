@@ -458,6 +458,19 @@ a {
   }
 }
 
+@keyframes creation-heading-swap {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.45rem, 0);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
@@ -487,6 +500,10 @@ a {
 
   .billing-status-pulse {
     animation: billing-status-pulse 1.8s var(--ease-in-out) infinite;
+  }
+
+  .creation-heading-swap {
+    animation: creation-heading-swap 420ms var(--ease-out) both;
   }
 
   .dashboard-sheet--one {

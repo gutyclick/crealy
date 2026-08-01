@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Coins,
   CreditCard,
-  HardDrive,
   LogOut,
   Menu,
   Settings,
@@ -33,7 +32,6 @@ const accountItems = [
   { href: "/settings/profile", label: "Perfil", icon: UserRound },
   { href: "/settings/security", label: "Seguridad", icon: ShieldCheck },
   { href: "/settings/billing", label: "Plan y facturación", icon: CreditCard },
-  { href: "/settings/storage", label: "Almacenamiento", icon: HardDrive },
   { href: "/settings/notifications", label: "Notificaciones", icon: Bell },
   { href: "/settings/account", label: "Datos de la cuenta", icon: Settings },
 ] as const;

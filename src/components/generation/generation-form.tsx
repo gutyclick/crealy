@@ -81,6 +81,15 @@ const platformLabels: Record<GenerationPlatform, string> = {
   generic: "Genérica",
 };
 
+const creationHeadlines: Record<ContentType, string> = {
+  thumbnail: "Haz que tu video empiece antes del play.",
+  "social-post": "Crea una idea que detenga el scroll.",
+  banner: "Dale a tu campaña el espacio que merece.",
+  "social-cover": "Haz que tu marca se reconozca al instante.",
+  story: "Cuenta algo que se entienda en un segundo.",
+  "profile-image": "Crea una imagen que realmente te represente.",
+};
+
 type SubmitState =
   | { status: "idle" }
   | { status: "loading" }
@@ -314,14 +323,25 @@ export function GenerationForm({
       className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]"
     >
       <div className="min-w-0 rounded-2xl bg-surface p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-8">
-        <div className="max-w-2xl">
-          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
-            Dale una dirección clara a tu idea.
+        <div className="max-w-3xl border-b border-white/10 pb-7">
+          <h1
+            aria-live="polite"
+            className="min-h-[2.25em] text-balance text-3xl font-semibold tracking-[-0.045em] text-foreground sm:text-5xl"
+          >
+            <span key={contentType} className="creation-heading-swap block">
+              {creationHeadlines[contentType]}
+            </span>
           </h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-muted">
-            Elige el destino primero. Crealy ajustará medidas, calidad y coste sin
-            mostrar opciones incompatibles.
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-muted sm:text-base">
+            Empieza eligiendo qué vas a crear. Crealy preparará las medidas, la
+            calidad y el coste correctos para cada destino.
           </p>
+          <div className="mt-5 flex items-center gap-3 text-xs font-semibold text-foreground/75">
+            <span aria-hidden="true" className="size-2 rounded-full bg-brand shadow-[0_0_18px_rgba(221,245,39,.38)]" />
+            <span key={`${contentType}-label`} className="creation-heading-swap">
+              Preparando {product.fullLabel.toLowerCase()}
+            </span>
+          </div>
         </div>
 
         {queuedCreations.length ? (

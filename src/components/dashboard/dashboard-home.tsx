@@ -36,12 +36,6 @@ const recommended = [
   { type: "profile-image", label: "Imagen de perfil", detail: "Máster 2048 × 2048 · 2 créditos", shape: "aspect-square rounded-full" },
 ] as const;
 
-const usefulTools = [
-  { href: "/tools/youtube-thumbnail-preview", label: "Preview de miniaturas", detail: "Mírala dentro del feed de YouTube.", icon: MonitorPlay },
-  { href: "/tools/social-post-preview", label: "Preview de posts", detail: "Comprueba encuadre y lectura en redes.", icon: Image },
-  { href: "/tools/youtube-banner-preview", label: "Preview de portadas", detail: "Revisa zonas seguras por dispositivo.", icon: PanelsTopLeft },
-] as const;
-
 export function DashboardHome({
   firstName,
   recentGenerations,
@@ -269,49 +263,6 @@ export function DashboardHome({
           description="Retoma una conversación sin perder versiones."
         />
 
-        <section aria-labelledby="tools-title" className="mt-14">
-          <SectionHeading
-            id="tools-title"
-            title="Herramientas útiles"
-            description="Comprueba cómo se verá una pieza antes de publicarla."
-            action={{ href: "/tools", label: "Ver centro de herramientas" }}
-          />
-          <div className="grid gap-3 lg:grid-cols-3">
-            {usefulTools.map((tool) => {
-              const Icon = tool.icon;
-              return (
-                <Link key={tool.href} href={tool.href} className="group rounded-2xl bg-surface p-5">
-                  <Icon aria-hidden="true" className="size-5 text-brand" />
-                  <h3 className="mt-8 font-semibold text-foreground">{tool.label}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted">{tool.detail}</p>
-                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-brand">
-                    Abrir herramienta <ArrowUpRight aria-hidden="true" className="size-4" />
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="mt-14 overflow-hidden rounded-2xl bg-surface p-6 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-8">
-          <div>
-            <p className="text-sm font-bold text-brand">Plan y capacidad</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-foreground">
-              {billingAvailable && credits !== null
-                ? `${plan === "free" ? "Plan Free" : `Plan ${plan ?? "activo"}`} · ${credits} créditos`
-                : "Facturación temporalmente no disponible"}
-            </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
-              Revisa el uso, administra la suscripción o aumenta tu capacidad de creación.
-            </p>
-          </div>
-          <Link
-            href="/settings/billing"
-            className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink sm:mt-0"
-          >
-            Administrar plan <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        </section>
       </Container>
     </main>
   );
