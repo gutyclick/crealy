@@ -10,6 +10,14 @@ const sql = readFileSync(
   "utf8",
 ).toLowerCase();
 
+const referencePositionFix = readFileSync(
+  new URL(
+    "../supabase/migrations/20260731010000_fix_generation_reference_positions.sql",
+    import.meta.url,
+  ),
+  "utf8",
+).toLowerCase();
+
 test("job creation is atomic with credit reservation and outbox", () => {
   assert.match(sql, /create_generation_job_internal/);
   assert.match(sql, /create_edit_job_internal/);
@@ -29,4 +37,9 @@ test("financial completion and definitive failure are database atomic", () => {
   assert.match(sql, /complete_generation_with_credits_internal/);
   assert.match(sql, /complete_edit_version_with_credits_internal/);
   assert.match(sql, /release_reserved_credits_internal/);
+});
+
+test("generation reference positions use the database 1 through 4 contract", () => {
+  assert.match(referencePositionFix, /reference_position integer := 1;/);
+  assert.match(referencePositionFix, /pg_get_functiondef/);
 });
