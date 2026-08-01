@@ -48,11 +48,18 @@ export async function uploadPrivateImage(
   }
 
   if (signed.provider === "r2") {
-    const uploadResponse = await fetch(signed.uploadUrl, {
-      method: "PUT",
-      headers: signed.headers,
-      body: file,
-    });
+    let uploadResponse: Response;
+    try {
+      uploadResponse = await fetch(signed.uploadUrl, {
+        method: "PUT",
+        headers: signed.headers,
+        body: file,
+      });
+    } catch {
+      throw new Error(
+        "No pudimos conectar con el almacenamiento. Revisa tu conexión e inténtalo otra vez.",
+      );
+    }
     if (!uploadResponse.ok) {
       throw new Error(
         "La conexión se interrumpió durante la subida. Inténtalo otra vez.",

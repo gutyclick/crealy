@@ -248,12 +248,15 @@ export function GenerationForm({
       setProjectId(payload.projectId);
       router.push(`/generations/${payload.generationId}?job=${payload.jobId}`);
     } catch (error) {
+      const message =
+        error instanceof TypeError && /failed to fetch/i.test(error.message)
+          ? "No pudimos conectar con Crealy. Revisa tu conexión e inténtalo otra vez."
+          : error instanceof Error
+            ? error.message
+            : "No pudimos completar la generación.";
       setResult({
         status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "No pudimos completar la generación.",
+        message,
       });
     }
   }
