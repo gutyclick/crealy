@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   GENERATION_PRODUCTS,
   getGenerationVariant,
+  getSelectableVariants,
+  getSupportedQualities,
   normalizeContentType,
   normalizeGenerationVariant,
 } from "../src/config/generation-products";
@@ -63,7 +65,7 @@ test("legacy thumbnail taxonomy remains readable and normalizes at validation", 
   if (legacy.success) {
     assert.equal(legacy.data.contentType, "thumbnail");
     assert.equal(legacy.data.variant, "thumbnail-high");
-    assert.equal(legacy.data.quality, "high");
+    assert.equal(legacy.data.quality, "standard");
   }
 });
 
@@ -74,6 +76,19 @@ test("all six creation products and their required defaults are present", () => 
   );
   assert.equal(getGenerationVariant("banner-standard")?.recommended, true);
   assert.equal(getGenerationVariant("profile-master")?.creditCost, 2);
+  assert.equal(getGenerationVariant("profile-master")?.width, 800);
+  assert.equal(getGenerationVariant("profile-master")?.height, 800);
+});
+
+test("every visible generation format supports standard and high except YouTube cover", () => {
+  for (const product of GENERATION_PRODUCTS) {
+    for (const variant of getSelectableVariants(product.id)) {
+      assert.deepEqual(
+        getSupportedQualities(variant),
+        variant.id === "cover-youtube" ? ["high"] : ["standard", "high"],
+      );
+    }
+  }
 });
 
 test("every product has a GPT Image 2 compatible provider size or fallback", () => {
@@ -112,10 +127,19 @@ test("credit cost is recomputed from product and variant, not client input", () 
       quality: "high",
     }),
   );
-  assert.throws(() =>
+  assert.equal(
     getGenerationCreditCost({
       contentType: "thumbnail",
       variant: "thumbnail-high",
+      platform: "youtube",
+      quality: "standard",
+    }),
+    1,
+  );
+  assert.throws(() =>
+    getGenerationCreditCost({
+      contentType: "social-cover",
+      variant: "cover-youtube",
       platform: "youtube",
       quality: "standard",
     }),

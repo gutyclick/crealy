@@ -1,6 +1,7 @@
 import {
   GENERATION_PRODUCTS,
   getGenerationVariant,
+  getSupportedQualities,
   type ExportStrategy,
   type GenerationVariantDefinition,
   type SafeArea,
@@ -43,7 +44,9 @@ function toFormat(
     exportHeight: variant.height,
     safeArea: variant.safeArea,
     exportStrategy: variant.exportStrategy,
-    ...(variant.quality === "high" ? { requiredQuality: "high" as const } : {}),
+    ...(getSupportedQualities(variant).length === 1
+      ? { requiredQuality: "high" as const }
+      : {}),
   };
 }
 
@@ -66,7 +69,9 @@ export const PLATFORM_COVERS = Object.fromEntries(
       description: `${variant.description} · ${variant.width} × ${variant.height}`,
       requestedOpenAISize: variant.requestedProviderSize,
       fallbackOpenAISize: variant.fallbackProviderSize,
-      requiredQuality: "high" as const,
+      ...(getSupportedQualities(variant).length === 1
+        ? { requiredQuality: "high" as const }
+        : {}),
       promptGuidelines: variant.promptGuidelines,
       previewTemplate: `${variant.platform}-cover`,
     },
@@ -76,7 +81,7 @@ export const PLATFORM_COVERS = Object.fromEntries(
   description: string;
   requestedOpenAISize: `${number}x${number}`;
   fallbackOpenAISize: `${number}x${number}`;
-  requiredQuality: "high";
+  requiredQuality?: "high";
   promptGuidelines: readonly string[];
   previewTemplate: string;
 }>;

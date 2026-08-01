@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  ArrowUpRight,
   Check,
   CircleUserRound,
   Image as ImageIcon,
@@ -17,22 +18,25 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ReferenceImagePicker,
   type ReferenceDraft,
 } from "@/components/generation/reference-image-picker";
+import { JobProgress } from "@/components/jobs/job-progress";
 import {
   GENERATION_PRODUCTS,
   PROFILE_BACKGROUNDS,
   PROFILE_INTENSITIES,
   PROFILE_MODES,
+  getDefaultQuality,
   getGenerationProduct,
   getGenerationVariant,
+  getSelectableVariants,
+  getSupportedQualities,
+  getVariantCreditCost,
   getVariantForPlatform,
-  getVariantForQuality,
 } from "@/config/generation-products";
 import {
   GENERATION_COLORS,
@@ -82,6 +86,13 @@ type SubmitState =
   | { status: "loading" }
   | { status: "error"; message: string };
 
+type QueuedCreation = {
+  jobId: string;
+  generationId: string;
+  label: string;
+  completed: boolean;
+};
+
 export function GenerationForm({
   available,
   availableCredits,
@@ -93,7 +104,6 @@ export function GenerationForm({
   maxReferenceFileMb: number;
   initialContentType?: ContentType;
 }) {
-  const router = useRouter();
   const initialProduct = getGenerationProduct(initialContentType ?? "thumbnail");
   const [contentType, setContentType] = useState<ContentType>(initialProduct.id);
   const [platform, setPlatform] = useState<GenerationPlatform | undefined>(
@@ -101,6 +111,9 @@ export function GenerationForm({
   );
   const [variant, setVariant] = useState<GenerationFormat>(
     initialProduct.defaultVariant,
+  );
+  const [quality, setQuality] = useState<GenerationQuality>(() =>
+    getDefaultQuality(getGenerationVariant(initialProduct.defaultVariant)!),
   );
   const [description, setDescription] = useState("");
   const [primaryText, setPrimaryText] = useState("");
@@ -118,6 +131,7 @@ export function GenerationForm({
   const [result, setResult] = useState<SubmitState>({ status: "idle" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [references, setReferences] = useState<ReferenceDraft[]>([]);
+  const [queuedCreations, setQueuedCreations] = useState<QueuedCreation[]>([]);
   const referencesRef = useRef(references);
 
   useEffect(() => {
@@ -134,8 +148,11 @@ export function GenerationForm({
 
   const product = getGenerationProduct(contentType);
   const variantDefinition = getGenerationVariant(variant)!;
-  const quality = variantDefinition.quality;
-  const creditCost = variantDefinition.creditCost;
+  const selectableVariants = contentType === "social-cover"
+    ? [variantDefinition]
+    : getSelectableVariants(contentType);
+  const supportedQualities = getSupportedQualities(variantDefinition);
+  const creditCost = getVariantCreditCost(variantDefinition, quality);
   const hasEnoughCredits =
     availableCredits === null || availableCredits >= creditCost;
   const styles = useMemo(
@@ -151,6 +168,7 @@ export function GenerationForm({
     setContentType(nextType);
     setPlatform(next.defaultPlatform);
     setVariant(next.defaultVariant);
+    setQuality(getDefaultQuality(getGenerationVariant(next.defaultVariant)!));
     setStyle("automatic");
     setProjectId(undefined);
     setResult({ status: "idle" });
@@ -160,12 +178,30 @@ export function GenerationForm({
   function selectPlatform(nextPlatform: GenerationPlatform) {
     setPlatform(nextPlatform);
     if (contentType === "social-cover") {
-      setVariant(getVariantForPlatform(contentType, nextPlatform).id);
+      const nextVariant = getVariantForPlatform(contentType, nextPlatform);
+      setVariant(nextVariant.id);
+      setQuality((current) =>
+        getSupportedQualities(nextVariant).includes(current)
+          ? current
+          : getDefaultQuality(nextVariant),
+      );
     }
   }
 
   function selectQuality(nextQuality: GenerationQuality) {
-    setVariant(getVariantForQuality(contentType, nextQuality).id);
+    if (getSupportedQualities(variantDefinition).includes(nextQuality)) {
+      setQuality(nextQuality);
+    }
+  }
+
+  function selectVariant(nextVariant: GenerationFormat) {
+    const definition = getGenerationVariant(nextVariant)!;
+    setVariant(nextVariant);
+    setQuality((current) =>
+      getSupportedQualities(definition).includes(current)
+        ? current
+        : getDefaultQuality(definition),
+    );
   }
 
   async function submitGeneration(event: FormEvent) {
@@ -245,8 +281,19 @@ export function GenerationForm({
         variant,
         credit_cost: creditCost,
       });
-      setProjectId(payload.projectId);
-      router.push(`/generations/${payload.generationId}?job=${payload.jobId}`);
+      setQueuedCreations((current) => [
+        {
+          jobId: payload.jobId,
+          generationId: payload.generationId,
+          label: `${product.label} · ${variantDefinition.width} × ${variantDefinition.height}`,
+          completed: false,
+        },
+        ...current,
+      ]);
+      setProjectId(undefined);
+      setDescription("");
+      setPrimaryText("");
+      setResult({ status: "idle" });
     } catch (error) {
       const message =
         error instanceof TypeError && /failed to fetch/i.test(error.message)
@@ -268,8 +315,7 @@ export function GenerationForm({
     >
       <div className="min-w-0 rounded-2xl bg-surface p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-8">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold text-brand">Nueva creación</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
             Dale una dirección clara a tu idea.
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-muted">
@@ -278,8 +324,59 @@ export function GenerationForm({
           </p>
         </div>
 
+        {queuedCreations.length ? (
+          <section aria-labelledby="creation-queue-title" className="mt-7 rounded-2xl bg-background p-4 sm:p-5">
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <h2 id="creation-queue-title" className="text-base font-semibold text-foreground">
+                  Cola de creación
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-muted">
+                  Puedes preparar otra pieza mientras estas generaciones avanzan.
+                </p>
+              </div>
+              <span className="shrink-0 text-xs font-semibold text-brand">
+                {queuedCreations.length} {queuedCreations.length === 1 ? "trabajo" : "trabajos"}
+              </span>
+            </div>
+            <div className="grid gap-3">
+              {queuedCreations.map((creation) => (
+                <div key={creation.jobId}>
+                  <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                    <p className="truncate text-xs font-medium text-muted">{creation.label}</p>
+                    {creation.completed ? (
+                      <Link
+                        href={`/generations/${creation.generationId}`}
+                        className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-brand hover:text-[var(--brand-hover)]"
+                      >
+                        Ver resultado <ArrowUpRight aria-hidden="true" className="size-3.5" />
+                      </Link>
+                    ) : null}
+                  </div>
+                  <JobProgress
+                    jobId={creation.jobId}
+                    compact
+                    onComplete={() =>
+                      setQueuedCreations((current) =>
+                        current.map((item) =>
+                          item.jobId === creation.jobId ? { ...item, completed: true } : item,
+                        ),
+                      )
+                    }
+                    onDismiss={() =>
+                      setQueuedCreations((current) =>
+                        current.filter((item) => item.jobId !== creation.jobId),
+                      )
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <fieldset className="mt-9">
-          <legend className="text-sm font-semibold text-foreground">1. ¿Qué vas a crear?</legend>
+          <legend className="text-sm font-semibold text-foreground">¿Qué vas a crear?</legend>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {GENERATION_PRODUCTS.map((item) => {
               const Icon = contentIcons[item.icon as keyof typeof contentIcons];
@@ -312,7 +409,7 @@ export function GenerationForm({
         {product.platforms.length ? (
           <fieldset className="mt-7">
             <legend className="text-sm font-semibold text-foreground">
-              2. Plataforma
+              Plataforma
             </legend>
             <div className="mt-3 flex flex-wrap gap-2">
               {product.platforms.map((item) => (
@@ -336,54 +433,18 @@ export function GenerationForm({
           </fieldset>
         ) : null}
 
-        {product.selectableQuality ? (
+        {selectableVariants.length > 1 ? (
           <fieldset className="mt-7">
             <legend className="text-sm font-semibold text-foreground">
-              3. Calidad
+              Tamaño
             </legend>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {(["standard", "high"] as const).map((item) => {
-                const target = getVariantForQuality(contentType, item);
-                const selected = quality === item;
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => selectQuality(item)}
-                    className={cn(
-                      "rounded-xl p-4 text-left transition-colors",
-                      selected
-                        ? "bg-brand/[0.09] text-foreground ring-1 ring-brand/65"
-                        : "bg-background text-muted hover:text-foreground",
-                    )}
-                  >
-                    <span className="flex items-center justify-between gap-3 text-sm font-bold">
-                      {target.label}
-                      <span className="text-xs text-brand">
-                        {target.creditCost} {target.creditCost === 1 ? "crédito" : "créditos"}
-                      </span>
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-muted">
-                      {target.description}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        ) : product.variants.length > 1 && contentType !== "social-cover" ? (
-          <fieldset className="mt-7">
-            <legend className="text-sm font-semibold text-foreground">
-              3. Tamaño
-            </legend>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {product.variants.map((item) => (
+              {selectableVariants.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   aria-pressed={variant === item.id}
-                  onClick={() => setVariant(item.id)}
+                  onClick={() => selectVariant(item.id)}
                   className={cn(
                     "rounded-xl p-4 text-left transition-colors",
                     variant === item.id
@@ -399,18 +460,63 @@ export function GenerationForm({
                       </span>
                     ) : null}
                   </span>
-                  <span className="mt-1 block text-xs text-muted">
-                    {item.shortLabel} · {item.creditCost} {item.creditCost === 1 ? "crédito" : "créditos"}
-                  </span>
+                  <span className="mt-1 block text-xs text-muted">{item.shortLabel}</span>
                 </button>
               ))}
             </div>
           </fieldset>
         ) : null}
 
+        {supportedQualities.length > 1 ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">
+              Calidad
+            </legend>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {supportedQualities.map((item) => {
+                const cost = getVariantCreditCost(variantDefinition, item);
+                const selected = quality === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => selectQuality(item)}
+                    className={cn(
+                      "rounded-xl p-4 text-left transition-colors",
+                      selected
+                        ? "bg-brand/[0.09] text-foreground ring-1 ring-brand/65"
+                        : "bg-background text-muted hover:text-foreground",
+                    )}
+                  >
+                    <span className="flex items-center justify-between gap-3 text-sm font-bold">
+                      {item === "high" ? "Alta calidad" : "Estándar"}
+                      <span className="text-xs text-brand">
+                        {cost} {cost === 1 ? "crédito" : "créditos"}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-muted">
+                      {item === "high"
+                        ? "Más detalle para la versión final."
+                        : "Ideal para explorar ideas y publicar."}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : (
+          <div className="mt-7 rounded-xl bg-brand/[0.07] p-4 ring-1 ring-brand/25">
+            <p className="text-sm font-semibold text-foreground">Alta calidad incluida</p>
+            <p className="mt-1 text-xs leading-5 text-muted">
+              La portada de YouTube siempre se genera en 2560 × 1440 con máxima calidad.
+            </p>
+          </div>
+        )}
+
         <div className="mt-8">
           <label htmlFor="description" className="text-sm font-semibold text-foreground">
-            4. Describe la pieza
+            Describe la pieza
           </label>
           <textarea
             id="description"
@@ -467,7 +573,7 @@ export function GenerationForm({
         </div>
 
         <fieldset className="mt-7">
-          <legend className="text-sm font-semibold text-foreground">5. Estilo visual</legend>
+          <legend className="text-sm font-semibold text-foreground">Estilo visual</legend>
           <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
             {styles.map((item) => (
               <button
@@ -504,7 +610,7 @@ export function GenerationForm({
 
         <div className="mt-7">
           <label htmlFor="colorPreference" className="text-sm font-semibold text-foreground">
-            6. Color
+            Color
           </label>
           <select
             id="colorPreference"

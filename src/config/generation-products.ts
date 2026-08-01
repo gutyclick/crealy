@@ -72,7 +72,7 @@ export const GENERATION_PRODUCTS = [
     selectableQuality: true,
     platforms: ["youtube"],
     defaultPlatform: "youtube",
-    defaultVariant: "thumbnail-standard",
+    defaultVariant: "thumbnail-high",
     variants: [
       {
         id: "thumbnail-standard",
@@ -90,6 +90,7 @@ export const GENERATION_PRODUCTS = [
         exportStrategy: "cover",
         platform: "youtube",
         promptGuidelines: ["Un solo foco dominante.", "Lectura inmediata en tamaño pequeño."],
+        legacy: true,
       },
       {
         id: "thumbnail-high",
@@ -118,7 +119,7 @@ export const GENERATION_PRODUCTS = [
     example: "Un post promocional para una cafetería artesanal, cálido y editorial.",
     acceptsText: true,
     acceptsReferences: true,
-    selectableQuality: false,
+    selectableQuality: true,
     platforms: ["instagram", "facebook", "linkedin", "x"],
     defaultPlatform: "instagram",
     defaultVariant: "post-square",
@@ -165,7 +166,7 @@ export const GENERATION_PRODUCTS = [
     example: "Un banner para una app de finanzas, moderno y con espacio negativo.",
     acceptsText: true,
     acceptsReferences: true,
-    selectableQuality: false,
+    selectableQuality: true,
     platforms: [],
     defaultVariant: "banner-standard",
     variants: [
@@ -200,7 +201,7 @@ export const GENERATION_PRODUCTS = [
     example: "Una portada para un podcast de negocios, sobria y cinematográfica.",
     acceptsText: true,
     acceptsReferences: true,
-    selectableQuality: false,
+    selectableQuality: true,
     platforms: ["youtube", "facebook", "x", "linkedin"],
     defaultPlatform: "youtube",
     defaultVariant: "cover-youtube",
@@ -256,6 +257,7 @@ export const GENERATION_PRODUCTS = [
         requestedProviderSize: "1536x2736", fallbackProviderSize: "1024x1536", quality: "high", creditCost: 3,
         safeArea: { x: 86, y: 230, width: 908, height: 1460 }, exportStrategy: "cover",
         promptGuidelines: ["Composición vertical 9:16 con detalle alto.", "Mantén texto y rostros fuera de las franjas superior e inferior."],
+        legacy: true,
       },
     ],
   },
@@ -263,20 +265,20 @@ export const GENERATION_PRODUCTS = [
     id: "profile-image",
     label: "Perfil",
     fullLabel: "Imagen de perfil",
-    description: "Un máster cuadrado preparado para avatar circular.",
+    description: "Imagen 1:1 preparada para avatares de redes sociales.",
     icon: "circle-user-round",
     example: "Un retrato profesional de estudio que conserve fielmente la identidad.",
     acceptsText: false,
     acceptsReferences: true,
-    selectableQuality: false,
+    selectableQuality: true,
     platforms: ["instagram", "facebook", "x", "linkedin"],
     defaultPlatform: "instagram",
     defaultVariant: "profile-master",
     variants: [
       {
-        id: "profile-master", label: "Máster", shortLabel: "2048 × 2048", description: "Máster cuadrado de alta resolución.", width: 2048, height: 2048,
-        requestedProviderSize: "2048x2048", fallbackProviderSize: "1024x1024", quality: "high", creditCost: 2, recommended: true,
-        safeArea: { x: 246, y: 246, width: 1556, height: 1556 }, exportStrategy: "cover",
+        id: "profile-master", label: "Perfil social", shortLabel: "800 × 800", description: "Formato 1:1 optimizado para avatares de redes.", width: 800, height: 800,
+        requestedProviderSize: "1024x1024", fallbackProviderSize: "1024x1024", quality: "high", creditCost: 2, recommended: true,
+        safeArea: { x: 96, y: 96, width: 608, height: 608 }, exportStrategy: "cover",
         promptGuidelines: ["Centra el sujeto o símbolo dentro del círculo seguro.", "Conserva identidad, rasgos, geometría y colores de marca."],
       },
     ],
@@ -338,8 +340,37 @@ export function getVariantForPlatform(contentType: ContentType, platform?: Gener
 
 export function getVariantForQuality(contentType: ContentType, quality: GenerationQuality) {
   const product = getGenerationProduct(contentType);
-  return product.variants.find((variant) => variant.quality === quality)
+  return product.variants.find((variant) => getSupportedQualities(variant).includes(quality))
     ?? product.variants.find((variant) => variant.id === product.defaultVariant)!;
+}
+
+export function getSelectableVariants(contentType: ContentType) {
+  return getGenerationProduct(contentType).variants.filter((variant) => !variant.legacy);
+}
+
+export function getSupportedQualities(
+  variant: GenerationVariantDefinition,
+): readonly GenerationQuality[] {
+  return variant.id === "cover-youtube"
+    ? (["high"] as const)
+    : (["standard", "high"] as const);
+}
+
+export function getDefaultQuality(variant: GenerationVariantDefinition): GenerationQuality {
+  return getSupportedQualities(variant).includes("standard") ? "standard" : "high";
+}
+
+export function getVariantCreditCost(
+  variant: GenerationVariantDefinition,
+  quality: GenerationQuality,
+) {
+  if (!getSupportedQualities(variant).includes(quality)) {
+    throw new Error("invalid_generation_quality");
+  }
+  if (quality === variant.quality) return variant.creditCost;
+  return quality === "high"
+    ? variant.creditCost + 1
+    : Math.max(1, variant.creditCost - 1);
 }
 
 export const PROFILE_MODES: readonly { id: ProfileMode; label: string }[] = [

@@ -18,6 +18,14 @@ const referencePositionFix = readFileSync(
   "utf8",
 ).toLowerCase();
 
+const generationQueueMigration = readFileSync(
+  new URL(
+    "../supabase/migrations/20260801010000_allow_generation_queue.sql",
+    import.meta.url,
+  ),
+  "utf8",
+).toLowerCase();
+
 test("job creation is atomic with credit reservation and outbox", () => {
   assert.match(sql, /create_generation_job_internal/);
   assert.match(sql, /create_edit_job_internal/);
@@ -42,4 +50,10 @@ test("financial completion and definitive failure are database atomic", () => {
 test("generation reference positions use the database 1 through 4 contract", () => {
   assert.match(referencePositionFix, /reference_position integer := 1;/);
   assert.match(referencePositionFix, /pg_get_functiondef/);
+});
+
+test("generation queue accepts several jobs while preserving a per-user cap", () => {
+  assert.match(generationQueueMigration, /generation_queue_limit/);
+  assert.match(generationQueueMigration, />= 4/);
+  assert.match(generationQueueMigration, /job_type = 'generation'/);
 });

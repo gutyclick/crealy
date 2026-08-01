@@ -1,6 +1,8 @@
 import {
   getGenerationProduct,
   getGenerationVariant,
+  getSupportedQualities,
+  getVariantCreditCost,
 } from "@/config/generation-products";
 import type {
   ContentType,
@@ -29,10 +31,10 @@ export function getGenerationCreditCost(selection: GenerationCostSelection) {
   ) {
     throw new Error("invalid_generation_platform");
   }
-  if (variant.quality !== selection.quality) {
+  if (!getSupportedQualities(variant).includes(selection.quality)) {
     throw new Error("invalid_generation_quality");
   }
-  return variant.creditCost;
+  return getVariantCreditCost(variant, selection.quality);
 }
 
 export function formatCreditCost(cost: number) {

@@ -2,6 +2,7 @@ import {
   GENERATION_PRODUCTS,
   getGenerationProduct,
   getGenerationVariant,
+  getSupportedQualities,
 } from "@/config/generation-products";
 import { VISUAL_STYLES } from "@/config/visual-styles";
 import type {
@@ -81,5 +82,6 @@ export function getFormatConfig(format: GenerationFormat) {
 }
 
 export function requiresHighQuality(format: GenerationFormat) {
-  return getGenerationVariant(format)?.quality === "high";
+  const variant = getGenerationVariant(format);
+  return variant ? getSupportedQualities(variant).length === 1 : false;
 }

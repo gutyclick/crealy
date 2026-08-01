@@ -80,7 +80,7 @@ export function buildImagePrompt(input: GenerationInput) {
 
   return [
     `Crea una ${product.fullLabel.toLowerCase()} profesional.`,
-    `Salida final: ${variant.width} × ${variant.height}. Variante: ${variant.label}. Calidad: ${variant.quality}.`,
+    `Salida final: ${variant.width} × ${variant.height}. Variante: ${variant.label}. Calidad: ${input.quality}.`,
     "",
     "Brief:",
     input.description,

@@ -4,6 +4,8 @@ import {
   PROFILE_MODES,
   getGenerationProduct,
   getGenerationVariant,
+  getDefaultQuality,
+  getSupportedQualities,
   normalizeContentType,
   normalizeGenerationVariant,
 } from "@/config/generation-products";
@@ -72,7 +74,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   const colorPreference = rawInput.colorPreference;
   const requestedQuality =
     rawInput.quality === "fast" ? "standard" : rawInput.quality;
-  const quality = definition?.quality ?? requestedQuality;
+  const quality = requestedQuality ?? (definition ? getDefaultQuality(definition) : undefined);
 
   if (description.length < 10) {
     fields.description = "Describe tu idea con al menos 10 caracteres.";
@@ -102,11 +104,10 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     fields.quality = "Elige un nivel de calidad válido.";
   }
   if (
-    product?.selectableQuality &&
     definition &&
     !isLegacyVariant &&
-    requestedQuality !== undefined &&
-    definition.quality !== requestedQuality
+    quality &&
+    !getSupportedQualities(definition).includes(quality as GenerationQuality)
   ) {
     fields.quality = "La calidad no corresponde a la variante seleccionada.";
   }

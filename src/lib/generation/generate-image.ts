@@ -51,8 +51,7 @@ export async function generateImage(
 
   async function requestImage(size: string) {
     const client = getOpenAIClient();
-    const quality =
-      definition.quality === "high" ? ("high" as const) : ("medium" as const);
+    const quality = input.quality === "high" ? ("high" as const) : ("medium" as const);
     return referenceImages.length > 0
       ? client.images.edit({
           model: imageModel,

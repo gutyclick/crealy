@@ -55,6 +55,15 @@ function reservationError(message: string, correlationId?: string) {
       429,
     );
   }
+  if (message.includes("generation_queue_limit")) {
+    return errorResponse(
+      {
+        code: "generation_limit",
+        error: "Ya tienes cuatro creaciones en cola. Espera a que termine una para añadir otra.",
+      },
+      429,
+    );
+  }
   if (message.includes("generation_limit")) {
     return errorResponse(
       {
