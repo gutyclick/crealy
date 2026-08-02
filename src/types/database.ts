@@ -709,9 +709,22 @@ export type Database = {
           },
         ]
       }
+      brand_styles: {
+        Row: { id: string; user_id: string; name: string; description: string | null; visual_summary: string | null; visual_attributes: Json | null; consistency_score: number | null; warnings: Json; supported_design_types: string[]; analysis_status: string; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; name: string; description?: string | null; visual_summary?: string | null; visual_attributes?: Json | null; consistency_score?: number | null; warnings?: Json; supported_design_types?: string[]; analysis_status?: string; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; name?: string; description?: string | null; visual_summary?: string | null; visual_attributes?: Json | null; consistency_score?: number | null; warnings?: Json; supported_design_types?: string[]; analysis_status?: string; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      brand_style_references: {
+        Row: { id: string; style_id: string; user_id: string; storage_path: string; original_filename: string; mime_type: string; file_size: number; width: number | null; height: number | null; content_hash: string; position: number; created_at: string }
+        Insert: { id?: string; style_id: string; user_id: string; storage_path: string; original_filename: string; mime_type: string; file_size: number; width?: number | null; height?: number | null; content_hash: string; position: number; created_at?: string }
+        Update: { id?: string; style_id?: string; user_id?: string; storage_path?: string; original_filename?: string; mime_type?: string; file_size?: number; width?: number | null; height?: number | null; content_hash?: string; position?: number; created_at?: string }
+        Relationships: [{ foreignKeyName: "brand_style_references_style_id_fkey"; columns: ["style_id"]; isOneToOne: false; referencedRelation: "brand_styles"; referencedColumns: ["id"] }]
+      }
       generations: {
         Row: {
           asset_id: string | null
+          brand_style_id: string | null
           client_request_id: string
           color_preference: string
           completed_at: string | null
@@ -751,6 +764,7 @@ export type Database = {
           status: string
           storage_path: string | null
           style: string
+          style_consistency: string | null
           user_id: string
           user_prompt: string
           variant: string | null
@@ -758,6 +772,7 @@ export type Database = {
         }
         Insert: {
           asset_id?: string | null
+          brand_style_id?: string | null
           client_request_id: string
           color_preference: string
           completed_at?: string | null
@@ -797,6 +812,7 @@ export type Database = {
           status?: string
           storage_path?: string | null
           style: string
+          style_consistency?: string | null
           user_id: string
           user_prompt: string
           variant?: string | null
@@ -804,6 +820,7 @@ export type Database = {
         }
         Update: {
           asset_id?: string | null
+          brand_style_id?: string | null
           client_request_id?: string
           color_preference?: string
           completed_at?: string | null
@@ -843,6 +860,7 @@ export type Database = {
           status?: string
           storage_path?: string | null
           style?: string
+          style_consistency?: string | null
           user_id?: string
           user_prompt?: string
           variant?: string | null

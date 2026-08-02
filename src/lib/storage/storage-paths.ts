@@ -17,3 +17,10 @@ export function uploadAssetPath(input: {
   return `${input.userId}/uploads/unattached/${input.uploadId}.${input.extension}`;
 }
 
+export function brandStyleReferencePath(input: {
+  userId: string;
+  styleId: string;
+  referenceId: string;
+}) {
+  return `users/${input.userId}/styles/${input.styleId}/${input.referenceId}.webp`;
+}

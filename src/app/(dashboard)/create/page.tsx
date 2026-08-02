@@ -11,6 +11,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { normalizeContentType } from "@/config/generation-products";
 import { createClient } from "@/lib/supabase/server";
+import { getBrandStyleAccess, listBrandStyles } from "@/lib/brand-styles/service";
 
 /*
 THESIS: Crear debe sentirse como dirigir una pieza visual, no operar un panel técnico.
@@ -37,13 +38,16 @@ const CONTENT_TYPES = new Set<ContentType>([
 export default async function CreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; style?: string }>;
 }) {
-  const requestedType = (await searchParams).type;
+  const params = await searchParams;
+  const requestedType = params.type;
   const normalizedType = requestedType ? normalizeContentType(requestedType) : null;
   const initialContentType =
     normalizedType && CONTENT_TYPES.has(normalizedType) ? normalizedType : undefined;
   const user = await requireUser();
+  const styleAccess = await getBrandStyleAccess(user.id);
+  const brandStyles = styleAccess.entitlement.enabled ? await listBrandStyles(user.id) : [];
   let availableCredits: number | null = null;
   try {
     availableCredits = (await getUserBillingState(user.id)).credits.available;
@@ -74,6 +78,8 @@ export default async function CreatePage({
           availableCredits={availableCredits}
           maxReferenceFileMb={maxReferenceFileMb}
           initialContentType={initialContentType}
+          brandStyles={brandStyles}
+          initialBrandStyleId={typeof params.style === "string" ? params.style : undefined}
         />
       </Container>
     </main>

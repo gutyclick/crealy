@@ -19,6 +19,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { GenerationErrorResponse } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
+import { getBrandStyleAccess, requireOwnedStyle } from "@/lib/brand-styles/service";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -277,6 +278,16 @@ export async function POST(request: Request) {
   }
 
   const input = validation.data;
+  if (input.brandStyleId) {
+    try {
+      const [brandStyle, access] = await Promise.all([requireOwnedStyle(user.id, input.brandStyleId), getBrandStyleAccess(user.id)]);
+      if (!access.entitlement.enabled || brandStyle.analysis_status !== "ready" || !access.entitlement.supportedDesignTypes.includes(input.contentType) || !brandStyle.supported_design_types.includes(input.contentType)) {
+        return errorResponse({ code: "invalid_request", error: "Este estilo no está disponible para el tipo de diseño o plan actual." }, 403);
+      }
+    } catch {
+      return errorResponse({ code: "invalid_request", error: "No encontramos el estilo guardado seleccionado." }, 404);
+    }
+  }
   const variantDefinition = getGenerationVariant(input.variant);
   if (!variantDefinition) {
     return errorResponse(
@@ -366,7 +377,11 @@ export async function POST(request: Request) {
           selectedByUser: false,
           generationIntent: input.generationIntent ?? "initial",
           parentGenerationId: input.parentGenerationId ?? null,
+          brandStyleId: input.brandStyleId ?? null,
+          styleConsistency: input.styleConsistency ?? null,
         },
+        brand_style_id: input.brandStyleId ?? null,
+        style_consistency: input.styleConsistency ?? null,
       })
       .eq("id", queued.generation_id)
       .eq("user_id", user.id);

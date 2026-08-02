@@ -23,6 +23,8 @@ import { getOperationsConfig } from "@/lib/operations/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { JobRecord } from "@/types/jobs";
 import type { GenerationInput } from "@/types/generation";
+import { buildBrandStylePrompt } from "@/lib/brand-styles/build-style-prompt";
+import { parseVisualAttributes } from "@/lib/brand-styles/service";
 import {
   normalizeContentType,
   normalizeGenerationVariant,
@@ -154,7 +156,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   const { data: generation, error } = await admin
     .from("generations")
     .select(
-      "id, user_id, project_id, status, user_prompt, content_type, platform, cover_platform, requested_format, variant, style, quality, primary_text, color_preference, custom_colors, credit_reservation_id, profile_mode, generation_metadata",
+      "id, user_id, project_id, status, user_prompt, content_type, platform, cover_platform, requested_format, variant, style, quality, primary_text, color_preference, custom_colors, credit_reservation_id, profile_mode, generation_metadata, brand_style_id, style_consistency",
     )
     .eq("id", job.resource_id)
     .eq("user_id", job.user_id)
@@ -232,6 +234,8 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       (generationMetadata.thumbnailPreset as GenerationInput["thumbnailPreset"]) ?? undefined,
     thumbnailTextMode:
       (generationMetadata.thumbnailTextMode as GenerationInput["thumbnailTextMode"]) ?? undefined,
+    brandStyleId: generation.brand_style_id ?? undefined,
+    styleConsistency: (generation.style_consistency as GenerationInput["styleConsistency"]) ?? undefined,
   };
 
   const { data: referenceRows, error: referenceError } = await admin
@@ -249,6 +253,17 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     referenceIds,
     getEditingServerEnv(),
   );
+  let brandStylePrompt: string | null = null;
+  if (input.brandStyleId) {
+    const { data: brandStyle } = await admin.from("brand_styles").select("*").eq("id", input.brandStyleId).eq("user_id", generation.user_id).eq("analysis_status", "ready").maybeSingle();
+    if (!brandStyle) throw new Error("brand_style_not_found");
+    const { data: styleRefs } = await admin.from("brand_style_references").select("storage_path, mime_type").eq("style_id", brandStyle.id).eq("user_id", generation.user_id).order("position");
+    for (const [index, ref] of (styleRefs ?? []).entries()) {
+      const buffer = await getPrivateStorage().get(ref.storage_path); if (!buffer) throw new Error("brand_style_reference_not_found");
+      references.push({ buffer, mimeType: ref.mime_type as "image/png" | "image/jpeg" | "image/webp", filename: `brand-style-${index + 1}.webp` });
+    }
+    brandStylePrompt = buildBrandStylePrompt({ userPrompt: input.description, designType: input.contentType, brandStyle: { name: brandStyle.name, visualSummary: brandStyle.visual_summary, visualAttributes: parseVisualAttributes(brandStyle.visual_attributes) }, consistency: input.styleConsistency ?? "balanced", preset: input.thumbnailPreset, referenceCount: styleRefs?.length ?? 0 });
+  }
   let thumbnailPlan = null;
   if (input.contentType === "thumbnail") {
     try {
@@ -275,7 +290,8 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       });
     }
   }
-  const enhancedPrompt = thumbnailPlan?.finalPrompt ?? buildImagePrompt(input);
+  const basePrompt = thumbnailPlan?.finalPrompt ?? buildImagePrompt(input);
+  const enhancedPrompt = brandStylePrompt ? `${basePrompt}\n\nMI ESTILO SELECCIONADO:\n${brandStylePrompt}` : basePrompt;
   const outputOptions = mapGenerationOptions(input.format, input.quality);
 
   const { error: processingError } = await admin
@@ -462,6 +478,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     data: { url: `${getPublicSiteUrl()}/generations/${generation.id}` },
   }).catch(() => null);
   await queueLowCreditWarning(generation.user_id);
+  if (input.brandStyleId) logger.info("brand_style.generation_completed", { userId: generation.user_id, resourceId: generation.id, styleId: input.brandStyleId, contentType: input.contentType, consistency: input.styleConsistency ?? "balanced" });
 }
 
 async function processEdit(job: JobRecord, startedAt: number) {

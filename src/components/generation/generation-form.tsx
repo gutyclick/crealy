@@ -63,6 +63,7 @@ import type {
   ThumbnailTextMode,
 } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
+import type { BrandStyle, StyleConsistency } from "@/types/brand-style";
 
 const contentIcons = {
   "monitor-play": MonitorPlay,
@@ -102,11 +103,15 @@ export function GenerationForm({
   availableCredits,
   maxReferenceFileMb,
   initialContentType,
+  brandStyles,
+  initialBrandStyleId,
 }: {
   available: boolean;
   availableCredits: number | null;
   maxReferenceFileMb: number;
   initialContentType?: ContentType;
+  brandStyles: BrandStyle[];
+  initialBrandStyleId?: string;
 }) {
   const initialProduct = getGenerationProduct(initialContentType ?? "thumbnail");
   const [contentType, setContentType] = useState<ContentType>(initialProduct.id);
@@ -124,6 +129,8 @@ export function GenerationForm({
   const [videoTitle, setVideoTitle] = useState("");
   const [thumbnailPreset, setThumbnailPreset] = useState<ThumbnailPreset>("impactful");
   const [thumbnailTextMode, setThumbnailTextMode] = useState<ThumbnailTextMode>("automatic");
+  const [brandStyleId, setBrandStyleId] = useState(() => brandStyles.some((item) => item.id === initialBrandStyleId) ? initialBrandStyleId : undefined);
+  const [styleConsistency, setStyleConsistency] = useState<StyleConsistency>("balanced");
   const [style, setStyle] = useState<GenerationStyle>("automatic");
   const [colorPreference, setColorPreference] = useState<ColorPreference>("auto");
   const [customColors, setCustomColors] = useState(["#DDF527", "#10110D"]);
@@ -176,6 +183,7 @@ export function GenerationForm({
     setVariant(next.defaultVariant);
     setQuality(getDefaultQuality(getGenerationVariant(next.defaultVariant)!));
     setStyle("automatic");
+    setBrandStyleId((current) => current && brandStyles.find((item) => item.id === current)?.supportedDesignTypes.includes(nextType) ? current : undefined);
     setProjectId(undefined);
     setResult({ status: "idle" });
     setFieldErrors({});
@@ -272,6 +280,8 @@ export function GenerationForm({
           videoTitle: contentType === "thumbnail" ? videoTitle.trim() || undefined : undefined,
           thumbnailPreset: contentType === "thumbnail" ? thumbnailPreset : undefined,
           thumbnailTextMode: contentType === "thumbnail" ? thumbnailTextMode : undefined,
+          brandStyleId,
+          styleConsistency: brandStyleId ? styleConsistency : undefined,
         }),
       });
       const payload = await readApiResponse<
@@ -592,6 +602,19 @@ export function GenerationForm({
               ))}
             </div>
             {fieldErrors.thumbnailPreset ? <FieldError message={fieldErrors.thumbnailPreset} /> : null}
+          </fieldset>
+        ) : null}
+
+        {brandStyles.some((item) => item.supportedDesignTypes.includes(contentType)) ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">Mi estilo</legend>
+            <p className="mt-1 text-xs leading-5 text-muted">Mantén la identidad de tu marca sin copiar tus diseños anteriores.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button type="button" aria-pressed={!brandStyleId} onClick={() => setBrandStyleId(undefined)} className={cn("rounded-xl p-4 text-left transition-colors", !brandStyleId ? "bg-brand/[0.09] ring-1 ring-brand/65" : "bg-background ring-1 ring-white/10 hover:bg-white/[0.04]")}><span className="flex items-center justify-between text-sm font-semibold text-foreground">Automático{!brandStyleId ? <Check className="size-4 text-brand" /> : null}</span><span className="mt-1 block text-xs text-muted">Crealy decide la dirección para esta idea.</span></button>
+              {brandStyles.filter((item) => item.analysisStatus === "ready" && item.supportedDesignTypes.includes(contentType)).map((item) => <button key={item.id} type="button" aria-pressed={brandStyleId === item.id} onClick={() => { setBrandStyleId(item.id); trackConversion("brand_style_selected", { content_type: contentType }); }} className={cn("overflow-hidden rounded-xl p-4 text-left transition-colors", brandStyleId === item.id ? "bg-brand/[0.09] ring-1 ring-brand/65" : "bg-background ring-1 ring-white/10 hover:bg-white/[0.04]")}><span className="flex items-center justify-between text-sm font-semibold text-foreground">{item.name}{brandStyleId === item.id ? <Check className="size-4 text-brand" /> : null}</span><span className="mt-1 block line-clamp-2 text-xs leading-5 text-muted">{item.visualSummary}</span></button>)}
+            </div>
+            {brandStyleId ? <div className="mt-4 rounded-xl bg-background p-4 ring-1 ring-white/10"><label htmlFor="styleConsistency" className="text-xs font-semibold text-foreground">Consistencia del estilo</label><select id="styleConsistency" value={styleConsistency} onChange={(event) => setStyleConsistency(event.target.value as StyleConsistency)} className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-surface px-3 text-sm text-foreground outline-none focus:border-brand/60"><option value="flexible">Flexible</option><option value="balanced">Equilibrada</option><option value="strict">Muy consistente</option></select></div> : null}
+            <Link href="/my-style" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline">Crear nuevo estilo <ArrowRight className="size-3.5" /></Link>
           </fieldset>
         ) : null}
 

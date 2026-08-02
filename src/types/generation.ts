@@ -86,6 +86,7 @@ export type ThumbnailPreset =
   | "minimal"
   | "cinematic";
 export type ThumbnailTextMode = "automatic" | "custom" | "none";
+export type StyleConsistency = "flexible" | "balanced" | "strict";
 export type ThumbnailNiche =
   | "technology_ai"
   | "finance_business"
@@ -189,6 +190,8 @@ export type GenerationInput = {
   thumbnailTextMode?: ThumbnailTextMode;
   generationIntent?: "initial" | "variation" | "additional_concept";
   parentGenerationId?: string;
+  brandStyleId?: string;
+  styleConsistency?: StyleConsistency;
 };
 
 export type GenerationReferenceImage = {

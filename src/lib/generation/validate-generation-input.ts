@@ -24,6 +24,7 @@ import type {
   ProfileMode,
   ThumbnailPreset,
   ThumbnailTextMode,
+  StyleConsistency,
 } from "@/types/generation";
 
 const UUID_PATTERN =
@@ -80,6 +81,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   const requestedQuality =
     rawInput.quality === "fast" ? "standard" : rawInput.quality;
   const quality = requestedQuality ?? (definition ? getDefaultQuality(definition) : undefined);
+  const brandStyleId = typeof rawInput.brandStyleId === "string" ? rawInput.brandStyleId : undefined;
+  const styleConsistency = rawInput.styleConsistency === "flexible" || rawInput.styleConsistency === "strict" ? rawInput.styleConsistency : "balanced";
+  if (brandStyleId && !UUID_PATTERN.test(brandStyleId)) fields.brandStyleId = "El estilo guardado no es válido.";
 
   if (description.length < (contentType === "thumbnail" ? 3 : 10)) {
     fields.description = contentType === "thumbnail"
@@ -253,6 +257,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       ...(typeof rawInput.parentGenerationId === "string"
         ? { parentGenerationId: rawInput.parentGenerationId }
         : {}),
+      ...(brandStyleId ? { brandStyleId, styleConsistency: styleConsistency as StyleConsistency } : {}),
     },
   };
 }

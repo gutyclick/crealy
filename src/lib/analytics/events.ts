@@ -20,7 +20,17 @@ export type ConversionEvent =
   | "pricing_viewed"
   | "checkout_started"
   | "subscription_activated"
-  | "support_request_created";
+  | "support_request_created"
+  | "brand_style_viewed"
+  | "brand_style_creation_started"
+  | "brand_style_references_uploaded"
+  | "brand_style_analysis_completed"
+  | "brand_style_created"
+  | "brand_style_selected"
+  | "brand_style_generation_completed"
+  | "brand_style_limit_reached"
+  | "brand_style_upgrade_clicked"
+  | "brand_style_deleted";
 
 type SafeProperties = Partial<{
   content_type: string;
@@ -33,6 +43,7 @@ type SafeProperties = Partial<{
   duration_bucket: string;
   variant: string;
   credit_cost: number;
+  reference_count: number;
 }>;
 
 export function trackConversion(

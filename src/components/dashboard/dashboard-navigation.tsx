@@ -11,6 +11,7 @@ const items = [
   { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
   { href: "/dashboard/tools", label: "Herramientas" },
+  { href: "/my-style", label: "Mi estilo" },
 ] as const;
 
 export function DashboardNavigation() {
