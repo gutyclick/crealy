@@ -451,6 +451,11 @@ a {
   }
 }
 
+@keyframes price-swap {
+  from { opacity: 0.35; transform: translate3d(0, 0.35rem, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
 @keyframes billing-status-pulse {
   50% {
     border-color: rgba(221, 245, 39, 0.7);
@@ -510,6 +515,8 @@ a {
   .pricing-reveal {
     animation: pricing-reveal 720ms var(--ease-out) both;
   }
+
+  .price-swap { animation: price-swap 220ms var(--ease-out) both; }
 
   .billing-status-pulse {
     animation: billing-status-pulse 1.8s var(--ease-in-out) infinite;

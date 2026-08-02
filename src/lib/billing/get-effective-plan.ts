@@ -42,7 +42,8 @@ export function getEffectivePlan(
   const hasPaidAccess = paidStatus || inGrace;
   const key: PlanKey =
     hasPaidAccess &&
-    (subscription.plan_key === "pro" ||
+    (subscription.plan_key === "starter" ||
+      subscription.plan_key === "pro" ||
       subscription.plan_key === "business")
       ? subscription.plan_key
       : "free";

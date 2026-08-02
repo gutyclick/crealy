@@ -64,8 +64,9 @@ async function handleInvoicePaid(
   }
 
   const credits = getCreditServerEnv();
-  const amount =
-    synced.planKey === "pro"
+  const amount = synced.planKey === "starter"
+    ? credits.starterMonthlyCredits
+    : synced.planKey === "pro"
       ? credits.proMonthlyCredits
       : credits.businessMonthlyCredits;
   const admin = createAdminClient();

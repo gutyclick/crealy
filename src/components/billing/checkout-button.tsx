@@ -5,17 +5,23 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { trackConversion } from "@/lib/analytics/events";
+import type { BillingPeriod } from "@/config/plans";
+import type { PaidPublicPlan } from "@/lib/billing/get-stripe-price-id";
 
 export function CheckoutButton({
   plan,
   authenticated,
   enabled,
   planName,
+  period,
+  cta,
 }: {
-  plan: "pro" | "business";
+  plan: PaidPublicPlan;
+  period: BillingPeriod;
   authenticated: boolean;
   enabled: boolean;
   planName: string;
+  cta?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -39,6 +45,7 @@ export function CheckoutButton({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           plan,
+          period,
           clientRequestId: crypto.randomUUID(),
         }),
       });
@@ -79,7 +86,7 @@ export function CheckoutButton({
           </>
         ) : enabled ? (
           <>
-            Elegir {planName}
+            {cta ?? `Elegir ${planName}`}
             <ArrowRight aria-hidden="true" className="size-4" />
           </>
         ) : (

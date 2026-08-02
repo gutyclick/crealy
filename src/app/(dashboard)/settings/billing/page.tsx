@@ -15,8 +15,9 @@ export const metadata: Metadata = {
 
 const planNames = {
   free: "Gratis",
-  pro: "Pro",
-  business: "Business",
+  starter: "Starter",
+  pro: "Creator",
+  business: "Pro",
 } as const;
 
 const subscriptionStatusNames: Record<string, string> = {

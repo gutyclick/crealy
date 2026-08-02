@@ -171,15 +171,20 @@ export function isEditingAvailable() {
 
 export function getCreditServerEnv() {
   return {
-    freeSignupCredits: readNonNegativeInteger("FREE_SIGNUP_CREDITS", 5, 10_000),
+    starterMonthlyCredits: readPositiveInteger(
+      "STARTER_MONTHLY_CREDITS",
+      15,
+      1_000_000,
+    ),
+    freeSignupCredits: readNonNegativeInteger("FREE_SIGNUP_CREDITS", 3, 10_000),
     proMonthlyCredits: readPositiveInteger(
       "PRO_MONTHLY_CREDITS",
-      100,
+      75,
       1_000_000,
     ),
     businessMonthlyCredits: readPositiveInteger(
       "BUSINESS_MONTHLY_CREDITS",
-      500,
+      225,
       1_000_000,
     ),
     generationStandardCost: readPositiveInteger(
@@ -189,7 +194,7 @@ export function getCreditServerEnv() {
     ),
     generationHighCost: readPositiveInteger(
       "CREDITS_COST_GENERATION_HIGH",
-      2,
+      3,
       10_000,
     ),
     editCost: readPositiveInteger("CREDITS_COST_EDIT", 1, 10_000),
@@ -243,6 +248,11 @@ export function getBillingServerEnv() {
     businessPriceDisplay:
       process.env.STRIPE_BUSINESS_PRICE_DISPLAY?.trim() || "",
     proPriceDisplay: process.env.STRIPE_PRO_PRICE_DISPLAY?.trim() || "",
+    priceIds: {
+      starter: { monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID?.trim() || "", annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID?.trim() || "" },
+      creator: { monthly: process.env.STRIPE_CREATOR_MONTHLY_PRICE_ID?.trim() || process.env.STRIPE_PRO_PRICE_ID?.trim() || "", annual: process.env.STRIPE_CREATOR_ANNUAL_PRICE_ID?.trim() || "" },
+      pro: { monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID?.trim() || process.env.STRIPE_BUSINESS_PRICE_ID?.trim() || "", annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID?.trim() || "" },
+    },
   };
 }
 
@@ -251,8 +261,7 @@ export function isCheckoutAvailable() {
     const config = getBillingServerEnv();
     return Boolean(
       config.billingEnabled &&
-        config.proPriceId &&
-        config.proPriceDisplay &&
+        config.priceIds.creator.monthly &&
         process.env.STRIPE_SECRET_KEY?.trim(),
     );
   } catch {

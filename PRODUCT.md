@@ -32,8 +32,8 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
   permite partir de una generación o de un PNG/JPEG/WebP propio, pedir cambios
   localizados, comparar resultados y restaurar cualquier versión como nueva
   base.
-- La landing muestra planes reales: Gratis y Pro mensual. Business permanece
-  oculto mientras no exista un precio configurado.
+- La oferta comercial presenta Gratis, Starter, Creator y Pro con periodos
+  mensual y anual. Checkout exige un Price ID real para cada combinación.
 - La Fase 3 incorpora autenticación real con Supabase, confirmación de correo, recuperación de contraseña, perfil básico y un dashboard privado protegido.
 - Los proyectos, generaciones e imágenes privadas persisten en PostgreSQL y Supabase Storage con RLS.
 - Las sesiones, mensajes, uploads y versiones se conservan de forma privada con
@@ -59,9 +59,9 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 
 ## Evidence on Hand
 
-No existen todavía testimonios, clientes, métricas ni casos de estudio. El
-precio visible de Pro siempre debe provenir de la configuración real; no se
-fabrican descuentos, pruebas ni alternativas anuales.
+No existen todavía testimonios, clientes, métricas ni casos de estudio. Los
+precios publicados son $0, $5, $15 y $39 al mes; los periodos anuales son $48,
+$144 y $374. No se fabrican testimonios, temporizadores ni urgencia.
 
 ## Product Principles
 

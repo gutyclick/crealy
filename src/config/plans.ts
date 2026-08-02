@@ -1,80 +1,29 @@
-import type { PlanKey } from "@/types/billing";
+export type BillingPeriod = "monthly" | "annual";
+export type PublicPlanId = "free" | "starter" | "creator" | "pro";
 
-export type PlanDefinition = {
-  key: PlanKey;
+export type PricingPlan = {
+  id: PublicPlanId;
   name: string;
   description: string;
-  monthlyCredits: number;
+  monthlyPrice: number;
+  annualPrice?: number;
+  credits: number;
+  popular?: boolean;
+  estimatedUsage: { standard: number; hd: number; bannerOrCover: number };
   features: string[];
-  isVisible: boolean;
-  featured: boolean;
-  priceLabel: string;
-  priceSuffix?: string;
+  cta: string;
+  supportingText: string;
 };
 
-export function getPlanDefinitions({
-  freeSignupCredits,
-  proMonthlyCredits,
-  businessMonthlyCredits,
-  proPriceLabel,
-  businessPriceLabel,
-  businessVisible,
-}: {
-  freeSignupCredits: number;
-  proMonthlyCredits: number;
-  businessMonthlyCredits: number;
-  proPriceLabel: string;
-  businessPriceLabel: string;
-  businessVisible: boolean;
-}): PlanDefinition[] {
-  return [
-    {
-      key: "free",
-      name: "Gratis",
-      description: "Para probar Crealy y crear tus primeras imágenes.",
-      monthlyCredits: 0,
-      features: [
-        `${freeSignupCredits} créditos de bienvenida`,
-        "Generación y edición básica",
-        "Historial creativo privado",
-        "Sin tarjeta obligatoria",
-      ],
-      isVisible: true,
-      featured: false,
-      priceLabel: "0",
-      priceSuffix: "para empezar",
-    },
-    {
-      key: "pro",
-      name: "Pro",
-      description:
-        "Para creadores que generan contenido de forma frecuente.",
-      monthlyCredits: proMonthlyCredits,
-      features: [
-        `${proMonthlyCredits} créditos en cada ciclo mensual`,
-        "Generación en alta calidad",
-        "Edición conversacional",
-        "Administración desde Stripe",
-      ],
-      isVisible: true,
-      featured: true,
-      priceLabel: proPriceLabel || "Precio pendiente",
-      priceSuffix: proPriceLabel ? "/ mes" : undefined,
-    },
-    {
-      key: "business",
-      name: "Business",
-      description: "Para operaciones creativas con mayor volumen.",
-      monthlyCredits: businessMonthlyCredits,
-      features: [
-        `${businessMonthlyCredits} créditos mensuales configurables`,
-        "Todo lo incluido en Pro",
-        "Preparado para futuras capacidades",
-      ],
-      isVisible: businessVisible,
-      featured: false,
-      priceLabel: businessPriceLabel,
-      priceSuffix: businessPriceLabel ? "/ mes" : undefined,
-    },
-  ];
+export const PRICING_PLANS: PricingPlan[] = [
+  { id: "free", name: "Gratis", description: "Prueba Crealy y crea tus primeros diseños.", monthlyPrice: 0, credits: 3, estimatedUsage: { standard: 3, hd: 1, bannerOrCover: 0 }, features: ["Prueba Crealy sin riesgo", "Herramientas de creación con IA", "Calidad estándar y HD", "Sin tarjeta de crédito", "Exportación sencilla"], cta: "Probar Crealy gratis", supportingText: "Sin tarjeta. Empieza a crear en segundos." },
+  { id: "starter", name: "Starter", description: "Para quienes crean contenido de vez en cuando.", monthlyPrice: 5, annualPrice: 48, credits: 15, estimatedUsage: { standard: 15, hd: 5, bannerOrCover: 3 }, features: ["Todas las herramientas de creación", "Miniaturas, posts, banners y covers", "Calidad estándar y HD", "Historial de diseños", "Sin marca de agua", "Uso comercial"], cta: "Empezar", supportingText: "Ideal para proyectos personales y creadores ocasionales." },
+  { id: "creator", name: "Creator", description: "Para creadores que publican contenido todas las semanas.", monthlyPrice: 15, annualPrice: 144, credits: 75, popular: true, estimatedUsage: { standard: 75, hd: 25, bannerOrCover: 15 }, features: ["Todo lo incluido en Starter", "5 veces más créditos que Starter", "Generación prioritaria", "Historial ampliado", "Más variaciones por proyecto", "Organización de diseños", "Ideal para YouTube y redes"], cta: "Empezar como Creator", supportingText: "La mejor relación entre precio, volumen y flexibilidad." },
+  { id: "pro", name: "Pro", description: "Para profesionales, freelancers y negocios que crean a gran escala.", monthlyPrice: 39, annualPrice: 374, credits: 225, estimatedUsage: { standard: 225, hd: 75, bannerOrCover: 45 }, features: ["Todo lo incluido en Creator", "Máximo volumen de generación", "Mayor prioridad de procesamiento", "Historial completo", "Uso comercial profesional", "Ideal para múltiples clientes", "Producción a gran escala"], cta: "Escalar mi negocio", supportingText: "Diseñado para quienes convierten contenido en negocio." },
+];
+
+export function displayPrice(plan: PricingPlan, period: BillingPeriod) {
+  if (plan.id === "free") return { primary: "$0", suffix: "para empezar", detail: "3 créditos incluidos" };
+  if (period === "annual" && plan.annualPrice) return { primary: `$${Math.round(plan.annualPrice / 12)}`, suffix: "/ mes", detail: `$${plan.annualPrice} facturados anualmente` };
+  return { primary: `$${plan.monthlyPrice}`, suffix: "/ mes", detail: `${plan.credits} créditos mensuales` };
 }

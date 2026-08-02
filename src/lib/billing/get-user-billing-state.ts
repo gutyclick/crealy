@@ -97,8 +97,7 @@ export async function getUserBillingState(
     billingEnabled: config.billingEnabled,
     canCheckoutPro: Boolean(
         config.billingEnabled &&
-        config.proPriceId &&
-        config.proPriceDisplay &&
+        config.priceIds.creator.monthly &&
         process.env.STRIPE_SECRET_KEY?.trim(),
     ),
     hasBillingCustomer,
