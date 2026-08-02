@@ -8,6 +8,7 @@ import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { createClient } from "@/lib/supabase/server";
 import type { JobStatus } from "@/types/jobs";
+import type { PlanKey } from "@/types/billing";
 
 export const metadata: Metadata = {
   robots: {
@@ -28,6 +29,7 @@ export default async function DashboardLayout({
       : "";
   const fallbackName = user.email?.split("@")[0] || "Tu cuenta";
   let credits: number | null = null;
+  let plan: PlanKey = "free";
   const supabase = await createClient();
   const { data: activeJobs } = await supabase
     .from("jobs")
@@ -41,6 +43,7 @@ export default async function DashboardLayout({
     await ensureWelcomeCredits(user.id);
     const billing = await getUserBillingState(user.id);
     credits = billing.credits.available;
+    plan = billing.effectivePlan.key;
   } catch (error) {
     console.error("[Crealy Billing]", {
       action: "dashboard_state",
@@ -62,6 +65,7 @@ export default async function DashboardLayout({
           createdAt: job.created_at,
           unread: true,
         }))}
+        plan={plan}
       />
       {children}
       <FeedbackWidget />

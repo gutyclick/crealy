@@ -25,12 +25,14 @@ import {
 } from "@/components/dashboard/creation-notification-center";
 import { Container } from "@/components/layout/container";
 import { Logo } from "@/components/ui/logo";
+import type { PlanKey } from "@/types/billing";
 
 type DashboardHeaderProps = {
   displayName: string;
   email: string;
   credits: number | null;
   initialNotifications: CreationNotification[];
+  plan: PlanKey;
 };
 
 const accountItems = [
@@ -41,7 +43,7 @@ const accountItems = [
   { href: "/settings/account", label: "Datos de la cuenta", icon: Settings },
 ] as const;
 
-export function DashboardHeader({ displayName, email, credits, initialNotifications }: DashboardHeaderProps) {
+export function DashboardHeader({ displayName, email, credits, initialNotifications, plan }: DashboardHeaderProps) {
   const initial = displayName.charAt(0).toUpperCase() || "C";
   const [openMenu, setOpenMenu] = useState<"navigation" | "account" | null>(null);
   const navigationMenuRef = useRef<HTMLDivElement>(null);
@@ -80,7 +82,7 @@ export function DashboardHeader({ displayName, email, credits, initialNotificati
         <Logo className="justify-self-start" />
 
         <div className="justify-self-center">
-          <DashboardNavigation />
+          <DashboardNavigation plan={plan} />
         </div>
 
         <div className="flex items-center gap-1.5 justify-self-end">
@@ -100,7 +102,7 @@ export function DashboardHeader({ displayName, email, credits, initialNotificati
             {openMenu === "navigation" ? (
               <div id="dashboard-mobile-navigation" className="absolute right-0 top-[calc(100%+0.65rem)] w-64 overflow-hidden rounded-[0.8rem] border border-white/10 bg-surface-elevated shadow-[0_18px_50px_rgba(0,0,0,0.42)]" onClick={closeMenus}>
                 <p className="px-5 pb-2 pt-4 text-xs font-medium text-muted">Navegación</p>
-                <MobileDashboardNavigation />
+                <MobileDashboardNavigation plan={plan} />
               </div>
             ) : null}
           </div>

@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Check,
   CircleUserRound,
+  Crown,
   Image as ImageIcon,
   LoaderCircle,
   MonitorPlay,
@@ -64,6 +65,7 @@ import type {
 } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
 import type { BrandStyle, StyleConsistency } from "@/types/brand-style";
+import type { BrandStyleEntitlement } from "@/config/brand-styles";
 
 const contentIcons = {
   "monitor-play": MonitorPlay,
@@ -104,6 +106,7 @@ export function GenerationForm({
   maxReferenceFileMb,
   initialContentType,
   brandStyles,
+  brandStyleEntitlement,
   initialBrandStyleId,
 }: {
   available: boolean;
@@ -111,6 +114,7 @@ export function GenerationForm({
   maxReferenceFileMb: number;
   initialContentType?: ContentType;
   brandStyles: BrandStyle[];
+  brandStyleEntitlement: BrandStyleEntitlement;
   initialBrandStyleId?: string;
 }) {
   const initialProduct = getGenerationProduct(initialContentType ?? "thumbnail");
@@ -605,16 +609,21 @@ export function GenerationForm({
           </fieldset>
         ) : null}
 
-        {brandStyles.some((item) => item.supportedDesignTypes.includes(contentType)) ? (
+        {!brandStyleEntitlement.enabled && ["thumbnail", "banner", "social-post", "social-cover"].includes(contentType) ? (
+          <section className="mt-7 rounded-xl border border-brand/20 bg-brand/[0.035] p-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
+            <div><div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Crown aria-hidden="true" className="size-4 text-brand" /> Firma visual <span className="text-xs font-semibold text-brand">Creator · Pro</span></div><p className="mt-1 text-xs leading-5 text-muted">Mantén la identidad de tu marca en cada nueva creación.</p></div>
+            <Link href="/my-style" className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-brand sm:mt-0">Descubrir la función <ArrowRight className="size-3.5" /></Link>
+          </section>
+        ) : brandStyles.some((item) => item.supportedDesignTypes.includes(contentType)) ? (
           <fieldset className="mt-7">
-            <legend className="text-sm font-semibold text-foreground">Mi estilo</legend>
+            <legend className="text-sm font-semibold text-foreground">Firma visual</legend>
             <p className="mt-1 text-xs leading-5 text-muted">Mantén la identidad de tu marca sin copiar tus diseños anteriores.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <button type="button" aria-pressed={!brandStyleId} onClick={() => setBrandStyleId(undefined)} className={cn("rounded-xl p-4 text-left transition-colors", !brandStyleId ? "bg-brand/[0.09] ring-1 ring-brand/65" : "bg-background ring-1 ring-white/10 hover:bg-white/[0.04]")}><span className="flex items-center justify-between text-sm font-semibold text-foreground">Automático{!brandStyleId ? <Check className="size-4 text-brand" /> : null}</span><span className="mt-1 block text-xs text-muted">Crealy decide la dirección para esta idea.</span></button>
               {brandStyles.filter((item) => item.analysisStatus === "ready" && item.supportedDesignTypes.includes(contentType)).map((item) => <button key={item.id} type="button" aria-pressed={brandStyleId === item.id} onClick={() => { setBrandStyleId(item.id); trackConversion("brand_style_selected", { content_type: contentType }); }} className={cn("overflow-hidden rounded-xl p-4 text-left transition-colors", brandStyleId === item.id ? "bg-brand/[0.09] ring-1 ring-brand/65" : "bg-background ring-1 ring-white/10 hover:bg-white/[0.04]")}><span className="flex items-center justify-between text-sm font-semibold text-foreground">{item.name}{brandStyleId === item.id ? <Check className="size-4 text-brand" /> : null}</span><span className="mt-1 block line-clamp-2 text-xs leading-5 text-muted">{item.visualSummary}</span></button>)}
             </div>
             {brandStyleId ? <div className="mt-4 rounded-xl bg-background p-4 ring-1 ring-white/10"><label htmlFor="styleConsistency" className="text-xs font-semibold text-foreground">Consistencia del estilo</label><select id="styleConsistency" value={styleConsistency} onChange={(event) => setStyleConsistency(event.target.value as StyleConsistency)} className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-surface px-3 text-sm text-foreground outline-none focus:border-brand/60"><option value="flexible">Flexible</option><option value="balanced">Equilibrada</option><option value="strict">Muy consistente</option></select></div> : null}
-            <Link href="/my-style" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline">Crear nuevo estilo <ArrowRight className="size-3.5" /></Link>
+            <Link href="/my-style" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline">Crear nueva firma visual <ArrowRight className="size-3.5" /></Link>
           </fieldset>
         ) : null}
 

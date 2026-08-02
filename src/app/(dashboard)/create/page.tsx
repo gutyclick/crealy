@@ -79,6 +79,7 @@ export default async function CreatePage({
           maxReferenceFileMb={maxReferenceFileMb}
           initialContentType={initialContentType}
           brandStyles={brandStyles}
+          brandStyleEntitlement={styleAccess.entitlement}
           initialBrandStyleId={typeof params.style === "string" ? params.style : undefined}
         />
       </Container>

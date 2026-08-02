@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { Crown } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+import type { PlanKey } from "@/types/billing";
 
 const items = [
   { href: "/dashboard", label: "Inicio" },
@@ -11,11 +13,12 @@ const items = [
   { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
   { href: "/dashboard/tools", label: "Herramientas" },
-  { href: "/my-style", label: "Mi estilo" },
+  { href: "/my-style", label: "Firma visual", premium: true },
 ] as const;
 
-export function DashboardNavigation() {
+export function DashboardNavigation({ plan }: { plan: PlanKey }) {
   const pathname = usePathname();
+  const showPremiumCue = plan === "free" || plan === "starter";
 
   return (
     <nav aria-label="Navegación principal" className="hidden items-center gap-1 lg:flex">
@@ -36,6 +39,7 @@ export function DashboardNavigation() {
             )}
           >
             {item.label}
+            {"premium" in item && item.premium && showPremiumCue ? <Crown aria-label="Disponible en Creator y Pro" className="ml-1.5 size-3.5 text-brand" /> : null}
           </Link>
         );
       })}
@@ -43,8 +47,9 @@ export function DashboardNavigation() {
   );
 }
 
-export function MobileDashboardNavigation() {
+export function MobileDashboardNavigation({ plan }: { plan: PlanKey }) {
   const pathname = usePathname();
+  const showPremiumCue = plan === "free" || plan === "starter";
 
   return (
     <nav aria-label="Navegación móvil" className="grid gap-1 p-2">
@@ -62,7 +67,7 @@ export function MobileDashboardNavigation() {
                 : "text-white/75 hover:bg-white/[0.06] hover:text-foreground",
             )}
           >
-            {item.label}
+            <span className="flex items-center gap-2">{item.label}{"premium" in item && item.premium && showPremiumCue ? <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand"><Crown aria-hidden="true" className="size-3.5" /> Creator · Pro</span> : null}</span>
             {active ? <span className="size-1.5 rounded-full bg-brand-ink" /> : null}
           </Link>
         );

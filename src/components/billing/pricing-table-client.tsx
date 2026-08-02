@@ -36,6 +36,5 @@ export function PricingTableClient({ authenticated, currentPlan, compact, billin
         </article>;
       })}
     </div>
-    {!compact ? <div className="mx-auto mt-10 max-w-3xl border-y border-white/10 py-6 text-center"><p className="font-semibold text-foreground">Combina tus créditos como prefieras.</p><p className="mt-2 text-sm leading-6 text-muted">Diseño estándar: 1 crédito · Diseño HD: 3 créditos · Banner o cover: 5 créditos</p></div> : null}
   </div>;
 }
