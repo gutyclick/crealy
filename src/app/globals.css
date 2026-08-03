@@ -489,6 +489,17 @@ a {
   }
 }
 
+@keyframes nav-new-signal {
+  0%, 72%, 100% {
+    box-shadow: 0 4px 12px rgba(221, 245, 39, 0.12);
+    filter: brightness(1);
+  }
+  82% {
+    box-shadow: 0 5px 18px rgba(221, 245, 39, 0.34);
+    filter: brightness(1.12);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
@@ -528,6 +539,10 @@ a {
 
   .creation-toast {
     animation: creation-toast-enter 420ms var(--ease-out) both;
+  }
+
+  .nav-new-badge {
+    animation: nav-new-signal 3.8s var(--ease-in-out) infinite;
   }
 
   .dashboard-sheet--one {

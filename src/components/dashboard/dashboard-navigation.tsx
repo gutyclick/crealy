@@ -10,12 +10,26 @@ import type { PlanKey } from "@/types/billing";
 const items = [
   { href: "/dashboard", label: "Inicio" },
   { href: "/create", label: "Crear" },
-  { href: "/recreate", label: "Recreate" },
+  { href: "/recreate", label: "Recreate", isNew: true },
   { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
   { href: "/dashboard/tools", label: "Herramientas" },
   { href: "/my-style", label: "Firma visual", premium: true },
 ] as const;
+
+function NewBadge({ floating = false }: { floating?: boolean }) {
+  return (
+    <span
+      aria-label="Nueva función"
+      className={cn(
+        "nav-new-badge -rotate-6 rounded-[0.3rem] bg-brand px-1.5 py-0.5 font-mono text-[0.625rem] font-bold uppercase leading-none tracking-[0.08em] text-brand-ink",
+        floating && "absolute -right-1.5 -top-1.5",
+      )}
+    >
+      New
+    </span>
+  );
+}
 
 export function DashboardNavigation({ plan }: { plan: PlanKey }) {
   const pathname = usePathname();
@@ -24,8 +38,7 @@ export function DashboardNavigation({ plan }: { plan: PlanKey }) {
   return (
     <nav aria-label="Navegación principal" className="hidden items-center gap-1 lg:flex">
       {items.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
         return (
           <Link
@@ -40,6 +53,7 @@ export function DashboardNavigation({ plan }: { plan: PlanKey }) {
             )}
           >
             {item.label}
+            {"isNew" in item && item.isNew ? <NewBadge floating /> : null}
             {"premium" in item && item.premium && showPremiumCue ? <Crown aria-label="Disponible en Creator y Pro" className="ml-1.5 size-3.5 text-brand" /> : null}
           </Link>
         );
@@ -68,7 +82,11 @@ export function MobileDashboardNavigation({ plan }: { plan: PlanKey }) {
                 : "text-white/75 hover:bg-white/[0.06] hover:text-foreground",
             )}
           >
-            <span className="flex items-center gap-2">{item.label}{"premium" in item && item.premium && showPremiumCue ? <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand"><Crown aria-hidden="true" className="size-3.5" /> Creator · Pro</span> : null}</span>
+            <span className="flex items-center gap-2">
+              {item.label}
+              {"isNew" in item && item.isNew ? <NewBadge /> : null}
+              {"premium" in item && item.premium && showPremiumCue ? <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand"><Crown aria-hidden="true" className="size-3.5" /> Creator · Pro</span> : null}
+            </span>
             {active ? <span className="size-1.5 rounded-full bg-brand-ink" /> : null}
           </Link>
         );
