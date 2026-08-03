@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 
 export function FinalCtaSection() {
   return (
-    <section id="final-cta" className="scroll-mt-24 pb-24 sm:pb-32">
+    <section id="final-cta" className="scroll-mt-24 pb-14 sm:pb-32">
       <Container>
-        <div className="reveal-clip relative overflow-hidden rounded-2xl border border-white/[0.1] bg-surface-elevated px-6 py-16 text-center text-foreground sm:px-10 sm:py-24">
+        <div className="reveal-clip relative overflow-hidden rounded-2xl border border-white/[0.1] bg-surface-elevated px-6 py-12 text-center text-foreground sm:px-10 sm:py-24">
           <div
             aria-hidden="true"
             className="absolute -left-16 -top-24 size-72 rounded-full border border-brand/15"

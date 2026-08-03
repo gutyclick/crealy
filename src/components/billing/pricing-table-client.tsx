@@ -31,7 +31,7 @@ function Tooltip({ label, children }: { label: string; children: ReactNode }) {
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
         onBlur={() => setOpen(false)}
-        className="grid size-6 place-items-center rounded-md text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className="grid size-11 place-items-center rounded-[var(--radius-control)] text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <CircleHelp aria-hidden="true" className="size-3.5" />
       </button>
@@ -123,9 +123,13 @@ export function PricingTableClient({
         </div>
       ) : null}
 
+      <p className="mb-3 text-center text-xs text-[var(--text-meta)] md:hidden">
+        Desliza para comparar los planes
+      </p>
+
       <div
         className={cn(
-          "grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4",
+          "mobile-content-rail flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto pb-4 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0 xl:grid-cols-4",
           compact && "mx-auto max-w-6xl",
         )}
       >
@@ -142,7 +146,7 @@ export function PricingTableClient({
             <article
               key={plan.id}
               className={cn(
-                "relative flex min-h-full flex-col rounded-2xl border bg-surface p-6 transition-[transform,border-color,box-shadow] duration-200 ease-out hover:-translate-y-1 sm:p-7",
+                "relative flex min-h-full w-[84vw] shrink-0 snap-center flex-col rounded-2xl border bg-surface p-6 transition-[transform,border-color,box-shadow] duration-200 ease-out hover:-translate-y-1 sm:p-7 md:w-auto",
                 plan.popular
                   ? "border-brand/70 bg-surface-elevated shadow-[0_18px_55px_rgba(221,245,39,.08)] xl:-translate-y-2 xl:hover:-translate-y-3"
                   : "border-white/10 hover:border-white/20",
@@ -234,10 +238,10 @@ export function PricingTableClient({
                     </Tooltip>
                   </span>
                 </li>
-                {plan.features.map((feature) => (
+                {plan.features.map((feature, featureIndex) => (
                   <li
                     key={feature}
-                    className="flex items-start gap-2.5 text-sm leading-5 text-muted"
+                    className={cn("items-start gap-2.5 text-sm leading-5 text-muted", featureIndex < 3 ? "flex" : "hidden sm:flex")}
                   >
                     <Check
                       aria-hidden="true"

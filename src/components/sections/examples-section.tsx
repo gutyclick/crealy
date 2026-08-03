@@ -9,7 +9,7 @@ export function ExamplesSection() {
   return (
     <section
       id="examples"
-      className="section-surface scroll-mt-24 border-y border-white/[0.07] py-24 sm:py-32"
+      className="section-surface scroll-mt-24 border-y border-white/[0.07] py-14 sm:py-32"
     >
       <Container>
         <SectionHeading
@@ -18,12 +18,12 @@ export function ExamplesSection() {
           description="Conceptos visuales para distintos ritmos, audiencias y momentos de publicación."
         />
 
-        <div className="reveal-clip mt-12 grid auto-rows-[18rem] gap-4 md:grid-cols-5">
+        <div className="mobile-content-rail reveal-clip mt-9 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 sm:mt-12 md:grid md:auto-rows-[18rem] md:grid-cols-5 md:overflow-visible md:pb-0">
           {examples.map((example) => (
             <figure
               key={example.title}
               className={cn(
-                "group relative overflow-hidden rounded-2xl bg-surface",
+                "group relative h-[21rem] w-[84vw] shrink-0 snap-center overflow-hidden rounded-2xl bg-surface md:h-auto md:w-auto",
                 example.className,
               )}
             >
@@ -42,13 +42,16 @@ export function ExamplesSection() {
                 <p className="mt-2 text-sm text-white/72">
                   {example.description}
                 </p>
+                <span className="mt-3 inline-flex rounded-md bg-black/55 px-2 py-1 font-mono text-[0.6rem] tracking-[0.1em] text-white/78">
+                  GENERADO CON CREALY
+                </span>
               </figcaption>
             </figure>
           ))}
         </div>
         <p className="mx-auto mt-6 max-w-xl text-center text-sm leading-6 text-white/58">
-          Imágenes conceptuales creadas para mostrar la amplitud visual de
-          Crealy.
+          Resultados de ejemplo generados con Crealy para mostrar distintos
+          formatos y direcciones visuales.
         </p>
       </Container>
     </section>

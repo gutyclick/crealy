@@ -4,7 +4,7 @@ import { faqs } from "@/config/landing";
 
 export function FaqSection() {
   return (
-    <section id="faq" className="scroll-mt-24 py-24 sm:py-32">
+    <section id="faq" className="scroll-mt-24 py-14 sm:py-32">
       <Container>
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl">

@@ -33,7 +33,7 @@ const recommended = [
   { type: "thumbnail", label: "Miniatura estándar", detail: "1280 × 720 · 1 crédito", shape: "aspect-video" },
   { type: "social-post", label: "Post vertical", detail: "1080 × 1350 · 1 crédito", shape: "aspect-[4/5]" },
   { type: "story", label: "Historia 9:16", detail: "1080 × 1920 · 2 créditos", shape: "aspect-[9/16]" },
-  { type: "profile-image", label: "Imagen de perfil", detail: "Máster 2048 × 2048 · 2 créditos", shape: "aspect-square rounded-full" },
+  { type: "profile-image", label: "Imagen de perfil", detail: "800 × 800 · optimizada para redes", shape: "aspect-square rounded-full" },
 ] as const;
 
 export function DashboardHome({

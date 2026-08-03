@@ -13,17 +13,26 @@ const resultImages = [
   {
     src: "/images/examples/technology.webp",
     alt: "Propuesta visual de tecnología con un dispositivo transparente",
-    label: "Miniatura",
+    label: "Miniatura · YouTube",
+    mode: "Idea → resultado",
   },
   {
     src: "/images/examples/productivity.webp",
     alt: "Propuesta visual de productividad con un escritorio ordenado",
-    label: "Post",
+    label: "Post · Instagram",
+    mode: "Firma visual",
   },
   {
     src: "/images/examples/podcast.webp",
     alt: "Propuesta visual para podcast con micrófono de estudio",
-    label: "Portada",
+    label: "Portada · Podcast",
+    mode: "Firma visual",
+  },
+  {
+    src: "/images/examples/fitness.webp",
+    alt: "Resultado Recreate para una pieza deportiva de alto contraste",
+    label: "Miniatura · Recreate",
+    mode: "Referencia → resultado",
   },
 ] as const;
 
@@ -32,20 +41,20 @@ export function ProductPreview() {
     <section
       id="preview"
       aria-labelledby="preview-title"
-      className="scroll-mt-24 pb-24 sm:pb-32"
+      className="scroll-mt-24 pb-14 sm:pb-32"
     >
       <Container>
         <div className="mx-auto mb-10 max-w-3xl text-center">
-          <p className="text-sm font-medium text-brand">Vista conceptual</p>
+          <p className="text-sm font-medium text-brand">Resultados de Crealy</p>
           <h2
             id="preview-title"
             className="mt-3 text-balance text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-5xl"
           >
-            Describe. Compara. Elige.
+            De una idea a una pieza lista para publicar.
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            La atención se queda en tu mensaje, no en aprender dónde está cada
-            herramienta.
+            Una idea escrita, una referencia o tu Firma visual. Este es el tipo
+            de resultado que Crealy produce.
           </p>
         </div>
 
@@ -136,7 +145,7 @@ export function ProductPreview() {
                   <ArrowRight aria-hidden="true" className="size-4" />
                 </button>
                 <p id="generator-status" className="text-center text-xs leading-5 text-white/58">
-                  Vista conceptual. La generación todavía está en desarrollo.
+                  Ejemplo estático del flujo real de creación.
                 </p>
               </div>
             </div>
@@ -146,17 +155,13 @@ export function ProductPreview() {
                 <p className="text-sm font-semibold text-foreground">
                   Propuestas
                 </p>
-                <span className="text-xs text-white/55">3 direcciones</span>
+                <span className="text-xs text-white/55">4 resultados</span>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {resultImages.map((result, index) => (
                   <figure
                     key={result.src}
-                    className={
-                      index === 0
-                        ? "group relative min-h-52 overflow-hidden rounded-xl sm:col-span-2 sm:min-h-64"
-                        : "group relative min-h-48 overflow-hidden rounded-xl"
-                    }
+                    className="group relative min-h-48 overflow-hidden rounded-xl first:sm:col-span-2 first:sm:min-h-64"
                   >
                     <Image
                       src={result.src}
@@ -171,11 +176,12 @@ export function ProductPreview() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/8 to-transparent" />
                     <figcaption className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
-                      <span className="text-sm font-semibold text-white">
-                        {result.label}
+                      <span>
+                        <span className="block text-sm font-semibold text-white">{result.label}</span>
+                        <span className="mt-1 block text-xs text-white/65">{result.mode}</span>
                       </span>
-                      <span className="font-mono text-[0.6rem] tracking-[0.12em] text-white/56">
-                        EJEMPLO
+                      <span className="rounded-md bg-black/60 px-2 py-1 font-mono text-[0.6rem] tracking-[0.1em] text-white/80">
+                        GENERADO CON CREALY
                       </span>
                     </figcaption>
                   </figure>

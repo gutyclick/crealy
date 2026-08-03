@@ -44,7 +44,7 @@ export function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      className="scroll-mt-24 py-24 sm:py-32"
+      className="scroll-mt-24 py-14 sm:py-32"
     >
       <Container>
         <SectionHeading
@@ -53,14 +53,14 @@ export function HowItWorksSection() {
           description="Un proceso corto para mantener tu atención en el mensaje y llegar antes a una dirección útil."
         />
 
-        <div className="reveal-rise mx-auto mt-14 grid max-w-6xl overflow-hidden rounded-2xl border border-white/[0.1] bg-surface md:grid-cols-3">
+        <div className="mobile-content-rail reveal-rise mx-auto mt-9 flex max-w-6xl snap-x snap-mandatory gap-3 overflow-x-auto pb-3 sm:mt-14 md:grid md:grid-cols-3 md:gap-0 md:overflow-hidden md:rounded-2xl md:border md:border-white/[0.1] md:bg-surface md:pb-0">
           {creationSteps.map((step, index) => {
             const Icon = icons[index];
 
             return (
               <article
                 key={step.title}
-                className="relative flex min-h-[23rem] flex-col items-center border-b border-white/[0.09] p-7 text-center last:border-b-0 md:border-b-0 md:border-r md:p-8 md:last:border-r-0"
+                className="relative flex min-h-[21rem] w-[82vw] shrink-0 snap-center flex-col items-center rounded-2xl border border-white/[0.1] bg-surface p-7 text-center md:min-h-[23rem] md:w-auto md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:p-8 md:last:border-r-0"
               >
                 <div className="flex w-full items-center justify-between">
                   <Icon aria-hidden="true" className="size-5 text-brand" />

@@ -26,7 +26,7 @@ const ratios = {
 
 export function ContentTypesSection() {
   return (
-    <section id="product" className="scroll-mt-24 py-24 sm:py-32">
+    <section id="product" className="scroll-mt-24 py-14 sm:py-32">
       <Container>
         <SectionHeading
           align="center"
@@ -34,7 +34,7 @@ export function ContentTypesSection() {
           description="Mantén una misma dirección visual mientras preparas contenido para cada canal."
         />
 
-        <div className="reveal-rise mx-auto mt-14 grid max-w-6xl overflow-hidden rounded-2xl border border-white/[0.1] bg-surface/62 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mobile-content-rail reveal-rise mx-auto mt-9 flex max-w-6xl snap-x snap-mandatory gap-3 overflow-x-auto pb-3 sm:mt-14 md:grid md:grid-cols-2 md:gap-0 md:overflow-hidden md:rounded-2xl md:border md:border-white/[0.1] md:bg-surface/62 md:pb-0 xl:grid-cols-4">
           {contentTypes.map((item, index) => {
             const Icon = icons[item.key];
 
@@ -42,7 +42,7 @@ export function ContentTypesSection() {
               <article
                 key={item.key}
                 className={cn(
-                  "group relative flex min-h-72 flex-col items-center justify-between p-7 text-center sm:p-8",
+                  "group relative flex min-h-64 w-[82vw] shrink-0 snap-center flex-col items-center justify-between rounded-2xl border border-white/[0.1] bg-surface/62 p-6 text-center sm:p-8 md:min-h-72 md:w-auto md:rounded-none md:border-0",
                   index > 0 && "border-t border-white/[0.09] md:border-t-0",
                   index === 1 && "md:border-l",
                   index === 2 && "md:border-t xl:border-l xl:border-t-0",

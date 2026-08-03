@@ -5,7 +5,7 @@ import { crealyFlow, traditionalFlow } from "@/config/landing";
 
 export function ComparisonSection() {
   return (
-    <section className="section-surface border-y border-white/[0.07] py-24 sm:py-32">
+    <section className="section-surface border-y border-white/[0.07] py-14 sm:py-32">
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-5xl">
