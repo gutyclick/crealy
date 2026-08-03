@@ -192,6 +192,9 @@ export type GenerationInput = {
   parentGenerationId?: string;
   brandStyleId?: string;
   styleConsistency?: StyleConsistency;
+  creationMode?: "create" | "recreate";
+  recreateSimilarity?: import("@/types/recreate").RecreateSimilarity;
+  recreateBlueprint?: import("@/types/recreate").RecreateBlueprint;
 };
 
 export type GenerationReferenceImage = {

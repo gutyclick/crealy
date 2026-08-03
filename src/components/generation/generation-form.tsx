@@ -66,6 +66,7 @@ import type {
 import type { QueuedGenerationResponse } from "@/types/jobs";
 import type { BrandStyle, StyleConsistency } from "@/types/brand-style";
 import type { BrandStyleEntitlement } from "@/config/brand-styles";
+import { RecreatePanel, type RecreateState } from "@/components/recreate/recreate-panel";
 
 const contentIcons = {
   "monitor-play": MonitorPlay,
@@ -149,6 +150,8 @@ export function GenerationForm({
   const [result, setResult] = useState<SubmitState>({ status: "idle" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [references, setReferences] = useState<ReferenceDraft[]>([]);
+  const [creationMode, setCreationMode] = useState<"create" | "recreate">("create");
+  const [recreate, setRecreate] = useState<RecreateState>({ similarity: "similar", ready: false });
   const referencesRef = useRef(references);
 
   useEffect(() => {
@@ -172,6 +175,8 @@ export function GenerationForm({
   const creditCost = getVariantCreditCost(variantDefinition, quality);
   const hasEnoughCredits =
     availableCredits === null || availableCredits >= creditCost;
+  const supportsRecreate = ["thumbnail", "social-post", "banner", "social-cover"].includes(contentType);
+  const recreateReady = creationMode !== "recreate" || (recreate.ready && Boolean(recreate.blueprint) && Boolean(references[0]?.uploadId));
   const styles = useMemo(
     () =>
       GENERATION_STYLES.filter((item) =>
@@ -191,6 +196,8 @@ export function GenerationForm({
     setProjectId(undefined);
     setResult({ status: "idle" });
     setFieldErrors({});
+    setCreationMode("create");
+    setRecreate({ similarity: "similar", ready: false });
   }
 
   function selectPlatform(nextPlatform: GenerationPlatform) {
@@ -286,6 +293,9 @@ export function GenerationForm({
           thumbnailTextMode: contentType === "thumbnail" ? thumbnailTextMode : undefined,
           brandStyleId,
           styleConsistency: brandStyleId ? styleConsistency : undefined,
+          creationMode,
+          recreateSimilarity: creationMode === "recreate" ? recreate.similarity : undefined,
+          recreateBlueprint: creationMode === "recreate" ? recreate.blueprint : undefined,
         }),
       });
       const payload = await readApiResponse<
@@ -392,6 +402,23 @@ export function GenerationForm({
           </div>
           {fieldErrors.contentType ? <FieldError message={fieldErrors.contentType} /> : null}
         </fieldset>
+
+        {supportsRecreate ? (
+          <div className="mt-7 inline-flex rounded-xl bg-background p-1 ring-1 ring-white/10" aria-label="Modo de creación">
+            <button type="button" aria-pressed={creationMode === "create"} onClick={() => setCreationMode("create")} className={cn("min-h-10 rounded-lg px-4 text-sm font-semibold transition-colors", creationMode === "create" ? "bg-white text-black" : "text-muted hover:text-foreground")}>Crear con IA</button>
+            <button type="button" aria-pressed={creationMode === "recreate"} onClick={() => setCreationMode("recreate")} className={cn("min-h-10 rounded-lg px-4 text-sm font-semibold transition-colors", creationMode === "recreate" ? "bg-brand text-brand-ink" : "text-muted hover:text-foreground")}>Recreate</button>
+          </div>
+        ) : null}
+
+        {creationMode === "recreate" && supportsRecreate ? (
+          <RecreatePanel
+            category={contentType as "thumbnail" | "social-post" | "banner" | "social-cover"}
+            references={references}
+            setReferences={setReferences}
+            disabled={result.status === "loading"}
+            onChange={(next) => setRecreate((current) => ({ ...current, ...next, blueprint: next.blueprint ?? current.blueprint }))}
+          />
+        ) : null}
 
         {product.platforms.length ? (
           <fieldset className="mt-7">
@@ -535,7 +562,7 @@ export function GenerationForm({
 
         <div className="mt-8">
           <label htmlFor="description" className="text-sm font-semibold text-foreground">
-            {contentType === "thumbnail" ? "¿De qué trata tu video?" : "Describe la pieza"}
+            {creationMode === "recreate" ? "¿Qué quieres crear con esta referencia?" : contentType === "thumbnail" ? "¿De qué trata tu video?" : "Describe la pieza"}
           </label>
           <textarea
             id="description"
@@ -690,8 +717,10 @@ export function GenerationForm({
             references={references}
             setReferences={setReferences}
             maxFileMb={maxReferenceFileMb}
-            maxFiles={contentType === "thumbnail" ? 1 : 4}
+            maxFiles={creationMode === "recreate" ? 2 : contentType === "thumbnail" ? 1 : 4}
             disabled={result.status === "loading"}
+            label={creationMode === "recreate" ? "Referencia y protagonista" : undefined}
+            description={creationMode === "recreate" ? "La primera imagen define la fórmula visual. Puedes añadir una segunda imagen propia para usar como protagonista, producto u objeto principal." : undefined}
           />
           {contentType === "profile-image" ? (
             <p className="mt-3 flex gap-2 text-xs leading-5 text-muted">
@@ -811,13 +840,13 @@ export function GenerationForm({
 
         <button
           type="submit"
-          disabled={!available || !hasEnoughCredits || result.status === "loading"}
+          disabled={!available || !hasEnoughCredits || !recreateReady || result.status === "loading"}
           className="mt-7 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink shadow-[0_16px_40px_rgba(221,245,39,.12)] transition-transform hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-40"
         >
           {result.status === "loading" ? (
             <><LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> Preparando tu creación…</>
           ) : (
-            <>{contentType === "thumbnail" ? "Generar miniatura" : "Generar"} · {creditCost} {creditCost === 1 ? "crédito" : "créditos"} <ArrowRight aria-hidden="true" className="size-4" /></>
+            <>{creationMode === "recreate" ? "Recrear diseño" : contentType === "thumbnail" ? "Generar miniatura" : "Generar"} · {creditCost} {creditCost === 1 ? "crédito" : "créditos"} <ArrowRight aria-hidden="true" className="size-4" /></>
           )}
         </button>
         <p className="mx-auto mt-3 max-w-xl text-center text-xs leading-5 text-white/50">

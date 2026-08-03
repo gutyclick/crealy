@@ -7,6 +7,7 @@ import {
 import { GENERATION_COLORS } from "@/config/generation";
 import { getVisualStyle, resolveAutomaticStyle } from "@/config/visual-styles";
 import type { GenerationInput } from "@/types/generation";
+import { buildRecreatePrompt } from "@/lib/recreate/build-recreate-prompt";
 
 function palettePrompt(input: GenerationInput) {
   if (input.colorPreference !== "custom" || !input.customColors?.length) {
@@ -65,6 +66,7 @@ function productGuidelines(input: GenerationInput) {
 }
 
 export function buildImagePrompt(input: GenerationInput) {
+  const recreatePrompt = buildRecreatePrompt(input);
   const product = getGenerationProduct(input.contentType);
   const variant = getGenerationVariant(input.variant);
   if (!variant) throw new Error("invalid_generation_variant");
@@ -79,6 +81,7 @@ export function buildImagePrompt(input: GenerationInput) {
       : "No añadas titulares, palabras, logotipos ni marcas de agua no solicitados.";
 
   return [
+    recreatePrompt,
     `Crea una ${product.fullLabel.toLowerCase()} profesional.`,
     `Salida final: ${variant.width} × ${variant.height}. Variante: ${variant.label}. Calidad: ${input.quality}.`,
     "",

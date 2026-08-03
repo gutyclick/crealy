@@ -13,6 +13,7 @@ import { queueTransactionalEmail } from "@/lib/email/queue-email";
 import { getEditingServerEnv, getGenerationServerEnv } from "@/lib/env/server";
 import { getPublicSiteUrl } from "@/lib/seo/get-public-site-url";
 import { buildImagePrompt } from "@/lib/generation/build-image-prompt";
+import { buildRecreatePrompt } from "@/lib/recreate/build-recreate-prompt";
 import { generateImage } from "@/lib/generation/generate-image";
 import { loadGenerationReferences } from "@/lib/generation/load-generation-references";
 import { mapGenerationOptions } from "@/lib/generation/map-generation-options";
@@ -236,6 +237,9 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       (generationMetadata.thumbnailTextMode as GenerationInput["thumbnailTextMode"]) ?? undefined,
     brandStyleId: generation.brand_style_id ?? undefined,
     styleConsistency: (generation.style_consistency as GenerationInput["styleConsistency"]) ?? undefined,
+    creationMode: generationMetadata.creationMode === "recreate" ? "recreate" : "create",
+    recreateSimilarity: (generationMetadata.recreateSimilarity as GenerationInput["recreateSimilarity"]) ?? undefined,
+    recreateBlueprint: (generationMetadata.recreateBlueprint as GenerationInput["recreateBlueprint"]) ?? undefined,
   };
 
   const { data: referenceRows, error: referenceError } = await admin
@@ -290,7 +294,10 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       });
     }
   }
-  const basePrompt = thumbnailPlan?.finalPrompt ?? buildImagePrompt(input);
+  const recreatePrompt = buildRecreatePrompt(input);
+  const basePrompt = thumbnailPlan?.finalPrompt
+    ? [thumbnailPlan.finalPrompt, recreatePrompt].filter(Boolean).join("\n\n")
+    : buildImagePrompt(input);
   const enhancedPrompt = brandStylePrompt ? `${basePrompt}\n\nMI ESTILO SELECCIONADO:\n${brandStylePrompt}` : basePrompt;
   const outputOptions = mapGenerationOptions(input.format, input.quality);
 
