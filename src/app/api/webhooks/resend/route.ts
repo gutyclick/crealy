@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   const timestamp = request.headers.get("svix-timestamp");
   const signature = request.headers.get("svix-signature");
   if (!webhookSecret || !id || !timestamp || !signature) {
+    logger.warn("webhook.resend_signature_rejected", { errorCode: "missing_signature" });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
       webhookSecret,
     });
   } catch {
+    logger.warn("webhook.resend_signature_rejected", { errorCode: "invalid_signature" });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
@@ -90,4 +92,3 @@ export async function POST(request: Request) {
   });
   return NextResponse.json({ received: true });
 }
-

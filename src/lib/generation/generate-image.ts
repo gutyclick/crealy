@@ -13,6 +13,7 @@ import { exportToPlatformSize } from "@/lib/image-processing/export-to-platform-
 import { inspectImage } from "@/lib/image-processing/inspect-image";
 import { getOpenAIClient } from "@/lib/openai/client";
 import { logger } from "@/lib/observability/logger";
+import { recordOpenAiLatency } from "@/lib/observability/operations-monitor";
 import type {
   GenerationInput,
   GenerationReferenceImage,
@@ -52,7 +53,9 @@ export async function generateImage(
   async function requestImage(size: string) {
     const client = getOpenAIClient();
     const quality = input.quality === "high" ? ("high" as const) : ("medium" as const);
-    return referenceImages.length > 0
+    const startedAt = Date.now();
+    try {
+      return referenceImages.length > 0
       ? client.images.edit({
           model: imageModel,
           image: await Promise.all(
@@ -77,6 +80,9 @@ export async function generateImage(
           moderation: "auto",
           n: 1,
         }).withResponse();
+    } finally {
+      recordOpenAiLatency(Date.now() - startedAt, referenceImages.length > 0 ? "image_edit" : "image_generate");
+    }
   }
 
   try {

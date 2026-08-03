@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   },
 };
 
+// This route-group layout is the authentication boundary for every private page.
+// Any page placed under app/(dashboard) is protected by convention via requireUser().
+
 export default async function DashboardLayout({
   children,
 }: {

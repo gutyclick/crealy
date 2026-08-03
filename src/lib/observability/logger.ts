@@ -1,4 +1,5 @@
 import "server-only";
+import * as Sentry from "@sentry/nextjs";
 
 type LogLevel = "info" | "warn" | "error";
 
@@ -25,6 +26,16 @@ function emit(level: LogLevel, event: string, context: LogContext = {}) {
   if (level === "error") console.error(entry);
   else if (level === "warn") console.warn(entry);
   else console.info(entry);
+
+  if (level === "error" && process.env.SENTRY_DSN) {
+    Sentry.withScope((scope) => {
+      scope.setLevel("error");
+      scope.setTag("event", event);
+      scope.setFingerprint([event, String(context.errorCode || "unknown")]);
+      scope.setContext("operation", context);
+      Sentry.captureMessage(event);
+    });
+  }
 }
 
 export const logger = {

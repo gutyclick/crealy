@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getStripeClient } from "@/lib/stripe/client";
 import { processStripeEvent } from "@/lib/stripe/webhooks/process-stripe-event";
+import { logger } from "@/lib/observability/logger";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
       secret,
     );
   } catch {
+    logger.warn("webhook.stripe_signature_rejected", { errorCode: "invalid_signature" });
     return NextResponse.json(
       { error: "invalid_signature" },
       { status: 400 },
@@ -33,7 +35,8 @@ export async function POST(request: Request) {
   try {
     const result = await processStripeEvent(event);
     return NextResponse.json({ received: true, duplicate: result.duplicate });
-  } catch {
+  } catch (error) {
+    logger.error("webhook.stripe_processing_failed", { errorCode: error instanceof Error ? error.message.slice(0, 80) : "processing_failed" });
     return NextResponse.json(
       { error: "processing_failed" },
       { status: 500 },

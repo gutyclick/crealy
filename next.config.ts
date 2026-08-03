@@ -1,22 +1,7 @@
 import type { NextConfig } from "next";
-
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "form-action 'self' https://checkout.stripe.com",
-  "frame-ancestors 'none'",
-  "object-src 'none'",
-  "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data: https://*.supabase.co https://*.r2.cloudflarestorage.com",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com https://api.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com",
-  "frame-src https://checkout.stripe.com https://js.stripe.com",
-  "upgrade-insecure-requests",
-].join("; ");
+import { withSentryConfig } from "@sentry/nextjs";
 
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -51,4 +36,8 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  widenClientFileUpload: true,
+  sourcemaps: { deleteSourcemapsAfterUpload: true },
+});
