@@ -21,7 +21,14 @@ const secretPatterns = [
 
 const flagged: string[] = [];
 for (const file of trackedFiles) {
-  if (file.endsWith("package-lock.json") || file.startsWith("public/")) continue;
+  // Graphify serializes source-code tokens (including the detector expressions
+  // below) into generated JSON. Scan the original source files instead of
+  // reporting those indexed copies as credentials.
+  if (
+    file.endsWith("package-lock.json") ||
+    file.startsWith("public/") ||
+    file.startsWith("graphify-out/")
+  ) continue;
   let content = "";
   try {
     content = readFileSync(file, "utf8");
