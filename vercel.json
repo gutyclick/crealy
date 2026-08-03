@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/internal/operations/monitor",
-      "schedule": "*/10 * * * *"
+      "schedule": "37 3 * * *"
     }
   ]
 }
