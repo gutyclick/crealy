@@ -11,7 +11,16 @@ function strings(value: unknown, limit = 8) {
 }
 
 function parseBlueprint(text: string, category: RecreateCategory): RecreateBlueprint {
-  const raw = JSON.parse(text) as Record<string, unknown>;
+  const normalized = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const start = normalized.indexOf("{");
+  const end = normalized.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("invalid_recreate_analysis");
+  let raw: Record<string, unknown>;
+  try {
+    raw = JSON.parse(normalized.slice(start, end + 1)) as Record<string, unknown>;
+  } catch {
+    throw new Error("invalid_recreate_analysis");
+  }
   const value = (key: string, fallback: string) => typeof raw[key] === "string" ? String(raw[key]).slice(0, 500) : fallback;
   return {
     category,
@@ -25,6 +34,22 @@ function parseBlueprint(text: string, category: RecreateCategory): RecreateBluep
     colorPalette: strings(raw.colorPalette, 5),
     focalElements: strings(raw.focalElements),
     replaceableElements: strings(raw.replaceableElements),
+  };
+}
+
+export function buildFallbackBlueprint(category: RecreateCategory): RecreateBlueprint {
+  return {
+    category,
+    composition: "Usa la primera imagen adjunta para extraer su distribución relativa, balance y patrón de lectura.",
+    hierarchy: "Conserva la jerarquía abstracta de la referencia con un foco dominante y lectura inmediata.",
+    visualStyle: "Reinterpreta la dirección visual de la referencia sin copiar contenido identificable.",
+    background: "Adapta la profundidad, separación y energía del fondo al nuevo contenido.",
+    emotion: "Mantén la emoción dominante y el nivel de contraste de la referencia.",
+    textDensity: "Equivalente a la referencia, usando únicamente el texto nuevo del usuario.",
+    subjectScale: "Equivalente a la referencia, usando únicamente sujetos propios del usuario.",
+    colorPalette: [],
+    focalElements: ["composición", "jerarquía", "contraste", "patrón de lectura"],
+    replaceableElements: ["texto", "personas", "logos", "marcas", "objetos identificables"],
   };
 }
 
@@ -44,4 +69,3 @@ export async function analyzeReferenceDesign(userId: string, uploadId: string, c
   });
   return parseBlueprint(response.output_text, category);
 }
-

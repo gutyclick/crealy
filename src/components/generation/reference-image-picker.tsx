@@ -23,16 +23,12 @@ export function ReferenceImagePicker({
   maxFileMb,
   maxFiles = 4,
   disabled,
-  label,
-  description,
 }: {
   references: ReferenceDraft[];
   setReferences: Dispatch<SetStateAction<ReferenceDraft[]>>;
   maxFileMb: number;
   maxFiles?: number;
   disabled: boolean;
-  label?: string;
-  description?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -93,15 +89,15 @@ export function ReferenceImagePicker({
     <fieldset className="mt-7">
       <div className="flex items-end justify-between gap-4">
         <legend className="text-sm font-semibold text-foreground">
-          {label ?? (maxFiles === 1 ? "Tu foto" : "Personas, productos o referencias")}{" "}
+          {maxFiles === 1 ? "Tu foto" : "Personas, productos o referencias"}{" "}
           <span className="font-normal text-muted">(opcional)</span>
         </legend>
         <span className="text-xs text-white/45">{references.length}/{maxFiles}</span>
       </div>
       <p className="mt-2 text-xs leading-5 text-muted">
-        {description ?? (maxFiles === 1
+        {maxFiles === 1
           ? "Si subes una foto, será la protagonista e intentaremos conservar tu identidad."
-          : "Crealy intentará preservar identidad y rasgos distintivos, salvo que pidas cambiarlos expresamente en el brief.")}
+          : "Crealy intentará preservar identidad y rasgos distintivos, salvo que pidas cambiarlos expresamente en el brief."}
       </p>
       <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-white/55">
         <Clock3 aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-brand" />

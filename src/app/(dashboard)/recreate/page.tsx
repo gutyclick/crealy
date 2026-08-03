@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { GenerationForm } from "@/components/generation/generation-form";
+import { RecreateForm } from "@/components/recreate/recreate-form";
 import { Container } from "@/components/layout/container";
 import { normalizeContentType } from "@/config/generation-products";
 import { requireUser } from "@/lib/auth/require-user";
@@ -8,14 +8,14 @@ import { getBrandStyleAccess, listBrandStyles } from "@/lib/brand-styles/service
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { getEditingServerEnv, isGenerationAvailable } from "@/lib/env/server";
 import { createClient } from "@/lib/supabase/server";
-import type { ContentType } from "@/types/generation";
+import type { RecreateCategory } from "@/types/recreate";
 
 export const metadata: Metadata = {
   title: "Recreate",
   description: "Transforma una referencia visual en un diseño original para tu contenido.",
 };
 
-const RECREATE_TYPES = new Set<ContentType>([
+const RECREATE_TYPES = new Set<RecreateCategory>([
   "thumbnail",
   "social-post",
   "banner",
@@ -29,8 +29,8 @@ export default async function RecreatePage({
 }) {
   const params = await searchParams;
   const normalizedType = params.type ? normalizeContentType(params.type) : null;
-  const initialContentType = normalizedType && RECREATE_TYPES.has(normalizedType)
-    ? normalizedType
+  const initialContentType = normalizedType && RECREATE_TYPES.has(normalizedType as RecreateCategory)
+    ? normalizedType as RecreateCategory
     : "thumbnail";
   const user = await requireUser();
   const styleAccess = await getBrandStyleAccess(user.id);
@@ -59,14 +59,12 @@ export default async function RecreatePage({
   return (
     <main className="py-6 sm:py-10">
       <Container>
-        <GenerationForm
-          mode="recreate"
+        <RecreateForm
           available={isGenerationAvailable()}
           availableCredits={availableCredits}
           maxReferenceFileMb={maxReferenceFileMb}
           initialContentType={initialContentType}
           brandStyles={brandStyles}
-          brandStyleEntitlement={styleAccess.entitlement}
           initialBrandStyleId={typeof params.style === "string" ? params.style : undefined}
         />
       </Container>
