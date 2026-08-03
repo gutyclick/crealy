@@ -67,6 +67,10 @@ export async function signUp(
   const password = readText(formData, "password");
   const confirmPassword = readText(formData, "confirmPassword");
   const inviteCode = readText(formData, "inviteCode").trim();
+  const destination = getSafeRedirect(
+    formData.get("next"),
+    launch.onboardingEnabled ? "/onboarding" : "/dashboard",
+  );
   const fieldErrors: AuthActionState["fieldErrors"] = {};
 
   if (name.length < 2 || name.length > 60) {
@@ -113,7 +117,7 @@ export async function signUp(
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+        emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}`,
       },
     });
   } catch (error) {
@@ -148,7 +152,7 @@ export async function signUp(
 
   if (result.data.session) {
     revalidatePath("/", "layout");
-    redirect(launch.onboardingEnabled ? "/onboarding" : "/dashboard");
+    redirect(destination);
   }
 
   const cookieStore = await cookies();
@@ -160,7 +164,7 @@ export async function signUp(
     path: "/",
   });
 
-  redirect("/verify-email");
+  redirect(`/verify-email?next=${encodeURIComponent(destination)}`);
 }
 
 export async function signIn(
@@ -254,11 +258,13 @@ export async function requestPasswordReset(
 
 export async function resendVerificationEmail(
   previousState: AuthActionState,
+  formData: FormData,
 ): Promise<AuthActionState> {
   if (await authRateLimited("resend_verification")) {
     return errorState("Espera unos minutos antes de solicitar otro correo.");
   }
   void previousState;
+  const destination = getSafeRedirect(formData.get("next"), "/dashboard");
   const cookieStore = await cookies();
   const email = cookieStore.get("crealy_verification_email")?.value;
 
@@ -275,7 +281,7 @@ export async function resendVerificationEmail(
       type: "signup",
       email,
       options: {
-        emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+        emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}`,
       },
     });
 

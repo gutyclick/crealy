@@ -27,8 +27,9 @@ export function CheckoutButton({
   const [message, setMessage] = useState<string | null>(null);
 
   if (!authenticated) {
+    const destination = `/pricing?plan=${plan}&period=${period}`;
     return (
-      <Button href="/signup?next=/pricing" size="lg" className="w-full">
+      <Button href={`/signup?next=${encodeURIComponent(destination)}`} size="lg" className="w-full">
         Crear cuenta
         <ArrowRight aria-hidden="true" className="size-4" />
       </Button>

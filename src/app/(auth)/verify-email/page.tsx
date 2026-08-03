@@ -4,12 +4,15 @@ import { MailCheck } from "lucide-react";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ResendVerificationForm } from "@/components/auth/resend-verification-form";
+import { getSafeRedirect } from "@/lib/auth/redirects";
 
 export const metadata: Metadata = {
   title: "Confirma tu correo",
 };
 
-export default function VerifyEmailPage() {
+export default async function VerifyEmailPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const params = await searchParams;
+  const nextPath = getSafeRedirect(params.next, "/dashboard");
   return (
     <AuthShell
       title="Revisa tu correo."
@@ -26,9 +29,9 @@ export default function VerifyEmailPage() {
             revisa también la carpeta de spam.
           </p>
         </div>
-        <ResendVerificationForm />
+        <ResendVerificationForm nextPath={nextPath} />
         <Link
-          href="/login"
+          href={`/login?next=${encodeURIComponent(nextPath)}`}
           className="text-center text-sm font-semibold text-foreground transition-colors hover:text-brand"
         >
           Volver a iniciar sesión

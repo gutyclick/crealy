@@ -54,16 +54,18 @@ export function PricingTableClient({
   authenticated,
   currentPlan,
   compact,
+  initialPeriod,
   billingEnabled,
   availablePrices,
 }: {
   authenticated: boolean;
   currentPlan?: PlanKey;
   compact: boolean;
+  initialPeriod: BillingPeriod;
   billingEnabled: boolean;
   availablePrices: PriceAvailability;
 }) {
-  const [period, setPeriod] = useState<BillingPeriod>("monthly");
+  const [period, setPeriod] = useState<BillingPeriod>(initialPeriod);
   const currentPublic: PublicPlanId | undefined =
     currentPlan === "starter"
       ? "starter"

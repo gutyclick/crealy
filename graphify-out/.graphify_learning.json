@@ -1,5 +1,118 @@
 {
-  "generated_at": "2026-08-03T00:40:35.014714+00:00",
-  "nodes": {},
+  "generated_at": "2026-08-03T00:43:31.231026+00:00",
+  "nodes": {
+    "src_components_billing_checkout_button_checkoutbutton": {
+      "code_fingerprint": "de6d82a6b98c4610fcf66f53d130d2ded35d48042dcb9a0d9ee41bc98d767f7b",
+      "label": "CheckoutButton()",
+      "last": "2026-08-03T00:41:21.566965+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-03T00:41:21.566965+00:00",
+          "outcome": "useful",
+          "q": "¿Cómo fluye un plan desde la tabla de precios hasta Stripe, créditos y Firma visual?"
+        }
+      ],
+      "score": 0.999965326,
+      "source_file": "src/components/billing/checkout-button.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_components_billing_pricing_table_client_pricingtableclient": {
+      "code_fingerprint": "abb8a1d9c8902d1a8ae7198805ee3247e260b398201ec624fd13f8f463bdcae9",
+      "label": "PricingTableClient()",
+      "last": "2026-08-03T00:41:21.566965+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-03T00:41:21.566965+00:00",
+          "outcome": "useful",
+          "q": "¿Cómo fluye un plan desde la tabla de precios hasta Stripe, créditos y Firma visual?"
+        }
+      ],
+      "score": 0.999965326,
+      "source_file": "src/components/billing/pricing-table-client.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_config_brand_styles_brand_style_entitlements": {
+      "code_fingerprint": "3ef7c70f6ece2c4dd1756c0aede5edd7265bc421f0a4567b65d65315e2dc307c",
+      "label": "BRAND_STYLE_ENTITLEMENTS",
+      "last": "2026-08-03T00:41:21.566965+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-03T00:41:21.566965+00:00",
+          "outcome": "useful",
+          "q": "¿Cómo fluye un plan desde la tabla de precios hasta Stripe, créditos y Firma visual?"
+        }
+      ],
+      "score": 0.999965326,
+      "source_file": "src/config/brand-styles.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_billing_get_stripe_price_id_getstripepriceid": {
+      "code_fingerprint": "273216872df9c5bdebbce32184dafdff82c05341a6e5b664e26071b62b287796",
+      "label": "getStripePriceId()",
+      "last": "2026-08-03T00:41:21.566965+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-03T00:41:21.566965+00:00",
+          "outcome": "useful",
+          "q": "¿Cómo fluye un plan desde la tabla de precios hasta Stripe, créditos y Firma visual?"
+        }
+      ],
+      "score": 0.999965326,
+      "source_file": "src/lib/billing/get-stripe-price-id.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_billing_get_user_billing_state_getuserbillingstate": {
+      "code_fingerprint": "e302601cedc479f3bc029a8d1d0e8af0223c904eb541e52bd6256752a3908ae2",
+      "label": "getUserBillingState()",
+      "last": "2026-08-03T00:41:21.566965+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-03T00:41:21.566965+00:00",
+          "outcome": "useful",
+          "q": "¿Cómo fluye un plan desde la tabla de precios hasta Stripe, créditos y Firma visual?"
+        }
+      ],
+      "score": 0.999965326,
+      "source_file": "src/lib/billing/get-user-billing-state.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_stripe_webhooks_process_stripe_event_handleinvoicepaid": {
+      "code_fingerprint": "18ab1a8a704e37d8e118a6e1bff3fe414ec2e737a027bf571dc22f46a31cd2c3",
+      "label": "handleInvoicePaid()",
+      "last": "2026-08-03T00:41:21.566965+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-03T00:41:21.566965+00:00",
+          "outcome": "useful",
+          "q": "¿Cómo fluye un plan desde la tabla de precios hasta Stripe, créditos y Firma visual?"
+        }
+      ],
+      "score": 0.999965326,
+      "source_file": "src/lib/stripe/webhooks/process-stripe-event.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_stripe_webhooks_process_stripe_event_processstripeevent": {
+      "code_fingerprint": "18ab1a8a704e37d8e118a6e1bff3fe414ec2e737a027bf571dc22f46a31cd2c3",
+      "label": "processStripeEvent()",
+      "last": "2026-08-03T00:41:21.566965+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-03T00:41:21.566965+00:00",
+          "outcome": "useful",
+          "q": "¿Cómo fluye un plan desde la tabla de precios hasta Stripe, créditos y Firma visual?"
+        }
+      ],
+      "score": 0.999965326,
+      "source_file": "src/lib/stripe/webhooks/process-stripe-event.ts",
+      "status": "tentative",
+      "uses": 1
+    }
+  },
   "version": 1
 }

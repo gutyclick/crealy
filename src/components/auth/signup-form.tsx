@@ -11,7 +11,7 @@ import { SubmitButton } from "@/components/auth/submit-button";
 import { initialAuthState } from "@/lib/auth/action-state";
 import { trackConversion } from "@/lib/analytics/events";
 
-export function SignupForm({ inviteRequired = false }: { inviteRequired?: boolean }) {
+export function SignupForm({ inviteRequired = false, nextPath = "/dashboard" }: { inviteRequired?: boolean; nextPath?: string }) {
   const [state, formAction] = useActionState(signUp, initialAuthState);
 
   return (
@@ -21,6 +21,7 @@ export function SignupForm({ inviteRequired = false }: { inviteRequired?: boolea
       className="grid gap-5"
       noValidate
     >
+      <input type="hidden" name="next" value={nextPath} />
       <AuthMessage state={state} />
       <FormField
         id="signup-name"
@@ -89,7 +90,7 @@ export function SignupForm({ inviteRequired = false }: { inviteRequired?: boolea
       <p className="text-center text-sm text-muted">
         ¿Ya tienes una cuenta?{" "}
         <Link
-          href="/login"
+          href={`/login?next=${encodeURIComponent(nextPath)}`}
           className="font-semibold text-foreground transition-colors hover:text-brand"
         >
           Iniciar sesión
