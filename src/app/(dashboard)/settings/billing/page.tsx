@@ -6,7 +6,7 @@ import { PricingTable } from "@/components/billing/pricing-table";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
-import { requireUser } from "@/lib/auth/require-user";
+import { requireAal2 } from "@/lib/auth/mfa-assurance";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -52,7 +52,7 @@ function formatDate(value: string | null) {
 }
 
 export default async function BillingPage() {
-  const user = await requireUser("/settings/billing");
+  const user = await requireAal2("/settings/billing");
   const state = await getUserBillingState(user.id);
   const periodLabel = state.effectivePlan.endsAt
     ? `Finaliza el ${formatDate(state.subscription?.currentPeriodEnd ?? null)}`

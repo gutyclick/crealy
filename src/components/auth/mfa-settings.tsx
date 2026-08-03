@@ -1,13 +1,16 @@
 "use client";
 
 import { LoaderCircle, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
 type EnrollingFactor = { id: string; qrCode: string };
 
-export function MfaSettings() {
+export function MfaSettings({ assuranceLevel, nextPath }: { assuranceLevel: "aal1" | "aal2" | null; nextPath?: string }) {
+  const router = useRouter();
   const [verifiedFactorId, setVerifiedFactorId] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState<EnrollingFactor | null>(null);
   const [code, setCode] = useState("");
@@ -51,6 +54,8 @@ export function MfaSettings() {
       setEnrolling(null);
       setCode("");
       setMessage("Autenticación TOTP activada.");
+      if (nextPath) window.location.assign(nextPath);
+      else router.refresh();
     }
     setBusy(false);
   }
@@ -76,7 +81,12 @@ export function MfaSettings() {
           <p className="mt-1 text-sm leading-6 text-muted">Protege tu cuenta con códigos TOTP. No se usa SMS.</p>
         </div>
       </div>
-      {busy ? <LoaderCircle aria-label="Cargando" className="mt-5 size-5 animate-spin text-brand" /> : verifiedFactorId ? (
+      {busy ? <LoaderCircle aria-label="Cargando" className="mt-5 size-5 animate-spin text-brand" /> : verifiedFactorId && assuranceLevel !== "aal2" ? (
+        <div className="mt-5">
+          <p className="text-sm leading-6 text-muted">Tu segundo factor está activo. Verifica tu identidad para administrar la seguridad de la cuenta.</p>
+          <Link href="/mfa-challenge?next=%2Fsettings%2Fsecurity" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand px-4 text-sm font-bold text-brand-ink">Verificar identidad</Link>
+        </div>
+      ) : verifiedFactorId ? (
         <button type="button" onClick={disable} className="mt-5 min-h-11 rounded-xl border border-red-300/25 px-4 text-sm font-semibold text-red-200 hover:bg-red-300/[0.05]">Desactivar TOTP</button>
       ) : enrolling ? (
         <div className="mt-5">
@@ -96,4 +106,3 @@ export function MfaSettings() {
     </section>
   );
 }
-

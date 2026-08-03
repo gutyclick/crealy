@@ -56,4 +56,15 @@ test.describe("superficie pública de lanzamiento", () => {
     const worker = await request.get("/api/internal/jobs/tick");
     expect([401, 405]).toContain(worker.status());
   });
+
+  test("readiness público no revela configuración y protege la comprobación profunda", async ({ request }) => {
+    const publicResponse = await request.get("/api/ready");
+    const publicPayload = await publicResponse.json();
+    expect([200, 429, 503]).toContain(publicResponse.status());
+    expect(JSON.stringify(publicPayload)).not.toContain("gpt-image");
+    expect(publicPayload).not.toHaveProperty("model");
+
+    const deep = await request.get("/api/ready?deep=1");
+    expect(deep.status()).toBe(401);
+  });
 });

@@ -3,6 +3,12 @@ const allowedDestinations = new Set([
   "/login",
   "/reset-password",
   "/pricing",
+  "/create",
+  "/recreate",
+  "/settings/profile",
+  "/settings/security",
+  "/settings/billing",
+  "/settings/account",
 ]);
 
 const paidPlans = new Set(["starter", "creator", "pro"]);

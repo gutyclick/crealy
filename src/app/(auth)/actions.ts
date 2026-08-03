@@ -217,6 +217,11 @@ export async function signIn(
     });
   }
 
+  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assurance?.nextLevel === "aal2" && assurance.currentLevel !== "aal2") {
+    redirect(`/mfa-challenge?next=${encodeURIComponent(destination)}`);
+  }
+
   revalidatePath("/", "layout");
   redirect(destination);
 }

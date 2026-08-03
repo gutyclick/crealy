@@ -53,7 +53,12 @@ export function CheckoutButton({
       const payload = (await response.json()) as {
         url?: string;
         error?: string;
+        challengeUrl?: string;
       };
+      if (payload.challengeUrl) {
+        window.location.assign(payload.challengeUrl);
+        return;
+      }
       if (!response.ok || !payload.url) {
         throw new Error(payload.error || "No pudimos abrir el pago seguro.");
       }

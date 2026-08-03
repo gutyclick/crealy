@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth/require-user";
 import { createClient } from "@/lib/supabase/server";
+import { requireAal2 } from "@/lib/auth/mfa-assurance";
 
 export async function updateProfile(formData: FormData) {
   const user = await requireUser("/settings/profile");
@@ -22,7 +23,7 @@ export async function updateProfile(formData: FormData) {
 }
 
 export async function updateEmail(formData: FormData) {
-  const user = await requireUser("/settings/profile");
+  const user = await requireAal2("/settings/profile");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email === user.email) {
     redirect("/settings/profile?error=Correo inválido o sin cambios");
@@ -38,7 +39,7 @@ export async function updateEmail(formData: FormData) {
 }
 
 export async function updatePassword(formData: FormData) {
-  await requireUser("/settings/security");
+  await requireAal2("/settings/security");
   const password = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("confirmation") ?? "");
   if (password.length < 8 || password !== confirmation) {
@@ -55,10 +56,9 @@ export async function updatePassword(formData: FormData) {
 }
 
 export async function closeOtherSessions() {
-  await requireUser("/settings/security");
+  await requireAal2("/settings/security");
   const supabase = await createClient();
   const { error } = await supabase.auth.signOut({ scope: "others" });
   if (error) redirect("/settings/security?error=No pudimos cerrar las otras sesiones");
   redirect("/settings/security?sessionsClosed=1");
 }
-

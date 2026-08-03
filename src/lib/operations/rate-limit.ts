@@ -25,6 +25,7 @@ export const RATE_LIMITS = {
   youtubeDownloaderIp: { limit: 30, windowSeconds: 60 },
   thumbnailAnalysisUser: { limit: 5, windowSeconds: 60 },
   thumbnailAnalysisIp: { limit: 10, windowSeconds: 60 },
+  readinessIp: { limit: 10, windowSeconds: 60 },
 } satisfies Record<string, Policy>;
 
 export function getToolRateLimits() {
