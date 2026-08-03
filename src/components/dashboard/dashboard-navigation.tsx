@@ -10,6 +10,7 @@ import type { PlanKey } from "@/types/billing";
 const items = [
   { href: "/dashboard", label: "Inicio" },
   { href: "/create", label: "Crear" },
+  { href: "/recreate", label: "Recreate" },
   { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
   { href: "/dashboard/tools", label: "Herramientas" },

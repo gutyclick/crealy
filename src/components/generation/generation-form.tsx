@@ -109,6 +109,7 @@ export function GenerationForm({
   brandStyles,
   brandStyleEntitlement,
   initialBrandStyleId,
+  mode = "create",
 }: {
   available: boolean;
   availableCredits: number | null;
@@ -117,6 +118,7 @@ export function GenerationForm({
   brandStyles: BrandStyle[];
   brandStyleEntitlement: BrandStyleEntitlement;
   initialBrandStyleId?: string;
+  mode?: "create" | "recreate";
 }) {
   const initialProduct = getGenerationProduct(initialContentType ?? "thumbnail");
   const [contentType, setContentType] = useState<ContentType>(initialProduct.id);
@@ -150,7 +152,7 @@ export function GenerationForm({
   const [result, setResult] = useState<SubmitState>({ status: "idle" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [references, setReferences] = useState<ReferenceDraft[]>([]);
-  const [creationMode, setCreationMode] = useState<"create" | "recreate">("create");
+  const creationMode = mode;
   const [recreate, setRecreate] = useState<RecreateState>({ similarity: "similar", ready: false });
   const referencesRef = useRef(references);
 
@@ -176,6 +178,9 @@ export function GenerationForm({
   const hasEnoughCredits =
     availableCredits === null || availableCredits >= creditCost;
   const supportsRecreate = ["thumbnail", "social-post", "banner", "social-cover"].includes(contentType);
+  const availableProducts = creationMode === "recreate"
+    ? GENERATION_PRODUCTS.filter((item) => ["thumbnail", "social-post", "banner", "social-cover"].includes(item.id))
+    : GENERATION_PRODUCTS;
   const recreateReady = creationMode !== "recreate" || (recreate.ready && Boolean(recreate.blueprint) && Boolean(references[0]?.uploadId));
   const styles = useMemo(
     () =>
@@ -187,6 +192,10 @@ export function GenerationForm({
 
   function selectContentType(nextType: ContentType) {
     const next = getGenerationProduct(nextType);
+    if (creationMode === "recreate") {
+      references.forEach((reference) => URL.revokeObjectURL(reference.previewUrl));
+      setReferences([]);
+    }
     setContentType(nextType);
     setPlatform(next.defaultPlatform);
     setVariant(next.defaultVariant);
@@ -196,7 +205,6 @@ export function GenerationForm({
     setProjectId(undefined);
     setResult({ status: "idle" });
     setFieldErrors({});
-    setCreationMode("create");
     setRecreate({ similarity: "similar", ready: false });
   }
 
@@ -231,7 +239,7 @@ export function GenerationForm({
 
   async function submitGeneration(event: FormEvent) {
     event.preventDefault();
-    if (!available || !hasEnoughCredits || result.status === "loading") return;
+    if (!available || !hasEnoughCredits || !recreateReady || result.status === "loading") return;
     setResult({ status: "loading" });
     setFieldErrors({});
 
@@ -357,12 +365,15 @@ export function GenerationForm({
             className="min-h-[2.25em] text-balance text-3xl font-semibold tracking-[-0.045em] text-foreground sm:text-5xl"
           >
             <span key={contentType} className="creation-heading-swap block">
-              {creationHeadlines[contentType]}
+              {creationMode === "recreate"
+                ? "Convierte una referencia en algo completamente tuyo."
+                : creationHeadlines[contentType]}
             </span>
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-            Empieza eligiendo qué vas a crear. Crealy preparará las medidas, la
-            calidad y el coste correctos para cada destino.
+            {creationMode === "recreate"
+              ? "Elige el formato, añade una referencia y cuéntanos qué quieres transformar. Crealy conservará la fórmula visual, no el contenido original."
+              : "Empieza eligiendo qué vas a crear. Crealy preparará las medidas, la calidad y el coste correctos para cada destino."}
           </p>
           <div className="mt-5 flex items-center gap-3 text-xs font-semibold text-foreground/75">
             <span aria-hidden="true" className="size-2 rounded-full bg-brand shadow-[0_0_18px_rgba(221,245,39,.38)]" />
@@ -375,7 +386,7 @@ export function GenerationForm({
         <fieldset className="mt-9">
           <legend className="text-sm font-semibold text-foreground">¿Qué vas a crear?</legend>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {GENERATION_PRODUCTS.map((item) => {
+            {availableProducts.map((item) => {
               const Icon = contentIcons[item.icon as keyof typeof contentIcons];
               const selected = item.id === contentType;
               return (
@@ -402,23 +413,6 @@ export function GenerationForm({
           </div>
           {fieldErrors.contentType ? <FieldError message={fieldErrors.contentType} /> : null}
         </fieldset>
-
-        {supportsRecreate ? (
-          <div className="mt-7 inline-flex rounded-xl bg-background p-1 ring-1 ring-white/10" aria-label="Modo de creación">
-            <button type="button" aria-pressed={creationMode === "create"} onClick={() => setCreationMode("create")} className={cn("min-h-10 rounded-lg px-4 text-sm font-semibold transition-colors", creationMode === "create" ? "bg-white text-black" : "text-muted hover:text-foreground")}>Crear con IA</button>
-            <button type="button" aria-pressed={creationMode === "recreate"} onClick={() => setCreationMode("recreate")} className={cn("min-h-10 rounded-lg px-4 text-sm font-semibold transition-colors", creationMode === "recreate" ? "bg-brand text-brand-ink" : "text-muted hover:text-foreground")}>Recreate</button>
-          </div>
-        ) : null}
-
-        {creationMode === "recreate" && supportsRecreate ? (
-          <RecreatePanel
-            category={contentType as "thumbnail" | "social-post" | "banner" | "social-cover"}
-            references={references}
-            setReferences={setReferences}
-            disabled={result.status === "loading"}
-            onChange={(next) => setRecreate((current) => ({ ...current, ...next, blueprint: next.blueprint ?? current.blueprint }))}
-          />
-        ) : null}
 
         {product.platforms.length ? (
           <fieldset className="mt-7">
@@ -560,6 +554,18 @@ export function GenerationForm({
           </div>
         )}
 
+        {creationMode === "recreate" && supportsRecreate ? (
+          <RecreatePanel
+            key={contentType}
+            category={contentType as "thumbnail" | "social-post" | "banner" | "social-cover"}
+            references={references}
+            setReferences={setReferences}
+            disabled={result.status === "loading"}
+            maxFileMb={maxReferenceFileMb}
+            onChange={(next) => setRecreate((current) => ({ ...current, ...next, blueprint: next.blueprint ?? current.blueprint }))}
+          />
+        ) : null}
+
         <div className="mt-8">
           <label htmlFor="description" className="text-sm font-semibold text-foreground">
             {creationMode === "recreate" ? "¿Qué quieres crear con esta referencia?" : contentType === "thumbnail" ? "¿De qué trata tu video?" : "Describe la pieza"}
@@ -587,7 +593,7 @@ export function GenerationForm({
           </div>
         </div>
 
-        {contentType === "thumbnail" ? (
+        {contentType === "thumbnail" && creationMode === "create" ? (
           <div className="mt-6">
             <label htmlFor="videoTitle" className="text-sm font-semibold text-foreground">
               Título del video <span className="font-normal text-muted">(opcional)</span>
@@ -607,7 +613,7 @@ export function GenerationForm({
           </div>
         ) : null}
 
-        {contentType === "thumbnail" ? (
+        {contentType === "thumbnail" && creationMode === "create" ? (
           <fieldset className="mt-7">
             <legend className="text-sm font-semibold text-foreground">Dirección visual</legend>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -636,7 +642,18 @@ export function GenerationForm({
           </fieldset>
         ) : null}
 
-        {!brandStyleEntitlement.enabled && ["thumbnail", "banner", "social-post", "social-cover"].includes(contentType) ? (
+        {creationMode === "recreate" ? (
+          brandStyles.some((item) => item.analysisStatus === "ready" && item.supportedDesignTypes.includes(contentType)) ? (
+            <label className="mt-6 block text-sm font-semibold text-foreground">
+              Firma visual <span className="font-normal text-muted">(opcional)</span>
+              <select value={brandStyleId ?? ""} onChange={(event) => setBrandStyleId(event.target.value || undefined)} className="mt-3 h-12 w-full rounded-xl border border-white/10 bg-background px-3 text-sm font-normal text-foreground outline-none focus:border-brand/60">
+                <option value="">Sin firma visual</option>
+                {brandStyles.filter((item) => item.analysisStatus === "ready" && item.supportedDesignTypes.includes(contentType)).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+              <span className="mt-2 block text-xs font-normal leading-5 text-muted">Aplica tu identidad guardada sin copiar el contenido de la referencia.</span>
+            </label>
+          ) : null
+        ) : !brandStyleEntitlement.enabled && ["thumbnail", "banner", "social-post", "social-cover"].includes(contentType) ? (
           <section className="mt-7 rounded-xl border border-brand/20 bg-brand/[0.035] p-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
             <div><div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Crown aria-hidden="true" className="size-4 text-brand" /> Firma visual <span className="text-xs font-semibold text-brand">Creator · Pro</span></div><p className="mt-1 text-xs leading-5 text-muted">Mantén la identidad de tu marca en cada nueva creación.</p></div>
             <Link href="/my-style" className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-brand sm:mt-0">Descubrir la función <ArrowRight className="size-3.5" /></Link>
@@ -654,7 +671,7 @@ export function GenerationForm({
           </fieldset>
         ) : null}
 
-        {contentType === "thumbnail" ? (
+        {contentType === "thumbnail" && creationMode === "create" ? (
           <fieldset className="mt-7">
             <legend className="text-sm font-semibold text-foreground">Texto de la miniatura</legend>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -712,15 +729,13 @@ export function GenerationForm({
           </div>
         ) : null}
 
-        <div className="mt-6">
+        {creationMode === "create" ? <div className="mt-6">
           <ReferenceImagePicker
             references={references}
             setReferences={setReferences}
             maxFileMb={maxReferenceFileMb}
-            maxFiles={creationMode === "recreate" ? 2 : contentType === "thumbnail" ? 1 : 4}
+            maxFiles={contentType === "thumbnail" ? 1 : 4}
             disabled={result.status === "loading"}
-            label={creationMode === "recreate" ? "Referencia y protagonista" : undefined}
-            description={creationMode === "recreate" ? "La primera imagen define la fórmula visual. Puedes añadir una segunda imagen propia para usar como protagonista, producto u objeto principal." : undefined}
           />
           {contentType === "profile-image" ? (
             <p className="mt-3 flex gap-2 text-xs leading-5 text-muted">
@@ -729,9 +744,9 @@ export function GenerationForm({
               y geometría, aunque toda generación puede presentar variaciones.
             </p>
           ) : null}
-        </div>
+        </div> : null}
 
-        {contentType !== "thumbnail" ? <fieldset className="mt-7">
+        {creationMode === "create" && contentType !== "thumbnail" ? <fieldset className="mt-7">
           <legend className="text-sm font-semibold text-foreground">Estilo visual</legend>
           <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
             {styles.map((item) => (
@@ -767,7 +782,7 @@ export function GenerationForm({
           </div>
         </fieldset> : null}
 
-        {contentType !== "thumbnail" ? <div className="mt-7">
+        {creationMode === "create" && contentType !== "thumbnail" ? <div className="mt-7">
           <label htmlFor="colorPreference" className="text-sm font-semibold text-foreground">
             Color
           </label>

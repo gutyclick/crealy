@@ -269,7 +269,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     brandStylePrompt = buildBrandStylePrompt({ userPrompt: input.description, designType: input.contentType, brandStyle: { name: brandStyle.name, visualSummary: brandStyle.visual_summary, visualAttributes: parseVisualAttributes(brandStyle.visual_attributes) }, consistency: input.styleConsistency ?? "balanced", preset: input.thumbnailPreset, referenceCount: styleRefs?.length ?? 0 });
   }
   let thumbnailPlan = null;
-  if (input.contentType === "thumbnail") {
+  if (input.contentType === "thumbnail" && input.creationMode !== "recreate") {
     try {
       thumbnailPlan = await planThumbnail(input);
     } catch (planError) {
