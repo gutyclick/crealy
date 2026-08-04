@@ -62,6 +62,8 @@ export function MobileAppNavigation({ plan }: { plan: PlanKey }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const isPremiumLocked = plan === "free" || plan === "starter";
   const moreActive =
     moreItems.some((item) => isCurrent(pathname, item.href)) ||
@@ -69,11 +71,38 @@ export function MobileAppNavigation({ plan }: { plan: PlanKey }) {
 
   useEffect(() => {
     if (!open) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+    const previousOverflow = document.body.style.overflow;
+    const trigger = moreButtonRef.current;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+    const handleKeyboard = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !sheetRef.current) return;
+      const focusable = Array.from(
+        sheetRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", handleKeyboard);
+    return () => {
+      document.removeEventListener("keydown", handleKeyboard);
+      document.body.style.overflow = previousOverflow;
+      trigger?.focus();
+    };
   }, [open]);
 
   return (
@@ -110,6 +139,7 @@ export function MobileAppNavigation({ plan }: { plan: PlanKey }) {
                 </p>
               </div>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Cerrar"
@@ -193,6 +223,7 @@ export function MobileAppNavigation({ plan }: { plan: PlanKey }) {
           </Link>
           <NavItem item={primaryItems[2]} pathname={pathname} />
           <button
+            ref={moreButtonRef}
             type="button"
             aria-expanded={open}
             onClick={() => setOpen(true)}

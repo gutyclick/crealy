@@ -27,6 +27,7 @@
   --radius-pill: 999px;
   --shadow-panel: 0 18px 55px rgba(0, 0, 0, 0.32);
   --shadow-brand: 0 18px 55px rgba(221, 245, 39, 0.08);
+  --shadow-tooltip: 0 14px 40px rgba(0, 0, 0, 0.45);
   --shadow-deep: 18px 26px 55px rgba(0, 0, 0, 0.36);
   --shadow-gallery: 0 1.25rem 3.5rem rgba(0, 0, 0, 0.36);
   --shadow-legibility: 0 3px 28px rgba(0, 0, 0, 0.74);
@@ -99,6 +100,13 @@ a {
     radial-gradient(circle at 50% 48%, rgba(221, 245, 39, 0.08), transparent 24rem),
     var(--background);
 }
+
+/* Micro typography is reserved for scaled social-network preview mockups. */
+.text-preview-tiny { font-size: 0.5rem; }
+.text-preview-micro { font-size: 0.55rem; }
+.text-preview-caption { font-size: 0.6rem; }
+.text-preview-small { font-size: 0.65rem; }
+.text-preview-meta { font-size: 0.68rem; }
 
 .dashboard-studio {
   background:

@@ -23,6 +23,9 @@ export function validatePassword(password: string): string | undefined {
   if (password.length < 8) {
     return "La contraseña debe tener al menos 8 caracteres.";
   }
+  if (!/[A-Z]/.test(password) || !/\d/.test(password)) {
+    return "Incluye al menos una mayúscula y un número.";
+  }
 }
 
 export function errorState(

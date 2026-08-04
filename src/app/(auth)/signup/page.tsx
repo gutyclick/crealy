@@ -19,7 +19,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
       description="Empieza con una cuenta personal y prepara tu espacio para crear."
     >
       {launch.registrationsEnabled ? (
-        <SignupForm inviteRequired={launch.inviteRequired} nextPath={nextPath} />
+        <SignupForm inviteRequired={launch.inviteRequired} nextPath={nextPath} googleEnabled={process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true"} />
       ) : (
         <p className="rounded-xl border border-white/10 bg-white/[0.035] p-5 text-sm leading-6 text-muted">
           El registro está temporalmente cerrado mientras preparamos el siguiente

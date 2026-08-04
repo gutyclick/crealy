@@ -441,7 +441,7 @@ export function EditWorkspace({
                   type="button"
                   onClick={restoreSelected}
                   disabled={restoring}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-brand px-3 text-xs font-bold text-brand-ink disabled:opacity-50"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-3 text-xs font-bold text-brand-ink disabled:opacity-50"
                 >
                   {restoring ? (
                     <LoaderCircle className="size-4 animate-spin" />
@@ -614,7 +614,7 @@ export function EditWorkspace({
               ))}
             </div>
 
-            <label className="mb-3 flex min-h-10 cursor-pointer items-center gap-3 text-sm text-white/72">
+            <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm text-white/72">
               <input
                 type="checkbox"
                 checked={preserve}

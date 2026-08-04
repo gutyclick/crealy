@@ -226,6 +226,33 @@ export async function signIn(
   redirect(destination);
 }
 
+export async function signInWithGoogle(formData: FormData) {
+  if (process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "true") {
+    redirect("/login?error=oauth");
+  }
+  if (await authRateLimited("google_oauth")) {
+    redirect("/login?error=rate_limited");
+  }
+  const launch = getLaunchConfig();
+  const destination = getSafeRedirect(
+    formData.get("next"),
+    launch.onboardingEnabled ? "/onboarding" : "/dashboard",
+  );
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}`,
+      queryParams: { access_type: "offline", prompt: "consent" },
+    },
+  });
+  if (error || !data.url) {
+    reportAuthError("Google OAuth", error);
+    redirect("/login?error=oauth");
+  }
+  redirect(data.url);
+}
+
 export async function requestPasswordReset(
   _previousState: AuthActionState,
   formData: FormData,

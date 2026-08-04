@@ -55,7 +55,15 @@ export function getSiteUrl(): string {
     if (!["http:", "https:"].includes(url.protocol)) {
       throw new Error("invalid protocol");
     }
-    if (process.env.NODE_ENV === "production" && url.protocol !== "https:") {
+    const e2eLoopbackAllowed =
+      process.env.E2E_ALLOW_REMOTE_TEST_PROJECT === "true" &&
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+    if (
+      process.env.NODE_ENV === "production" &&
+      url.protocol !== "https:" &&
+      !e2eLoopbackAllowed
+    ) {
       throw new Error("production requires https");
     }
     return url.origin;

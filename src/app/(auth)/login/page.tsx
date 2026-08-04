@@ -26,7 +26,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     >
       <LoginForm
         nextPath={nextPath}
-        callbackError={params.error === "auth_callback"}
+        callbackError={params.error === "auth_callback" || params.error === "oauth"}
+        googleEnabled={process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true"}
       />
     </AuthShell>
   );

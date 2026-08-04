@@ -38,7 +38,7 @@ function Tooltip({ label, children }: { label: string; children: ReactNode }) {
       <span
         role="tooltip"
         className={cn(
-          "pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-1/2 z-20 w-64 -translate-x-1/2 rounded-xl border border-white/10 bg-surface-elevated p-3 text-left text-xs font-normal leading-5 text-white/80 shadow-[0_14px_40px_rgba(0,0,0,0.45)] transition-[opacity,transform]",
+          "pointer-events-none fixed inset-x-4 bottom-24 z-50 mx-auto w-auto max-w-64 rounded-xl border border-white/10 bg-surface-elevated p-3 text-left text-xs font-normal leading-5 text-white/80 shadow-[var(--shadow-tooltip)] transition-[opacity,transform] sm:absolute sm:inset-x-auto sm:bottom-[calc(100%+0.5rem)] sm:left-1/2 sm:w-64 sm:-translate-x-1/2",
           open
             ? "translate-y-0 opacity-100"
             : "translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100",

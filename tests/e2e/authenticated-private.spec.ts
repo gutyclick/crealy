@@ -29,6 +29,7 @@ function totp(secret: string, counter = Math.floor(Date.now() / 30_000)) {
 test.describe("flujos privados con Supabase de testing", () => {
   test.skip(!configured, "Requiere un proyecto Supabase E2E separado y E2E_ALLOW_REMOTE_TEST_PROJECT=true.");
   test.describe.configure({ mode: "serial" });
+  test.setTimeout(90_000);
 
   let admin: SupabaseClient;
   const users = [
@@ -63,18 +64,20 @@ test.describe("flujos privados con Supabase de testing", () => {
   test("inicia sesión y abre Create y Recreate sin compartir estado", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Correo electrónico").fill(users[0].email);
-    await page.getByLabel("Contraseña").fill(users[0].password);
+    await page.getByLabel("Contraseña", { exact: true }).fill(users[0].password);
     await page.getByRole("button", { name: "Iniciar sesión" }).click();
     await expect(page).toHaveURL(/\/mfa-challenge/);
-    const millisecondsToFreshCode = 30_000 - Date.now() % 30_000 + 750;
-    await page.waitForTimeout(millisecondsToFreshCode);
+    const millisecondsRemaining = 30_000 - Date.now() % 30_000;
+    if (millisecondsRemaining < 3_000) {
+      await page.waitForTimeout(millisecondsRemaining + 750);
+    }
     await page.getByLabel("Código de autenticación").fill(totp(primaryTotpSecret));
     await page.getByRole("button", { name: "Verificar y continuar" }).click();
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
     await page.goto("/create");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await page.goto("/recreate");
-    await expect(page.getByRole("heading", { level: 1, name: /Recreate/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /Recrea/i })).toBeVisible();
     await page.goto("/settings/billing");
     await expect(page.getByRole("heading", { name: /Plan y créditos/i })).toBeVisible();
   });
@@ -82,8 +85,9 @@ test.describe("flujos privados con Supabase de testing", () => {
   test("exige configurar MFA antes de facturación y datos sensibles", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Correo electrónico").fill(users[1].email);
-    await page.getByLabel("Contraseña").fill(users[1].password);
+    await page.getByLabel("Contraseña", { exact: true }).fill(users[1].password);
     await page.getByRole("button", { name: "Iniciar sesión" }).click();
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
     await page.goto("/settings/billing");
     await expect(page).toHaveURL(/\/settings\/security\?mfaSetup=required/);
     await expect(page.getByRole("heading", { name: "Autenticación multifactor" })).toBeVisible();

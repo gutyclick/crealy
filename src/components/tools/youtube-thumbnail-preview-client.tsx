@@ -146,7 +146,7 @@ function Thumbnail({
       <span
         className={cn(
           "absolute right-1.5 bottom-1.5 rounded bg-black/90 px-1.5 py-0.5 font-semibold text-white",
-          compact ? "text-[0.55rem]" : "text-[0.65rem]",
+          compact ? "text-preview-micro" : "text-preview-small",
         )}
       >
         {video.duration}
@@ -168,7 +168,7 @@ function VideoMeta({
         <span
           className={cn(
             "mb-1 inline-flex rounded-md bg-brand font-bold text-brand-ink",
-            compact ? "px-1.5 py-0.5 text-[0.5rem]" : "px-2 py-1 text-[0.58rem]",
+            compact ? "text-preview-tiny px-1.5 py-0.5" : "text-preview-caption px-2 py-1",
           )}
         >
           TU MINIATURA
@@ -177,7 +177,7 @@ function VideoMeta({
       <p
         className={cn(
           "line-clamp-2 font-semibold leading-snug",
-          compact ? "text-[0.7rem]" : "text-xs sm:text-sm",
+          compact ? "text-xs" : "text-xs sm:text-sm",
         )}
       >
         {video.title}
@@ -185,7 +185,7 @@ function VideoMeta({
       <p
         className={cn(
           "mt-1 truncate opacity-60",
-          compact ? "text-[0.6rem]" : "text-[0.68rem] sm:text-xs",
+          compact ? "text-preview-caption" : "text-preview-meta sm:text-xs",
         )}
       >
         {video.channel}
@@ -193,7 +193,7 @@ function VideoMeta({
       <p
         className={cn(
           "truncate opacity-60",
-          compact ? "text-[0.6rem]" : "text-[0.68rem] sm:text-xs",
+          compact ? "text-preview-caption" : "text-preview-meta sm:text-xs",
         )}
       >
         {video.views}

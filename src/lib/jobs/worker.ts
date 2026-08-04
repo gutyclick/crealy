@@ -41,13 +41,27 @@ import {
 } from "@/lib/generation/thumbnail-orchestrator";
 
 async function retentionDaysForUser(userId: string) {
-  const { data } = await createAdminClient()
-    .from("subscriptions")
-    .select("plan_key, status, current_period_end, updated_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const admin = createAdminClient();
+  const [{ data }, { data: override }] = await Promise.all([
+    admin
+      .from("subscriptions")
+      .select("plan_key, status, current_period_end, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("plan_overrides")
+      .select("plan_key, expires_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  if (
+    override &&
+    (!override.expires_at || new Date(override.expires_at) > new Date())
+  ) {
+    return getCreatedAssetRetentionDays(override.plan_key);
+  }
   const periodEnd = data?.current_period_end
     ? new Date(data.current_period_end)
     : null;

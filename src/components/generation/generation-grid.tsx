@@ -92,7 +92,7 @@ export function GenerationGrid({
                   {dateFormatter.format(new Date(item.createdAt))}
                 </time>
               </p>
-              <p className="mt-2 flex items-center gap-2 text-[11px] text-white/45">
+              <p className="mt-2 flex items-center gap-2 text-xs text-white/45">
                 <span>{item.quality === "high" ? "Alta calidad" : "Estándar"}</span>
                 {item.creditCost ? (
                   <>

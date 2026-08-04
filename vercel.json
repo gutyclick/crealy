@@ -3,11 +3,11 @@
   "crons": [
     {
       "path": "/api/internal/jobs/tick",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/internal/operations/monitor",
-      "schedule": "*/10 * * * *"
+      "schedule": "5 0 * * *"
     }
   ]
 }

@@ -289,7 +289,7 @@ function InstagramCanvas({
                   index === 0 ? "border-brand bg-brand/15" : "border-white/20",
                 )}
               />
-              <span className="mt-1 block truncate text-[0.55rem] opacity-65">
+              <span className="text-preview-micro mt-1 block truncate opacity-65">
                 {item}
               </span>
             </div>

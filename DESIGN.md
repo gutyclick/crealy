@@ -107,6 +107,8 @@ Geist Sans sostiene titulares, cuerpo y controles. Geist Mono se reserva para fo
 
 **The Wide Statement Rule.** Los mensajes principales usan líneas amplias y deliberadas; nunca forman columnas estrechas de palabras.
 
+La microtipografía de 8–11 px se reserva exclusivamente para mockups escalados de redes sociales y usa las clases semánticas `text-preview-*`; no se introducen valores arbitrarios nuevos en componentes.
+
 ## Layout
 
 La página usa un contenedor máximo de 1240 px. El menú se centra de forma independiente entre marca y acciones. El hero mantiene tesis, explicación y CTA sobre el eje central. Dos carriles editoriales de miniaturas, posts y portadas recorren el fondo en direcciones opuestas, conservan una zona central oscura para la lectura y convierten el primer viewport en una mesa de publicación viva. La vista de producto se limita a 1152 px.

@@ -40,7 +40,7 @@ export default async function SecurityPage({
                 <input name="confirmation" type="password" minLength={8} required autoComplete="new-password" className="mt-3 h-12 w-full rounded-xl border border-white/12 bg-surface px-4 outline-none focus:border-brand/60" />
               </label>
             </div>
-            <label className="mt-5 flex min-h-10 items-center gap-3 text-sm text-muted">
+            <label className="mt-5 flex min-h-11 items-center gap-3 text-sm text-muted">
               <input name="closeOtherSessions" type="checkbox" className="size-4 accent-[#DDF527]" />
               Cerrar otras sesiones después del cambio
             </label>

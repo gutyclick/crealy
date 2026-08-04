@@ -80,7 +80,7 @@ export default async function GenerationDetailPage({
       <Container>
         <Link
           href="/generations"
-          className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-muted hover:text-foreground"
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted hover:text-foreground"
         >
           <ArrowLeft aria-hidden="true" className="size-4" />
           Volver a creaciones

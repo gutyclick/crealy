@@ -1191,6 +1191,33 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_overrides: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          plan_key: string
+          reason: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          plan_key: string
+          reason: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          plan_key?: string
+          reason?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

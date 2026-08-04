@@ -6,6 +6,7 @@ import { useActionState } from "react";
 import { signIn } from "@/app/(auth)/actions";
 import { AuthMessage } from "@/components/auth/auth-message";
 import { FormField } from "@/components/auth/form-field";
+import { AuthDivider, GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { PasswordInput } from "@/components/auth/password-input";
 import { SubmitButton } from "@/components/auth/submit-button";
 import {
@@ -16,11 +17,13 @@ import {
 type LoginFormProps = {
   nextPath: string;
   callbackError?: boolean;
+  googleEnabled?: boolean;
 };
 
 export function LoginForm({
   nextPath,
   callbackError = false,
+  googleEnabled = false,
 }: LoginFormProps) {
   const initialState: AuthActionState = callbackError
     ? {
@@ -32,7 +35,9 @@ export function LoginForm({
   const [state, formAction] = useActionState(signIn, initialState);
 
   return (
-    <form action={formAction} className="grid gap-5" noValidate>
+    <div className="grid gap-5">
+      {googleEnabled ? <><GoogleAuthButton nextPath={nextPath} /><AuthDivider /></> : null}
+      <form action={formAction} className="grid gap-5" noValidate>
       <input type="hidden" name="next" value={nextPath} />
       <AuthMessage state={state} />
       <FormField
@@ -73,6 +78,7 @@ export function LoginForm({
           Crear una cuenta
         </Link>
       </p>
-    </form>
+      </form>
+    </div>
   );
 }

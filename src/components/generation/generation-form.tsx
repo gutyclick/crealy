@@ -763,7 +763,7 @@ export function GenerationForm({
             </div>
             <Link
               href="/my-style"
-              className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-brand sm:mt-0"
+              className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-brand sm:mt-0"
             >
               Descubrir la función <ArrowRight className="size-3.5" />
             </Link>
@@ -1410,7 +1410,7 @@ function ColorPalette({
             setColors((current) => [...current, "#FFFFFF"]);
             setDrafts((current) => [...current, "#FFFFFF"]);
           }}
-          className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-background px-3 text-xs font-semibold text-muted hover:text-foreground"
+          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-background px-3 text-xs font-semibold text-muted hover:text-foreground"
         >
           <Plus aria-hidden="true" className="size-4" /> Añadir color (
           {colors.length}/5)

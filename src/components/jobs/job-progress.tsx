@@ -131,7 +131,7 @@ export function JobProgress({
             onClick={cancel}
             disabled={cancelling}
             aria-label="Cancelar solicitud"
-            className="grid size-9 shrink-0 place-items-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-foreground disabled:opacity-50"
+            className="grid size-11 shrink-0 place-items-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-foreground disabled:opacity-50"
           >
             <X className="size-4" />
           </button>
@@ -140,7 +140,7 @@ export function JobProgress({
             type="button"
             onClick={onDismiss}
             aria-label="Cerrar estado"
-            className="grid size-9 shrink-0 place-items-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-foreground"
+            className="grid size-11 shrink-0 place-items-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-foreground"
           >
             <X className="size-4" />
           </button>

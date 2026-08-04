@@ -174,7 +174,7 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
                         <p className={`mt-1 text-xs ${ready ? "text-brand" : "text-muted"}`}>{statusCopy(item.status)}</p>
                         {ready ? <Link onClick={() => setOpen(false)} href={`/generations/${item.generationId}`} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:text-brand">Ver diseño <ArrowUpRight aria-hidden="true" className="size-3.5" /></Link> : null}
                       </div>
-                      {!active ? <button type="button" onClick={() => dismiss(item.jobId)} aria-label={`Quitar ${item.label}`} className="grid size-8 shrink-0 place-items-center rounded-lg text-white/35 opacity-0 hover:bg-white/[0.06] hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"><X aria-hidden="true" className="size-4" /></button> : null}
+                      {!active ? <button type="button" onClick={() => dismiss(item.jobId)} aria-label={`Quitar ${item.label}`} className="grid size-11 shrink-0 place-items-center rounded-lg text-white/35 opacity-0 hover:bg-white/[0.06] hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"><X aria-hidden="true" className="size-4" /></button> : null}
                     </div>
                   );
                 })}
@@ -201,7 +201,7 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
               <p className="mt-1 text-xs leading-5 text-muted">{toast.message}</p>
               {toast.generationId ? <Link href={`/generations/${toast.generationId}`} onClick={() => setToast(null)} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand">Ver resultado <ArrowUpRight aria-hidden="true" className="size-3.5" /></Link> : null}
             </div>
-            <button type="button" onClick={() => setToast(null)} aria-label="Cerrar notificación" className="grid size-8 place-items-center rounded-lg text-white/40 hover:bg-white/[0.06] hover:text-foreground"><X aria-hidden="true" className="size-4" /></button>
+            <button type="button" onClick={() => setToast(null)} aria-label="Cerrar notificación" className="grid size-11 place-items-center rounded-lg text-white/40 hover:bg-white/[0.06] hover:text-foreground"><X aria-hidden="true" className="size-4" /></button>
           </div>
         </div>
       ), document.body) : null}

@@ -15,7 +15,7 @@ export async function getUserBillingState(
   const supabase = await createClient();
   const config = getBillingServerEnv();
 
-  const [subscriptionResult, accountResult, transactionsResult] =
+  const [subscriptionResult, overrideResult, accountResult, transactionsResult] =
     await Promise.all([
       supabase
         .from("subscriptions")
@@ -23,6 +23,11 @@ export async function getUserBillingState(
         .eq("user_id", userId)
         .order("updated_at", { ascending: false })
         .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("plan_overrides")
+        .select("plan_key, expires_at")
+        .eq("user_id", userId)
         .maybeSingle(),
       supabase
         .from("credit_accounts")
@@ -46,6 +51,7 @@ export async function getUserBillingState(
 
   if (
     subscriptionResult.error ||
+    overrideResult.error ||
     accountResult.error ||
     transactionsResult.error
   ) {
@@ -53,10 +59,23 @@ export async function getUserBillingState(
   }
 
   const subscription = subscriptionResult.data;
-  const effectivePlan = getEffectivePlan(
+  let effectivePlan = getEffectivePlan(
     subscription,
     config.gracePeriodDays,
   );
+  const override = overrideResult.data;
+  if (
+    override &&
+    (!override.expires_at || new Date(override.expires_at) > new Date())
+  ) {
+    effectivePlan = {
+      key: override.plan_key as typeof effectivePlan.key,
+      hasPaidAccess: true,
+      renewsAt: null,
+      endsAt: override.expires_at ? new Date(override.expires_at) : null,
+      isPastDue: false,
+    };
+  }
 
   let hasBillingCustomer = Boolean(subscription);
   try {
