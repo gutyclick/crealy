@@ -19,6 +19,13 @@ function response(status: "ready" | "degraded", httpStatus: number, details?: Re
   );
 }
 
+function publicResponse(status: "ready" | "degraded", httpStatus: number) {
+  return NextResponse.json(
+    { status },
+    { status: httpStatus, headers: { "Cache-Control": "no-store" } },
+  );
+}
+
 export async function GET(request: Request) {
   const deep = new URL(request.url).searchParams.get("deep") === "1";
   if (deep && !deepCheckAuthorized(request)) {
@@ -32,10 +39,9 @@ export async function GET(request: Request) {
       ipPolicy: RATE_LIMITS.readinessIp,
     });
     if (!limited.allowed) {
-      return NextResponse.json(
-        { status: "rate_limited" },
-        { status: 429, headers: { "Retry-After": String(limited.retryAfter), "Cache-Control": "no-store" } },
-      );
+      const limitedResponse = publicResponse("degraded", 429);
+      limitedResponse.headers.set("Retry-After", String(limited.retryAfter));
+      return limitedResponse;
     }
   } catch {
     return response("degraded", 503);
@@ -49,19 +55,23 @@ export async function GET(request: Request) {
   ];
   const environmentReady = required.every((name) => process.env[name]?.trim()) &&
     Boolean(process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
-  if (!environmentReady) return response("degraded", 503, deep ? { environment: false } : undefined);
+  if (!environmentReady) return deep ? response("degraded", 503, { environment: false }) : publicResponse("degraded", 503);
 
   try {
     const { error } = await createAdminClient().from("jobs").select("id").limit(1);
     if (error) throw error;
     const imageProvider = await checkImageProvider({ force: deep });
     const ready = imageProvider.ok;
-    return response(
-      ready ? "ready" : "degraded",
-      ready ? 200 : 503,
-      deep ? { environment: true, database: true, imageProvider: ready, providerCode: imageProvider.code } : undefined,
-    );
+    if (!deep) return publicResponse(ready ? "ready" : "degraded", ready ? 200 : 503);
+    return response(ready ? "ready" : "degraded", ready ? 200 : 503, {
+      environment: true,
+      database: true,
+      imageProvider: ready,
+      providerCode: imageProvider.code,
+    });
   } catch {
-    return response("degraded", 503, deep ? { environment: true, database: false, imageProvider: false } : undefined);
+    return deep
+      ? response("degraded", 503, { environment: true, database: false, imageProvider: false })
+      : publicResponse("degraded", 503);
   }
 }

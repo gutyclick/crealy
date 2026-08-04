@@ -60,6 +60,8 @@ test.describe("superficie pública de lanzamiento", () => {
   test("readiness público no revela configuración y protege la comprobación profunda", async ({ request }) => {
     const publicResponse = await request.get("/api/ready");
     const publicPayload = await publicResponse.json();
+    expect(publicResponse.headers()["x-powered-by"]).toBeUndefined();
+    expect(Object.keys(publicPayload)).toEqual(["status"]);
     expect([200, 429, 503]).toContain(publicResponse.status());
     expect(JSON.stringify(publicPayload)).not.toContain("gpt-image");
     expect(publicPayload).not.toHaveProperty("model");

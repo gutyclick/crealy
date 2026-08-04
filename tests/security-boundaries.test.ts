@@ -9,6 +9,14 @@ test("scripts use a request nonce and never allow unsafe-inline", () => {
   assert.doesNotMatch(`${proxy}\n${config}`, /script-src[^\n]+unsafe-inline/);
 });
 
+test("production hides the framework header and public readiness internals", () => {
+  const config = readFileSync("next.config.ts", "utf8");
+  const readiness = readFileSync("src/app/api/ready/route.ts", "utf8");
+  assert.match(config, /poweredByHeader:\s*false/);
+  assert.match(readiness, /function publicResponse/);
+  assert.doesNotMatch(readiness.match(/function publicResponse[\s\S]*?\n}/)?.[0] || "", /model|provider|checks/);
+});
+
 test("the complete dashboard route group has a server authentication boundary", () => {
   const layout = readFileSync("src/app/(dashboard)/layout.tsx", "utf8");
   assert.match(layout, /await requireUser\(\)/);
