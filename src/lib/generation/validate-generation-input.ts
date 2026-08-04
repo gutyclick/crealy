@@ -27,7 +27,7 @@ import type {
   StyleConsistency,
 } from "@/types/generation";
 import { isRecreateCategory } from "@/lib/recreate/reference";
-import type { RecreateBlueprint, RecreateSimilarity } from "@/types/recreate";
+import type { RecreateBlueprint, RecreateFocus, RecreateGoal, RecreateSimilarity } from "@/types/recreate";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -86,6 +86,8 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   const brandStyleId = typeof rawInput.brandStyleId === "string" ? rawInput.brandStyleId : undefined;
   const creationMode = rawInput.creationMode === "recreate" ? "recreate" : "create";
   const recreateSimilarity: RecreateSimilarity = rawInput.recreateSimilarity === "inspired" || rawInput.recreateSimilarity === "very_similar" ? rawInput.recreateSimilarity : "similar";
+  const recreateFocus: RecreateFocus = ["subject", "text", "atmosphere"].includes(String(rawInput.recreateFocus)) ? rawInput.recreateFocus as RecreateFocus : "composition";
+  const recreateGoal: RecreateGoal = ["clean", "premium", "bold"].includes(String(rawInput.recreateGoal)) ? rawInput.recreateGoal as RecreateGoal : "performance";
   let recreateBlueprint: RecreateBlueprint | undefined;
   const styleConsistency = rawInput.styleConsistency === "flexible" || rawInput.styleConsistency === "strict" ? rawInput.styleConsistency : "balanced";
   if (brandStyleId && !UUID_PATTERN.test(brandStyleId)) fields.brandStyleId = "El estilo guardado no es válido.";
@@ -276,7 +278,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
         : {}),
       ...(brandStyleId ? { brandStyleId, styleConsistency: styleConsistency as StyleConsistency } : {}),
       creationMode,
-      ...(creationMode === "recreate" && recreateBlueprint ? { recreateSimilarity, recreateBlueprint } : {}),
+      ...(creationMode === "recreate" && recreateBlueprint ? { recreateSimilarity, recreateBlueprint, recreateFocus, recreateGoal } : {}),
     },
   };
 }

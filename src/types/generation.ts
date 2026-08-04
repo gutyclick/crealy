@@ -195,6 +195,8 @@ export type GenerationInput = {
   creationMode?: "create" | "recreate";
   recreateSimilarity?: import("@/types/recreate").RecreateSimilarity;
   recreateBlueprint?: import("@/types/recreate").RecreateBlueprint;
+  recreateFocus?: import("@/types/recreate").RecreateFocus;
+  recreateGoal?: import("@/types/recreate").RecreateGoal;
 };
 
 export type GenerationReferenceImage = {

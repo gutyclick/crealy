@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { analyzeReferenceDesign, buildFallbackBlueprint } from "@/lib/recreate/analyze-reference-design";
+import { analyzeReferenceDesign } from "@/lib/recreate/analyze-reference-design";
+import { buildFallbackBlueprint } from "@/lib/recreate/default-blueprint";
 import { logger } from "@/lib/observability/logger";
 import { isRecreateCategory } from "@/lib/recreate/reference";
 import { createClient } from "@/lib/supabase/server";

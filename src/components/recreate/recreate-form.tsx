@@ -112,6 +112,8 @@ export function RecreateForm({
   const [references, setReferences] = useState<ReferenceDraft[]>([]);
   const [recreate, setRecreate] = useState<RecreateState>({
     similarity: "similar",
+    focus: "composition",
+    goal: "performance",
     ready: false,
   });
   const [result, setResult] = useState<SubmitState>({ status: "idle" });
@@ -161,7 +163,7 @@ export function RecreateForm({
     setVariant(next.defaultVariant);
     setQuality(getDefaultQuality(getGenerationVariant(next.defaultVariant)!));
     setReferences([]);
-    setRecreate({ similarity: "similar", ready: false });
+    setRecreate({ similarity: "similar", focus: "composition", goal: "performance", ready: false });
     setResult({ status: "idle" });
     setFieldErrors({});
     setBrandStyleId((current) =>
@@ -239,6 +241,8 @@ export function RecreateForm({
           creationMode: "recreate",
           recreateSimilarity: recreate.similarity,
           recreateBlueprint: recreate.blueprint,
+          recreateFocus: recreate.focus,
+          recreateGoal: recreate.goal,
         }),
       });
       const payload = await readApiResponse<

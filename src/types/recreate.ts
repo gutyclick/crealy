@@ -1,6 +1,8 @@
 import type { ContentType } from "@/types/generation";
 
 export type RecreateSimilarity = "inspired" | "similar" | "very_similar";
+export type RecreateFocus = "composition" | "subject" | "text" | "atmosphere";
+export type RecreateGoal = "performance" | "clean" | "premium" | "bold";
 export type RecreateCategory = Extract<ContentType, "thumbnail" | "social-post" | "banner" | "social-cover">;
 
 export type RecreateBlueprint = {
@@ -16,4 +18,3 @@ export type RecreateBlueprint = {
   focalElements: string[];
   replaceableElements: string[];
 };
-

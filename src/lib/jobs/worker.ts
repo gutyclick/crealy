@@ -254,6 +254,8 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     creationMode: generationMetadata.creationMode === "recreate" ? "recreate" : "create",
     recreateSimilarity: (generationMetadata.recreateSimilarity as GenerationInput["recreateSimilarity"]) ?? undefined,
     recreateBlueprint: (generationMetadata.recreateBlueprint as GenerationInput["recreateBlueprint"]) ?? undefined,
+    recreateFocus: (generationMetadata.recreateFocus as GenerationInput["recreateFocus"]) ?? undefined,
+    recreateGoal: (generationMetadata.recreateGoal as GenerationInput["recreateGoal"]) ?? undefined,
   };
 
   const { data: referenceRows, error: referenceError } = await admin

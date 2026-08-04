@@ -8,9 +8,10 @@ import type { ReferenceDraft } from "@/components/generation/reference-image-pic
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
 import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
-import type { RecreateBlueprint, RecreateCategory, RecreateSimilarity } from "@/types/recreate";
+import { buildFallbackBlueprint } from "@/lib/recreate/default-blueprint";
+import type { RecreateBlueprint, RecreateCategory, RecreateFocus, RecreateGoal, RecreateSimilarity } from "@/types/recreate";
 
-export type RecreateState = { similarity: RecreateSimilarity; blueprint?: RecreateBlueprint; ready: boolean };
+export type RecreateState = { similarity: RecreateSimilarity; focus: RecreateFocus; goal: RecreateGoal; blueprint?: RecreateBlueprint; ready: boolean };
 
 export function RecreatePanel({ category, references, setReferences, disabled, maxFileMb, onChange }: {
   category: RecreateCategory;
@@ -24,11 +25,19 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
   const protagonistInputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
   const [similarity, setSimilarity] = useState<RecreateSimilarity>("similar");
+  const [focus, setFocus] = useState<RecreateFocus>("composition");
+  const [goal, setGoal] = useState<RecreateGoal>("performance");
+  const stateRef = useRef<RecreateState>({ similarity: "similar", focus: "composition", goal: "performance", ready: false });
   const [status, setStatus] = useState<"empty" | "loading" | "analyzing" | "ready" | "error">("empty");
   const [message, setMessage] = useState("");
   const source = references[0];
   const protagonist = references[1];
   const busy = status === "loading" || status === "analyzing";
+
+  function emitChange(patch: Partial<RecreateState>) {
+    stateRef.current = { ...stateRef.current, ...patch };
+    onChange(stateRef.current);
+  }
 
   function addProtagonist(file: File) {
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
@@ -46,19 +55,23 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
 
   async function prepare(file: File) {
     setStatus("analyzing"); setMessage("");
-    onChange({ similarity, ready: false });
+    emitChange({ similarity, focus, goal, blueprint: undefined, ready: false });
     const key = crypto.randomUUID();
     const previewUrl = URL.createObjectURL(file);
     setReferences((current) => [{ key, file, previewUrl, status: "uploading" }, ...current.slice(1)]);
     try {
       const upload = await uploadPrivateImage(file, "reference");
       setReferences((current) => current.map((item, index) => index === 0 ? { ...item, uploadId: upload.uploadId, status: "uploaded" } : item));
+      const fallback = buildFallbackBlueprint(category);
+      setStatus("ready");
+      setMessage("Referencia lista. Puedes continuar mientras afinamos su lectura visual.");
+      emitChange({ blueprint: fallback, ready: true });
       const response = await fetch("/api/recreate/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uploadId: upload.uploadId, category }) });
       const payload = await readApiResponse<{ blueprint: RecreateBlueprint; fallback?: boolean } | { error: string }>(response, "No pudimos analizar esta referencia.");
       if (!response.ok || "error" in payload) throw new Error("error" in payload ? payload.error : "No pudimos analizar esta referencia.");
-      setStatus("ready"); setMessage(payload.fallback ? "Referencia lista. Crealy completará la interpretación visual al generar." : ""); onChange({ similarity, blueprint: payload.blueprint, ready: true });
-    } catch (error) {
-      setStatus("error"); setMessage(error instanceof Error ? error.message : "No pudimos analizar esta referencia."); onChange({ similarity, ready: false });
+      setStatus("ready"); setMessage(payload.fallback ? "Referencia lista. Crealy completará la interpretación visual al generar." : "Lectura visual afinada. Ya puedes generar."); emitChange({ blueprint: payload.blueprint, ready: true });
+    } catch {
+      setStatus("ready"); setMessage("Referencia lista. Usaremos su composición directamente al generar."); emitChange({ blueprint: buildFallbackBlueprint(category), ready: true });
     }
   }
 
@@ -85,6 +98,10 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
     {status === "ready" ? <div role="status" aria-live="polite" className="mx-5 mb-5 flex items-center gap-2 rounded-xl bg-brand/10 px-4 py-3 text-sm font-semibold text-foreground ring-1 ring-brand/25 sm:mx-6 sm:mb-6"><Check className="size-4 text-brand" />{message || "Crealy entendió la composición, la jerarquía y la energía visual."}</div> : null}
     {status === "error" ? <p role="alert" className="mx-5 mb-5 rounded-xl bg-red-950/40 px-4 py-3 text-sm text-red-100 sm:mx-6 sm:mb-6">{message}</p> : null}
     {status === "ready" ? <div className="border-t border-white/8 p-5 sm:p-6"><div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-foreground">Protagonista o producto <span className="font-normal text-muted">(opcional)</span></p><p className="mt-1 text-xs leading-5 text-muted">Añade tu propia persona, producto u objeto. Crealy preservará sus rasgos principales.</p></div>{protagonist ? <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-background ring-1 ring-white/10"><Image src={protagonist.previewUrl} alt="Protagonista seleccionado" fill unoptimized className="object-cover" /></div> : null}</div><input ref={protagonistInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) addProtagonist(file); event.target.value = ""; }} /><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => protagonistInputRef.current?.click()} disabled={disabled || busy} className="flex min-h-11 items-center gap-2 rounded-xl bg-background px-4 text-sm font-semibold text-foreground ring-1 ring-white/10 transition-colors hover:ring-brand/45"><ImagePlus className="size-4 text-brand" />{protagonist ? "Cambiar imagen" : "Añadir protagonista"}</button>{protagonist ? <button type="button" onClick={() => { URL.revokeObjectURL(protagonist.previewUrl); setReferences((current) => current.slice(0, 1)); }} disabled={disabled || busy} className="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"><X className="size-4" />Quitar</button> : null}</div></div> : null}
-    <fieldset className="border-t border-white/8 p-5 sm:p-6"><legend className="px-0 text-sm font-semibold text-foreground">¿Qué tan cerca quieres estar de la referencia?</legend><div className="mt-3 grid gap-2 sm:grid-cols-3">{([{ id: "inspired", label: "Inspirado", detail: "Más libertad creativa" }, { id: "similar", label: "Similar", detail: "Equilibrio recomendado" }, { id: "very_similar", label: "Muy similar", detail: "Estructura más cercana" }] as const).map((item) => <button key={item.id} type="button" aria-pressed={similarity === item.id} onClick={() => { setSimilarity(item.id); onChange({ similarity: item.id, ready: status === "ready" }); }} className={cn("rounded-xl p-3 text-left ring-1", similarity === item.id ? "bg-brand/10 ring-brand/60" : "bg-background ring-white/10")}><span className="block text-sm font-semibold text-foreground">{item.label}</span><span className="mt-1 block text-xs text-muted">{item.detail}</span></button>)}</div></fieldset>
+    <div className="grid border-t border-white/8 sm:grid-cols-2">
+      <fieldset className="p-5 sm:p-6"><legend className="px-0 text-sm font-semibold text-foreground">Qué quieres conservar</legend><div className="mt-3 grid grid-cols-2 gap-2">{([{ id: "composition", label: "Composición" }, { id: "subject", label: "Protagonista" }, { id: "text", label: "Impacto del texto" }, { id: "atmosphere", label: "Color y atmósfera" }] as const).map((item) => <button key={item.id} type="button" aria-pressed={focus === item.id} onClick={() => { setFocus(item.id); emitChange({ focus: item.id }); }} className={cn("min-h-11 rounded-xl px-3 text-left text-xs font-semibold ring-1", focus === item.id ? "bg-brand/10 text-foreground ring-brand/60" : "bg-background text-muted ring-white/10")}>{item.label}</button>)}</div></fieldset>
+      <fieldset className="border-t border-white/8 p-5 sm:border-l sm:border-t-0 sm:p-6"><legend className="px-0 text-sm font-semibold text-foreground">Qué quieres mejorar</legend><div className="mt-3 grid grid-cols-2 gap-2">{([{ id: "performance", label: "Más clics" }, { id: "clean", label: "Más limpio" }, { id: "premium", label: "Más premium" }, { id: "bold", label: "Más impacto" }] as const).map((item) => <button key={item.id} type="button" aria-pressed={goal === item.id} onClick={() => { setGoal(item.id); emitChange({ goal: item.id }); }} className={cn("min-h-11 rounded-xl px-3 text-left text-xs font-semibold ring-1", goal === item.id ? "bg-brand/10 text-foreground ring-brand/60" : "bg-background text-muted ring-white/10")}>{item.label}</button>)}</div></fieldset>
+    </div>
+    <fieldset className="border-t border-white/8 p-5 sm:p-6"><legend className="px-0 text-sm font-semibold text-foreground">Nivel de parecido</legend><div className="mt-3 grid gap-2 sm:grid-cols-3">{([{ id: "inspired", label: "Inspirado", detail: "Nueva composición" }, { id: "similar", label: "Equilibrado", detail: "Recomendado" }, { id: "very_similar", label: "Cercano", detail: "Misma lógica visual" }] as const).map((item) => <button key={item.id} type="button" aria-pressed={similarity === item.id} onClick={() => { setSimilarity(item.id); emitChange({ similarity: item.id }); }} className={cn("min-h-14 rounded-xl p-3 text-left ring-1", similarity === item.id ? "bg-brand/10 ring-brand/60" : "bg-background ring-white/10")}><span className="block text-sm font-semibold text-foreground">{item.label}</span><span className="mt-1 block text-xs text-muted">{item.detail}</span></button>)}</div></fieldset>
   </section>;
 }

@@ -1,6 +1,20 @@
 import { getSimilarityInstructions } from "@/lib/recreate/reference";
 import type { GenerationInput } from "@/types/generation";
 
+const focusInstructions = {
+  composition: "Prioriza la composición, el balance espacial y el recorrido visual de la referencia.",
+  subject: "Prioriza la escala, posición y presencia del protagonista, usando únicamente el sujeto aportado por el usuario.",
+  text: "Prioriza la fuerza, posición y legibilidad del titular nuevo; nunca copies el texto original.",
+  atmosphere: "Prioriza el contraste, la iluminación, la energía y la relación cromática sin calcar la paleta.",
+} as const;
+
+const goalInstructions = {
+  performance: "Optimiza para detener el scroll y conseguir una lectura inmediata, con un foco dominante y curiosidad clara.",
+  clean: "Reduce ruido, simplifica elementos secundarios y aumenta aire y claridad.",
+  premium: "Eleva acabado, iluminación, profundidad y control tipográfico con una dirección sofisticada.",
+  bold: "Aumenta contraste, escala, tensión visual y energía sin perder legibilidad.",
+} as const;
+
 export function buildRecreatePrompt(input: GenerationInput) {
   const blueprint = input.recreateBlueprint;
   if (input.creationMode !== "recreate" || !blueprint) return null;
@@ -20,10 +34,11 @@ export function buildRecreatePrompt(input: GenerationInput) {
     `Focos a reinterpretar: ${blueprint.focalElements.join(", ") || "jerarquía principal"}.`,
     `Elementos que deben reemplazarse: ${blueprint.replaceableElements.join(", ") || "texto, personas, logos, marcas y objetos identificables"}.`,
     `Nivel de cercanía: ${getSimilarityInstructions(input.recreateSimilarity ?? "similar")}`,
+    `Prioridad a conservar: ${focusInstructions[input.recreateFocus ?? "composition"]}`,
+    `Mejora buscada: ${goalInstructions[input.recreateGoal ?? "performance"]}`,
     "REGLAS DE ORIGINALIDAD: nunca copies texto, nombres, logos, branding, una persona, un personaje protegido ni objetos distintivos de la referencia. No hagas una réplica píxel a píxel. Conserva solamente principios abstractos de composición, contraste, ritmo, jerarquía y emoción.",
     input.referenceUploadIds && input.referenceUploadIds.length > 1
       ? "Las imágenes adjuntas después de la primera pertenecen al usuario: úsalas como material del nuevo diseño y conserva fielmente la identidad de las personas salvo que el usuario pida modificarla."
       : null,
   ].filter(Boolean).join("\n");
 }
-

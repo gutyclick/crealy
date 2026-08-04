@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { buildRecreatePrompt } from "../src/lib/recreate/build-recreate-prompt";
@@ -16,6 +17,8 @@ test("builds an original-by-design Recreate prompt", () => {
   const input = {
     creationMode: "recreate",
     recreateSimilarity: "very_similar",
+    recreateFocus: "text",
+    recreateGoal: "performance",
     contentType: "thumbnail",
     variant: "thumbnail-standard",
     description: "Un video sobre mis primeros mil suscriptores",
@@ -39,5 +42,17 @@ test("builds an original-by-design Recreate prompt", () => {
   assert.match(prompt, /obra inequívocamente original/);
   assert.match(prompt, /nunca copies texto, nombres, logos/);
   assert.match(prompt, /después de la primera pertenecen al usuario/);
+  assert.match(prompt, /Prioridad a conservar:.*titular nuevo/);
+  assert.match(prompt, /Mejora buscada:.*detener el scroll/);
 });
 
+test("Recreate becomes usable before deep analysis finishes", () => {
+  const source = readFileSync(
+    "src/components/recreate/recreate-panel.tsx",
+    "utf8",
+  );
+  const readyIndex = source.indexOf("blueprint: fallback, ready: true");
+  const analysisIndex = source.indexOf('fetch("/api/recreate/analyze"');
+  assert.ok(readyIndex > 0);
+  assert.ok(analysisIndex > readyIndex);
+});
