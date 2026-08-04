@@ -1,4 +1,4 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 
 import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
@@ -7,7 +7,6 @@ import { getGenerationServerEnv } from "@/lib/env/server";
 import { buildProjectTitle } from "@/lib/generation/build-project-title";
 import { checkImageProvider } from "@/lib/generation/check-image-provider";
 import { validateGenerationInput } from "@/lib/generation/validate-generation-input";
-import { processQueuedJob } from "@/lib/jobs/worker";
 import { logger } from "@/lib/observability/logger";
 import { getOperationsConfig } from "@/lib/operations/config";
 import { getGenerationVariant } from "@/config/generation-products";
@@ -415,24 +414,15 @@ export async function POST(request: Request) {
       .eq("id", input.parentGenerationId)
       .eq("user_id", user.id);
   }
-  await admin
-    .from("jobs")
-    .update({ max_attempts: operations.maxAttempts })
-    .eq("id", queued.job_id)
-    .eq("status", "queued");
-  after(async () => {
-    try {
-      await processQueuedJob(queued.job_id);
-    } catch {
-      logger.error("job.dispatch_failed", {
-        jobId: queued.job_id,
-        userId: user.id,
-        resourceId: queued.generation_id,
-        errorCode: "dispatch_failed",
-      });
-    }
+  const { data: jobReady, error: jobReadyError } = await admin.rpc("mark_job_ready_internal", {
+    p_job_id: queued.job_id,
+    p_user_id: user.id,
+    p_max_attempts: operations.maxAttempts,
   });
-
+  if (jobReadyError || !jobReady) {
+    logger.error("job.ready_failed", { jobId: queued.job_id, userId: user.id, resourceId: queued.generation_id, errorCode: jobReadyError?.code || "not_marked_ready" });
+    return reservationError("job_not_ready", input.clientRequestId);
+  }
   logger.info("job.accepted", {
     jobId: queued.job_id,
     userId: user.id,

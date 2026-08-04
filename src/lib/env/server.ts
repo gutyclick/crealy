@@ -177,13 +177,13 @@ export function getCreditServerEnv() {
       1_000_000,
     ),
     freeSignupCredits: readNonNegativeInteger("FREE_SIGNUP_CREDITS", 3, 10_000),
-    proMonthlyCredits: readPositiveInteger(
-      "PRO_MONTHLY_CREDITS",
+    creatorMonthlyCredits: readPositiveInteger(
+      "CREATOR_MONTHLY_CREDITS",
       75,
       1_000_000,
     ),
-    businessMonthlyCredits: readPositiveInteger(
-      "BUSINESS_MONTHLY_CREDITS",
+    proMonthlyCredits: readPositiveInteger(
+      "PRO_MONTHLY_CREDITS",
       225,
       1_000_000,
     ),
@@ -237,21 +237,15 @@ export function getToolsServerEnv() {
 export function getBillingServerEnv() {
   return {
     billingEnabled: readBoolean("STRIPE_BILLING_ENABLED", false),
-    businessPlanEnabled: readBoolean("BUSINESS_PLAN_ENABLED", false),
     gracePeriodDays: readNonNegativeInteger(
       "BILLING_GRACE_PERIOD_DAYS",
       3,
       30,
     ),
-    proPriceId: process.env.STRIPE_PRO_PRICE_ID?.trim() || "",
-    businessPriceId: process.env.STRIPE_BUSINESS_PRICE_ID?.trim() || "",
-    businessPriceDisplay:
-      process.env.STRIPE_BUSINESS_PRICE_DISPLAY?.trim() || "",
-    proPriceDisplay: process.env.STRIPE_PRO_PRICE_DISPLAY?.trim() || "",
     priceIds: {
       starter: { monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID?.trim() || "", annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID?.trim() || "" },
-      creator: { monthly: process.env.STRIPE_CREATOR_MONTHLY_PRICE_ID?.trim() || process.env.STRIPE_PRO_PRICE_ID?.trim() || "", annual: process.env.STRIPE_CREATOR_ANNUAL_PRICE_ID?.trim() || "" },
-      pro: { monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID?.trim() || process.env.STRIPE_BUSINESS_PRICE_ID?.trim() || "", annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID?.trim() || "" },
+      creator: { monthly: process.env.STRIPE_CREATOR_MONTHLY_PRICE_ID?.trim() || "", annual: process.env.STRIPE_CREATOR_ANNUAL_PRICE_ID?.trim() || "" },
+      pro: { monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID?.trim() || "", annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID?.trim() || "" },
     },
   };
 }

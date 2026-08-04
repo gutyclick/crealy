@@ -1,12 +1,10 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 
 import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
 import { getEditCreditCost } from "@/lib/credits/get-credit-cost";
 import { buildEditInstruction } from "@/lib/editing/build-edit-instruction";
 import { getEditingServerEnv } from "@/lib/env/server";
-import { processQueuedJob } from "@/lib/jobs/worker";
-import { logger } from "@/lib/observability/logger";
 import { getOperationsConfig } from "@/lib/operations/config";
 import {
   enforceRateLimit,
@@ -196,23 +194,12 @@ export async function POST(
   if (error || !data?.[0]) return reservationError(error?.message ?? "");
 
   const queued = data[0];
-  await admin
-    .from("jobs")
-    .update({ max_attempts: operations.maxAttempts })
-    .eq("id", queued.job_id)
-    .eq("status", "queued");
-  after(async () => {
-    try {
-      await processQueuedJob(queued.job_id);
-    } catch {
-      logger.error("job.dispatch_failed", {
-        jobId: queued.job_id,
-        userId: user.id,
-        resourceId: queued.version_id,
-        errorCode: "dispatch_failed",
-      });
-    }
+  const { data: jobReady, error: jobReadyError } = await admin.rpc("mark_job_ready_internal", {
+    p_job_id: queued.job_id,
+    p_user_id: user.id,
+    p_max_attempts: operations.maxAttempts,
   });
+  if (jobReadyError || !jobReady) return apiError("operations_unavailable", "No pudimos publicar el trabajo en la cola.", 503);
   return NextResponse.json<QueuedEditResponse>(
     {
       jobId: queued.job_id,

@@ -53,7 +53,9 @@ export function validateProductionEnv(): ValidationResult {
     for (const name of [
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
-      "STRIPE_PRO_PRICE_ID",
+      "STRIPE_STARTER_MONTHLY_PRICE_ID",
+      "STRIPE_CREATOR_MONTHLY_PRICE_ID",
+      "STRIPE_PRO_MONTHLY_PRICE_ID",
     ]) {
       if (!process.env[name]?.trim()) missing.push(name);
     }
@@ -69,7 +71,7 @@ export function validateProductionEnv(): ValidationResult {
     ) {
       invalid.push("STRIPE_SECRET_KEY");
     }
-    for (const name of ["STRIPE_PRO_PRICE_ID", "STRIPE_BUSINESS_PRICE_ID"]) {
+    for (const name of ["STRIPE_STARTER_MONTHLY_PRICE_ID", "STRIPE_CREATOR_MONTHLY_PRICE_ID", "STRIPE_PRO_MONTHLY_PRICE_ID"]) {
       const value = process.env[name]?.trim();
       if (value && !value.startsWith("price_")) invalid.push(name);
     }

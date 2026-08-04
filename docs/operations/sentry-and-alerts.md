@@ -6,7 +6,7 @@ Crealy inicializa Sentry en browser, Node.js y Edge. No envía PII por defecto. 
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` y `SENTRY_PROJECT` para source maps
 - tasas de trazas con `SENTRY_TRACES_SAMPLE_RATE` y `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`
 
-El cron `/api/internal/operations/monitor` requiere `Authorization: Bearer CRON_SECRET`. El repositorio lo programa una vez al día para ser compatible con Vercel Hobby. En Pro, cambia su expresión a `*/10 * * * *` para detección cada diez minutos. También puede invocarlo un monitor externo con el mismo encabezado. Emite issues agrupados y métricas para:
+El cron `/api/internal/operations/monitor` requiere `Authorization: Bearer CRON_SECRET` y se ejecuta cada diez minutos en Vercel Pro. También puede invocarlo un monitor externo con el mismo encabezado. Emite issues agrupados y métricas para:
 
 - tasa de generaciones fallidas;
 - jobs atascados;

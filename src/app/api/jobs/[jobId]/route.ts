@@ -1,7 +1,4 @@
-import { after, NextResponse } from "next/server";
-
-import { processQueuedJob } from "@/lib/jobs/worker";
-import { logger } from "@/lib/observability/logger";
+import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { JobRecord, PublicJob } from "@/types/jobs";
@@ -50,21 +47,6 @@ export async function GET(
   const job = data as JobRecord | null;
   if (error || !job) {
     return NextResponse.json({ error: "Job no encontrado." }, { status: 404 });
-  }
-
-  if (job.status === "queued" || job.status === "retry_scheduled") {
-    after(async () => {
-      try {
-        await processQueuedJob(job.id);
-      } catch {
-        logger.error("job.poll_dispatch_failed", {
-          jobId: job.id,
-          userId: user.id,
-          resourceId: job.resource_id,
-          errorCode: "dispatch_failed",
-        });
-      }
-    });
   }
 
   return NextResponse.json(toPublicJob(job), {

@@ -20,11 +20,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = Date.now();
+  logger.info("queue.consumer_started");
   const maintenance = await maintainQueue();
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("jobs")
     .select("id")
+    .contains("payload", { ready: true })
     .in("status", ["queued", "retry_scheduled"])
     .lte("available_at", new Date().toISOString())
     .order("priority")
@@ -39,6 +42,10 @@ export async function GET(request: Request) {
   for (const job of data ?? []) {
     results.push({ id: job.id, ...(await processQueuedJob(job.id)) });
   }
+  logger.info("queue.consumer_completed", {
+    durationMs: Date.now() - startedAt,
+    processedCount: results.length,
+  });
   return NextResponse.json({
     ok: true,
     maintenance,

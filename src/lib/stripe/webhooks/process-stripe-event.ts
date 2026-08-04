@@ -67,8 +67,8 @@ async function handleInvoicePaid(
   const amount = synced.planKey === "starter"
     ? credits.starterMonthlyCredits
     : synced.planKey === "pro"
-      ? credits.proMonthlyCredits
-      : credits.businessMonthlyCredits;
+      ? credits.creatorMonthlyCredits
+      : credits.proMonthlyCredits;
   const admin = createAdminClient();
   const { error } = await admin.rpc(
     "grant_subscription_credits_internal",

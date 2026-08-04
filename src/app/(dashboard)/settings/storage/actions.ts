@@ -6,30 +6,28 @@ import { requireUser } from "@/lib/auth/require-user";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCreatedAssetRetentionDays } from "@/lib/storage/retention-policy";
+import { getStorageQuotaBytes } from "@/config/storage-plans";
 
 export async function pinAsset(formData: FormData) {
   const user = await requireUser("/settings/storage");
   const assetId = String(formData.get("assetId") ?? "");
-  const [billing, assets] = await Promise.all([
+  const admin = createAdminClient();
+  const [billing, assetResult, usageResult] = await Promise.all([
     getUserBillingState(user.id),
-    createAdminClient()
+    admin
       .from("assets")
       .select("id, file_size_bytes, pinned_at")
       .eq("user_id", user.id)
-      .eq("status", "active"),
+      .eq("id", assetId)
+      .eq("status", "active")
+      .maybeSingle(),
+    admin.rpc("get_storage_usage_internal", { p_user_id: user.id }),
   ]);
-  const asset = assets.data?.find((item) => item.id === assetId);
-  if (!asset || assets.error) return;
-  const limitMb = Number(
-    billing.effectivePlan.key === "free"
-      ? process.env.FREE_STORAGE_LIMIT_MB || 250
-      : process.env.PRO_STORAGE_LIMIT_MB || 2048,
-  );
-  const pinnedBytes = (assets.data ?? [])
-    .filter((item) => item.pinned_at)
-    .reduce((sum, item) => sum + item.file_size_bytes, 0);
-  if (pinnedBytes + asset.file_size_bytes > limitMb * 1024 * 1024) return;
-  await createAdminClient()
+  const asset = assetResult.data;
+  if (!asset || asset.pinned_at || assetResult.error || usageResult.error) return;
+  const pinnedBytes = Number(usageResult.data?.[0]?.pinned_bytes ?? 0);
+  if (pinnedBytes + asset.file_size_bytes > getStorageQuotaBytes(billing.effectivePlan.key)) return;
+  await admin
     .from("assets")
     .update({ pinned_at: new Date().toISOString(), expires_at: null })
     .eq("id", assetId)

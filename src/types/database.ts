@@ -1618,6 +1618,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_storage_usage_internal: {
+        Args: { p_user_id: string }
+        Returns: {
+          active_count: number
+          expiring_soon_count: number
+          pinned_bytes: number
+          pinned_count: number
+          temporary_count: number
+          used_bytes: number
+        }[]
+      }
+      mark_job_ready_internal: {
+        Args: { p_job_id: string; p_max_attempts: number; p_user_id: string }
+        Returns: boolean
+      }
       archive_edit_session: {
         Args: { p_archived: boolean; p_session_id: string }
         Returns: undefined

@@ -9,6 +9,7 @@ import {
 import { Container } from "@/components/layout/container";
 import { requireUser } from "@/lib/auth/require-user";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
+import { getStorageQuotaBytes } from "@/config/storage-plans";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Archivos y almacenamiento | Crealy" };
@@ -25,7 +26,7 @@ async function currentTimestamp() {
 export default async function StoragePage() {
   const user = await requireUser("/settings/storage");
   const supabase = await createClient();
-  const [assetsResult, billing] = await Promise.all([
+  const [assetsResult, usageResult, billing] = await Promise.all([
     supabase
       .from("assets")
       .select("id, kind, mime_type, file_size_bytes, status, expires_at, pinned_at, created_at")
@@ -33,16 +34,17 @@ export default async function StoragePage() {
       .neq("status", "deleted")
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase.rpc("get_storage_usage_internal", { p_user_id: user.id }),
     getUserBillingState(user.id),
   ]);
   const assets = assetsResult.data ?? [];
+  const usage = usageResult.data?.[0];
   const renderedAt = await currentTimestamp();
-  const used = assets.filter((item) => item.status === "active").reduce((sum, item) => sum + item.file_size_bytes, 0);
-  const quotaMb = Number(billing.effectivePlan.key === "free" ? process.env.FREE_STORAGE_LIMIT_MB || 250 : process.env.PRO_STORAGE_LIMIT_MB || 2048);
-  const quota = quotaMb * 1024 * 1024;
-  const pinned = assets.filter((item) => item.pinned_at).length;
-  const temporary = assets.filter((item) => item.kind === "temporary_processing" || item.kind === "user_upload").length;
-  const soon = assets.filter((item) => item.expires_at && new Date(item.expires_at).getTime() - renderedAt < 7 * 86_400_000).length;
+  const used = Number(usage?.used_bytes ?? 0);
+  const quota = getStorageQuotaBytes(billing.effectivePlan.key);
+  const pinned = Number(usage?.pinned_count ?? 0);
+  const temporary = Number(usage?.temporary_count ?? 0);
+  const soon = Number(usage?.expiring_soon_count ?? 0);
 
   return (
     <main className="py-12 sm:py-16">

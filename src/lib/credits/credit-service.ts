@@ -27,8 +27,10 @@ export async function ensureWelcomeCredits(userId: string) {
     "sync_credit_settings_internal",
     {
       p_free_signup_credits: config.freeSignupCredits,
-      p_pro_monthly_credits: config.proMonthlyCredits,
-      p_business_monthly_credits: config.businessMonthlyCredits,
+      // Database plan keys remain pro/business until a separate ledger migration;
+      // public Creator maps to pro and public Pro maps to business.
+      p_pro_monthly_credits: config.creatorMonthlyCredits,
+      p_business_monthly_credits: config.proMonthlyCredits,
     },
   );
   if (settingsError) throw new Error("credit_settings_sync_failed");

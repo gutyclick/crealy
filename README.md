@@ -85,16 +85,18 @@ EDIT_SESSION_VERSION_LIMIT=20
 
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_PRO_PRICE_ID=
-STRIPE_PRO_PRICE_DISPLAY=
-STRIPE_BUSINESS_PRICE_ID=
-STRIPE_BUSINESS_PRICE_DISPLAY=
+STRIPE_STARTER_MONTHLY_PRICE_ID=
+STRIPE_STARTER_ANNUAL_PRICE_ID=
+STRIPE_CREATOR_MONTHLY_PRICE_ID=
+STRIPE_CREATOR_ANNUAL_PRICE_ID=
+STRIPE_PRO_MONTHLY_PRICE_ID=
+STRIPE_PRO_ANNUAL_PRICE_ID=
 STRIPE_BILLING_ENABLED=false
-BUSINESS_PLAN_ENABLED=false
 
-FREE_SIGNUP_CREDITS=5
-PRO_MONTHLY_CREDITS=100
-BUSINESS_MONTHLY_CREDITS=500
+FREE_SIGNUP_CREDITS=3
+STARTER_MONTHLY_CREDITS=15
+CREATOR_MONTHLY_CREDITS=75
+PRO_MONTHLY_CREDITS=225
 CREDITS_COST_GENERATION_STANDARD=1
 CREDITS_COST_GENERATION_HIGH=2
 CREDITS_COST_EDIT=1
@@ -185,9 +187,9 @@ objetos no solicitados para cambio.
 
 ## Stripe y créditos
 
-1. Crea en Stripe un producto Pro con un precio recurrente mensual.
-2. Copia el ID `price_...` en `STRIPE_PRO_PRICE_ID` y el texto público real
-   (por ejemplo, `$19`) en `STRIPE_PRO_PRICE_DISPLAY`.
+1. Crea en Stripe los productos Starter, Creator y Pro con precios mensuales y anuales.
+2. Copia cada ID `price_...` en su variable canónica
+   `STRIPE_{STARTER|CREATOR|PRO}_{MONTHLY|ANNUAL}_PRICE_ID`.
 3. Crea el webhook `https://TU_DOMINIO/api/webhooks/stripe` y escucha
    `checkout.session.completed`, `customer.subscription.created`,
    `customer.subscription.updated`, `customer.subscription.deleted`,
@@ -195,7 +197,7 @@ objetos no solicitados para cambio.
    `invoice.payment_action_required` y `checkout.session.expired`.
 4. Copia el signing secret en `STRIPE_WEBHOOK_SECRET`, configura Customer
    Portal y activa `STRIPE_BILLING_ENABLED=true`.
-5. Mantén `BUSINESS_PLAN_ENABLED=false` hasta tener un precio real.
+5. No reutilices IDs entre planes ni conserves aliases de la oferta anterior.
 
 Checkout y Portal son sesiones alojadas por Stripe. El navegador nunca decide
 el precio ni concede créditos. `invoice.paid` concede los créditos mensuales de
@@ -224,7 +226,8 @@ stripe trigger invoice.paid
   pueden reprocesarse con seguridad porque ambos usan claves idempotentes.
 - Para reconciliar una suscripción, reenvía desde Stripe Dashboard uno de sus
   eventos `customer.subscription.updated` o `invoice.paid`.
-- Cambia `PRO_MONTHLY_CREDITS` solo para ciclos futuros. No edites movimientos,
+- Cambia `STARTER_MONTHLY_CREDITS`, `CREATOR_MONTHLY_CREDITS` o
+  `PRO_MONTHLY_CREDITS` solo para ciclos futuros. No edites movimientos,
   grants ni saldos históricos directamente.
 
 ### Ciclo de los créditos
@@ -334,6 +337,10 @@ la interfaz se recupera aunque el usuario recargue la página.
 - Publicador de outbox protegido: `POST /api/internal/jobs/publish`
 - Inspección dry-run: `npm run ops:jobs`, `ops:credits`, `ops:storage` y
   `ops:billing`
+
+La API pública nunca ejecuta jobs. El consumidor protegido es la única ruta que
+publica el outbox, reclama y procesa trabajos. La programación por minuto de
+`vercel.json` requiere Vercel Pro o un scheduler externo equivalente.
 
 Los comandos de reconciliación no escriben por defecto. Para ejecutar una
 corrección revisada usa `-- --execute`. Consulta
