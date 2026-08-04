@@ -11,7 +11,7 @@ export function FeedbackWidget() {
   );
 
   return (
-    <details className="group fixed right-4 bottom-4 z-40">
+    <details className="group fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 lg:bottom-4">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl border border-white/15 bg-surface-elevated px-4 text-sm font-semibold text-foreground shadow-[0_12px_35px_rgba(0,0,0,0.35)] hover:bg-[#202119]">
         <MessageSquare className="size-4 text-brand" aria-hidden="true" />
         Enviar comentarios
@@ -89,4 +89,3 @@ export function FeedbackWidget() {
     </details>
   );
 }
-

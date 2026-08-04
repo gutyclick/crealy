@@ -12,7 +12,9 @@ import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { getStorageQuotaBytes } from "@/config/storage-plans";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Archivos y almacenamiento | Crealy" };
+export const metadata: Metadata = {
+  title: "Archivos y almacenamiento | Crealy",
+};
 
 function bytes(value: number) {
   if (value < 1024 * 1024) return `${Math.max(0, Math.round(value / 1024))} KB`;
@@ -29,7 +31,9 @@ export default async function StoragePage() {
   const [assetsResult, usageResult, billing] = await Promise.all([
     supabase
       .from("assets")
-      .select("id, kind, mime_type, file_size_bytes, status, expires_at, pinned_at, created_at")
+      .select(
+        "id, kind, mime_type, file_size_bytes, status, expires_at, pinned_at, created_at",
+      )
       .eq("user_id", user.id)
       .neq("status", "deleted")
       .order("created_at", { ascending: false })
@@ -51,44 +55,129 @@ export default async function StoragePage() {
       <Container>
         <div className="mx-auto max-w-3xl">
           <p className="text-sm font-medium text-brand">Archivos privados</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em]">Archivos y almacenamiento</h1>
-          <p className="mt-4 text-base leading-7 text-muted">Los originales son privados, usan acceso firmado y caducan según tu plan. Conserva solo lo que necesitas.</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em]">
+            Archivos y almacenamiento
+          </h1>
+          <p className="mt-4 text-base leading-7 text-muted">
+            Los originales son privados, usan acceso firmado y caducan según tu
+            plan. Conserva solo lo que necesitas.
+          </p>
           <section className="mt-10 border-y border-white/10 py-8">
             <div className="flex items-center gap-4">
-              <span className="grid size-12 place-items-center rounded-xl bg-brand/10 text-brand"><HardDrive aria-hidden="true" className="size-5" /></span>
+              <span className="grid size-12 place-items-center rounded-xl bg-brand/10 text-brand">
+                <HardDrive aria-hidden="true" className="size-5" />
+              </span>
               <div>
-                <p className="text-2xl font-semibold">{bytes(used)} <span className="text-base font-normal text-muted">de {bytes(quota)}</span></p>
-                <p className="mt-1 text-sm text-muted">{pinned} fijados · {temporary} temporales · {soon} próximos a expirar</p>
+                <p className="text-2xl font-semibold">
+                  {bytes(used)}{" "}
+                  <span className="text-base font-normal text-muted">
+                    de {bytes(quota)}
+                  </span>
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  {pinned} fijados · {temporary} temporales · {soon} próximos a
+                  expirar
+                </p>
               </div>
             </div>
             <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-              <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, (used / quota) * 100)}%` }} />
+              <div
+                className="h-full rounded-full bg-brand"
+                style={{ width: `${Math.min(100, (used / quota) * 100)}%` }}
+              />
             </div>
           </section>
           <section className="mt-8" aria-labelledby="files-title">
-            <h2 id="files-title" className="text-xl font-semibold">Archivos recientes</h2>
+            <h2 id="files-title" className="text-xl font-semibold">
+              Archivos recientes
+            </h2>
             {assets.length ? (
               <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
                 {assets.map((asset) => {
-                  const expiry = asset.expires_at ? new Date(asset.expires_at) : null;
-                  const days = expiry ? Math.max(0, Math.ceil((expiry.getTime() - renderedAt) / 86_400_000)) : null;
+                  const expiry = asset.expires_at
+                    ? new Date(asset.expires_at)
+                    : null;
+                  const days = expiry
+                    ? Math.max(
+                        0,
+                        Math.ceil((expiry.getTime() - renderedAt) / 86_400_000),
+                      )
+                    : null;
                   return (
-                    <div key={asset.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
+                    <div
+                      key={asset.id}
+                      className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center"
+                    >
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-foreground">{asset.kind.replaceAll("_", " ")}</p>
-                        <p className="mt-1 text-xs text-muted">{bytes(asset.file_size_bytes)} · {asset.pinned_at ? "Conservado" : expiry ? `Disponible hasta el ${expiry.toLocaleDateString("es")}` : asset.status}</p>
-                        {days !== null && days <= 7 ? <p className="mt-1 text-xs text-amber-200">Este archivo se eliminará en {days} días.</p> : null}
+                        <p className="text-sm font-semibold text-foreground">
+                          {asset.kind.replaceAll("_", " ")}
+                        </p>
+                        <p className="mt-1 text-xs text-muted">
+                          {bytes(asset.file_size_bytes)} ·{" "}
+                          {asset.pinned_at
+                            ? "Conservado"
+                            : expiry
+                              ? `Disponible hasta el ${expiry.toLocaleDateString("es")}`
+                              : asset.status}
+                        </p>
+                        {days !== null && days <= 7 ? (
+                          <p className="mt-1 text-xs text-amber-200">
+                            Este archivo se eliminará en {days} días.
+                          </p>
+                        ) : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {asset.status === "active" ? <a href={`/api/assets/${asset.id}/download`} className="grid size-10 place-items-center rounded-lg border border-white/12" aria-label="Descargar"><Download className="size-4" /></a> : null}
-                        <form action={asset.pinned_at ? unpinAsset : pinAsset}><input type="hidden" name="assetId" value={asset.id} /><button className="grid size-10 place-items-center rounded-lg border border-white/12" aria-label={asset.pinned_at ? "Liberar espacio" : "Conservar"}>{asset.pinned_at ? <PinOff className="size-4" /> : <Pin className="size-4" />}</button></form>
-                        <form action={expireAsset}><input type="hidden" name="assetId" value={asset.id} /><button className="grid size-10 place-items-center rounded-lg border border-red-300/20 text-red-200" aria-label="Eliminar de forma segura"><Trash2 className="size-4" /></button></form>
+                        {asset.status === "active" ? (
+                          <a
+                            href={`/api/assets/${asset.id}/download`}
+                            className="grid size-11 place-items-center rounded-lg border border-white/12"
+                            aria-label="Descargar"
+                          >
+                            <Download className="size-4" />
+                          </a>
+                        ) : null}
+                        <form action={asset.pinned_at ? unpinAsset : pinAsset}>
+                          <input
+                            type="hidden"
+                            name="assetId"
+                            value={asset.id}
+                          />
+                          <button
+                            className="grid size-11 place-items-center rounded-lg border border-white/12"
+                            aria-label={
+                              asset.pinned_at ? "Liberar espacio" : "Conservar"
+                            }
+                          >
+                            {asset.pinned_at ? (
+                              <PinOff className="size-4" />
+                            ) : (
+                              <Pin className="size-4" />
+                            )}
+                          </button>
+                        </form>
+                        <form action={expireAsset}>
+                          <input
+                            type="hidden"
+                            name="assetId"
+                            value={asset.id}
+                          />
+                          <button
+                            className="grid size-11 place-items-center rounded-lg border border-red-300/20 text-red-200"
+                            aria-label="Eliminar de forma segura"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </form>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            ) : <p className="mt-4 border-y border-white/10 py-6 text-sm text-muted">Todavía no hay archivos administrables.</p>}
+            ) : (
+              <p className="mt-4 border-y border-white/10 py-6 text-sm text-muted">
+                Todavía no hay archivos administrables.
+              </p>
+            )}
           </section>
         </div>
       </Container>

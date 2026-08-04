@@ -6,7 +6,6 @@ import {
   Coins,
   CreditCard,
   LogOut,
-  Menu,
   Settings,
   ShieldCheck,
   UserRound,
@@ -15,10 +14,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
-import {
-  DashboardNavigation,
-  MobileDashboardNavigation,
-} from "@/components/dashboard/dashboard-navigation";
+import { DashboardNavigation } from "@/components/dashboard/dashboard-navigation";
 import {
   CreationNotificationCenter,
   type CreationNotification,
@@ -43,10 +39,15 @@ const accountItems = [
   { href: "/settings/account", label: "Datos de la cuenta", icon: Settings },
 ] as const;
 
-export function DashboardHeader({ displayName, email, credits, initialNotifications, plan }: DashboardHeaderProps) {
+export function DashboardHeader({
+  displayName,
+  email,
+  credits,
+  initialNotifications,
+  plan,
+}: DashboardHeaderProps) {
   const initial = displayName.charAt(0).toUpperCase() || "C";
-  const [openMenu, setOpenMenu] = useState<"navigation" | "account" | null>(null);
-  const navigationMenuRef = useRef<HTMLDivElement>(null);
+  const [openMenu, setOpenMenu] = useState<"account" | null>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,10 +55,7 @@ export function DashboardHeader({ displayName, email, credits, initialNotificati
 
     function closeOnOutsideClick(event: PointerEvent) {
       const target = event.target as Node;
-      if (
-        !navigationMenuRef.current?.contains(target) &&
-        !accountMenuRef.current?.contains(target)
-      ) {
+      if (!accountMenuRef.current?.contains(target)) {
         setOpenMenu(null);
       }
     }
@@ -86,26 +84,9 @@ export function DashboardHeader({ displayName, email, credits, initialNotificati
         </div>
 
         <div className="flex items-center gap-1.5 justify-self-end">
-          <CreationNotificationCenter initialNotifications={initialNotifications} />
-
-          <div ref={navigationMenuRef} className="relative lg:hidden">
-            <button
-              type="button"
-              aria-label="Abrir navegación"
-              aria-expanded={openMenu === "navigation"}
-              aria-controls="dashboard-mobile-navigation"
-              onClick={() => setOpenMenu((current) => current === "navigation" ? null : "navigation")}
-              className="grid size-11 cursor-pointer list-none place-items-center rounded-[0.7rem] text-muted transition-colors hover:bg-white/[0.05] hover:text-foreground"
-            >
-              <Menu aria-hidden="true" className="size-5" />
-            </button>
-            {openMenu === "navigation" ? (
-              <div id="dashboard-mobile-navigation" className="absolute right-0 top-[calc(100%+0.65rem)] w-64 overflow-hidden rounded-[0.8rem] border border-white/10 bg-surface-elevated shadow-[0_18px_50px_rgba(0,0,0,0.42)]" onClick={closeMenus}>
-                <p className="px-5 pb-2 pt-4 text-xs font-medium text-muted">Navegación</p>
-                <MobileDashboardNavigation plan={plan} />
-              </div>
-            ) : null}
-          </div>
+          <CreationNotificationCenter
+            initialNotifications={initialNotifications}
+          />
 
           <div ref={accountMenuRef} className="relative">
             <button
@@ -113,7 +94,11 @@ export function DashboardHeader({ displayName, email, credits, initialNotificati
               aria-label="Abrir menú de usuario"
               aria-expanded={openMenu === "account"}
               aria-controls="dashboard-account-menu"
-              onClick={() => setOpenMenu((current) => current === "account" ? null : "account")}
+              onClick={() =>
+                setOpenMenu((current) =>
+                  current === "account" ? null : "account",
+                )
+              }
               className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[0.7rem] px-1.5 py-1 transition-colors hover:bg-white/[0.05] sm:gap-3 sm:px-2"
             >
               <span
@@ -127,7 +112,9 @@ export function DashboardHeader({ displayName, email, credits, initialNotificati
                   {displayName}
                 </span>
                 <span className="block truncate text-xs text-muted">
-                  {credits === null ? "Saldo no disponible" : `${credits} créditos`}
+                  {credits === null
+                    ? "Saldo no disponible"
+                    : `${credits} créditos`}
                 </span>
               </span>
               <ChevronDown
@@ -137,48 +124,61 @@ export function DashboardHeader({ displayName, email, credits, initialNotificati
             </button>
 
             {openMenu === "account" ? (
-            <div id="dashboard-account-menu" className="absolute right-0 top-[calc(100%+0.65rem)] z-20 w-[min(19rem,calc(100vw-2rem))] rounded-[0.8rem] border border-white/10 bg-surface-elevated p-2 shadow-[0_18px_50px_rgba(0,0,0,0.42)]" onClick={closeMenus}>
-              <div className="border-b border-white/[0.08] px-3 pb-3 pt-2">
-                <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
-                <p className="mt-0.5 truncate text-xs text-muted">{email}</p>
-              </div>
-
-              <Link
-                href="/settings/billing"
-                className="my-2 flex min-h-12 items-center justify-between rounded-[0.7rem] bg-white/[0.045] px-3 transition-colors hover:bg-white/[0.075]"
+              <div
+                id="dashboard-account-menu"
+                className="absolute right-0 top-[calc(100%+0.65rem)] z-20 w-[min(19rem,calc(100vw-2rem))] rounded-[0.8rem] border border-white/10 bg-surface-elevated p-2 shadow-[0_18px_50px_rgba(0,0,0,0.42)]"
+                onClick={closeMenus}
               >
-                <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
-                  <Coins aria-hidden="true" className="size-4 text-brand" />
-                  Créditos disponibles
-                </span>
-                <strong className="text-sm text-brand">{credits ?? "—"}</strong>
-              </Link>
+                <div className="border-b border-white/[0.08] px-3 pb-3 pt-2">
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {displayName}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted">{email}</p>
+                </div>
 
-              <p className="px-3 pb-1.5 pt-1 text-xs font-medium text-muted">Configuración</p>
-              {accountItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex min-h-10 w-full items-center gap-3 rounded-[0.65rem] px-3 text-sm font-medium text-white/72 transition-colors hover:bg-white/[0.05] hover:text-foreground"
-                  >
-                    <Icon aria-hidden="true" className="size-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-
-              <form action={signOut} className="mt-2 border-t border-white/[0.08] pt-2">
-                <button
-                  type="submit"
-                  className="flex min-h-10 w-full items-center gap-3 rounded-[0.65rem] px-3 text-left text-sm font-medium text-white/72 transition-colors hover:bg-white/[0.05] hover:text-foreground"
+                <Link
+                  href="/settings/billing"
+                  className="my-2 flex min-h-12 items-center justify-between rounded-[0.7rem] bg-white/[0.045] px-3 transition-colors hover:bg-white/[0.075]"
                 >
-                  <LogOut aria-hidden="true" className="size-4" />
-                  Cerrar sesión
-                </button>
-              </form>
-            </div>
+                  <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
+                    <Coins aria-hidden="true" className="size-4 text-brand" />
+                    Créditos disponibles
+                  </span>
+                  <strong className="text-sm text-brand">
+                    {credits ?? "—"}
+                  </strong>
+                </Link>
+
+                <p className="px-3 pb-1.5 pt-1 text-xs font-medium text-muted">
+                  Configuración
+                </p>
+                {accountItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="flex min-h-11 w-full items-center gap-3 rounded-[0.65rem] px-3 text-sm font-medium text-white/72 transition-colors hover:bg-white/[0.05] hover:text-foreground"
+                    >
+                      <Icon aria-hidden="true" className="size-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+
+                <form
+                  action={signOut}
+                  className="mt-2 border-t border-white/[0.08] pt-2"
+                >
+                  <button
+                    type="submit"
+                    className="flex min-h-11 w-full items-center gap-3 rounded-[0.65rem] px-3 text-left text-sm font-medium text-white/72 transition-colors hover:bg-white/[0.05] hover:text-foreground"
+                  >
+                    <LogOut aria-hidden="true" className="size-4" />
+                    Cerrar sesión
+                  </button>
+                </form>
+              </div>
             ) : null}
           </div>
         </div>

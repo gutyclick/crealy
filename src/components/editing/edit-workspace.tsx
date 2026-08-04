@@ -73,6 +73,9 @@ export function EditWorkspace({
   const [mobileCompareSide, setMobileCompareSide] = useState<
     "before" | "after"
   >("after");
+  const [mobilePanel, setMobilePanel] = useState<"canvas" | "conversation">(
+    "canvas",
+  );
   const [loading, setLoading] = useState(false);
   const [submitState, setSubmitState] = useState<EditorSubmitState>(
     initialPendingJobId ? "queued" : "idle",
@@ -108,7 +111,8 @@ export function EditWorkspace({
         },
       );
       const result = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(result.error || "No pudimos restaurarla.");
+      if (!response.ok)
+        throw new Error(result.error || "No pudimos restaurarla.");
       setCurrentVersionId(selected.id);
       setVersions((items) =>
         items.map((item) => ({ ...item, isCurrent: item.id === selected.id })),
@@ -209,8 +213,7 @@ export function EditWorkspace({
         },
       );
       const result = (await response.json()) as
-        | QueuedEditResponse
-        | ApiErrorResponse;
+        QueuedEditResponse | ApiErrorResponse;
       if (!response.ok || !("jobId" in result)) {
         throw new Error(
           "error" in result ? result.error : "No pudimos preparar la versión.",
@@ -257,7 +260,7 @@ export function EditWorkspace({
           <Link
             href="/edit"
             aria-label="Volver a editar"
-            className="grid size-10 shrink-0 place-items-center rounded-xl text-muted hover:bg-white/[0.05] hover:text-foreground"
+            className="grid size-11 shrink-0 place-items-center rounded-xl text-muted hover:bg-white/[0.05] hover:text-foreground"
           >
             <ArrowLeft aria-hidden="true" className="size-5" />
           </Link>
@@ -266,7 +269,8 @@ export function EditWorkspace({
               {initialSession.title}
             </h1>
             <p className="text-xs text-muted">
-              {versions.length} {versions.length === 1 ? "versión" : "versiones"}
+              {versions.length}{" "}
+              {versions.length === 1 ? "versión" : "versiones"}
             </p>
           </div>
         </div>
@@ -275,7 +279,7 @@ export function EditWorkspace({
             type="button"
             onClick={toggleArchive}
             disabled={archiving}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted hover:bg-white/[0.05] hover:text-foreground disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted hover:bg-white/[0.05] hover:text-foreground disabled:opacity-50"
           >
             {initialSession.status === "archived" ? (
               <ArchiveRestore aria-hidden="true" className="size-4" />
@@ -288,7 +292,7 @@ export function EditWorkspace({
           </button>
           <a
             href={`/api/edit-versions/${selected.id}/download`}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-semibold text-foreground hover:bg-white/[0.05]"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-semibold text-foreground hover:bg-white/[0.05]"
           >
             <Download aria-hidden="true" className="size-4" />
             Descargar
@@ -296,8 +300,41 @@ export function EditWorkspace({
         </div>
       </div>
 
+      <div
+        className="mb-4 grid grid-cols-2 rounded-xl bg-surface p-1 xl:hidden"
+        aria-label="Vista del editor"
+      >
+        <button
+          type="button"
+          aria-pressed={mobilePanel === "canvas"}
+          onClick={() => setMobilePanel("canvas")}
+          className={cn(
+            "min-h-11 rounded-lg text-sm font-semibold text-muted",
+            mobilePanel === "canvas" && "bg-brand text-brand-ink",
+          )}
+        >
+          Diseño
+        </button>
+        <button
+          type="button"
+          aria-pressed={mobilePanel === "conversation"}
+          onClick={() => setMobilePanel("conversation")}
+          className={cn(
+            "min-h-11 rounded-lg text-sm font-semibold text-muted",
+            mobilePanel === "conversation" && "bg-brand text-brand-ink",
+          )}
+        >
+          Editar
+        </button>
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]">
-        <section className="min-w-0">
+        <section
+          className={cn(
+            "min-w-0 xl:block",
+            mobilePanel === "canvas" ? "block" : "hidden",
+          )}
+        >
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-surface p-2 sm:p-3">
             <div className="relative grid min-h-[22rem] place-items-center overflow-hidden rounded-xl bg-[#050505] sm:min-h-[34rem] xl:h-[calc(100dvh-15rem)] xl:min-h-[34rem]">
               {compare && parent?.imageUrl ? (
@@ -338,23 +375,27 @@ export function EditWorkspace({
                     />
                   </div>
                   <div className="hidden size-full md:grid md:grid-cols-2">
-                  {[parent, selected].map((version, index) => (
-                    <figure
-                      key={version.id}
-                      className="relative grid min-h-72 place-items-center overflow-hidden border-white/10 first:border-b md:first:border-b-0 md:first:border-r"
-                    >
-                      <figcaption className="absolute left-3 top-3 z-10 rounded-lg bg-black/75 px-3 py-1.5 text-xs font-semibold text-white">
-                        {index === 0 ? "Antes" : "Después"}
-                      </figcaption>
-                      {/* Signed Supabase URL. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={version.imageUrl!}
-                        alt={index === 0 ? "Versión anterior" : "Versión seleccionada"}
-                        className="max-h-full w-full object-contain"
-                      />
-                    </figure>
-                  ))}
+                    {[parent, selected].map((version, index) => (
+                      <figure
+                        key={version.id}
+                        className="relative grid min-h-72 place-items-center overflow-hidden border-white/10 first:border-b md:first:border-b-0 md:first:border-r"
+                      >
+                        <figcaption className="absolute left-3 top-3 z-10 rounded-lg bg-black/75 px-3 py-1.5 text-xs font-semibold text-white">
+                          {index === 0 ? "Antes" : "Después"}
+                        </figcaption>
+                        {/* Signed Supabase URL. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={version.imageUrl!}
+                          alt={
+                            index === 0
+                              ? "Versión anterior"
+                              : "Versión seleccionada"
+                          }
+                          className="max-h-full w-full object-contain"
+                        />
+                      </figure>
+                    ))}
                   </div>
                 </>
               ) : selected.imageUrl ? (
@@ -367,7 +408,9 @@ export function EditWorkspace({
                   className="edit-image-arrival max-h-full w-full object-contain"
                 />
               ) : (
-                <p className="text-sm text-muted">Vista previa no disponible.</p>
+                <p className="text-sm text-muted">
+                  Vista previa no disponible.
+                </p>
               )}
             </div>
           </div>
@@ -447,7 +490,9 @@ export function EditWorkspace({
                   ) : null}
                 </span>
                 <span className="mt-2 flex items-center justify-between gap-2 text-xs">
-                  <span className="font-semibold text-foreground">V{index + 1}</span>
+                  <span className="font-semibold text-foreground">
+                    V{index + 1}
+                  </span>
                   {version.id === currentVersionId ? (
                     <span className="text-brand">Actual</span>
                   ) : null}
@@ -463,7 +508,12 @@ export function EditWorkspace({
           </div>
         </section>
 
-        <aside className="flex min-h-[38rem] flex-col rounded-2xl border border-white/10 bg-surface xl:h-[calc(100dvh-7.7rem)] xl:sticky xl:top-4">
+        <aside
+          className={cn(
+            "min-h-[calc(100dvh-13rem)] flex-col rounded-2xl border border-white/10 bg-surface xl:sticky xl:top-4 xl:flex xl:h-[calc(100dvh-7.7rem)] xl:min-h-[38rem]",
+            mobilePanel === "conversation" ? "flex" : "hidden",
+          )}
+        >
           <div className="border-b border-white/[0.08] px-5 py-4">
             <h2 className="font-semibold text-foreground">Conversación</h2>
             <p className="mt-1 text-xs text-muted">
@@ -511,7 +561,10 @@ export function EditWorkspace({
             )}
             {loading ? (
               <div className="mr-auto flex max-w-[92%] items-center gap-3 rounded-2xl rounded-bl-md bg-[#191a15] px-4 py-3 text-sm text-white/70">
-                <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-brand" />
+                <LoaderCircle
+                  aria-hidden="true"
+                  className="size-4 animate-spin text-brand"
+                />
                 Creando una nueva versión…
               </div>
             ) : null}
@@ -615,7 +668,10 @@ export function EditWorkspace({
               className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-bold text-brand-ink transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] active:translate-y-0 disabled:pointer-events-none disabled:opacity-45"
             >
               {loading ? (
-                <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                <LoaderCircle
+                  aria-hidden="true"
+                  className="size-4 animate-spin"
+                />
               ) : (
                 <Sparkles aria-hidden="true" className="size-4" />
               )}
@@ -627,7 +683,7 @@ export function EditWorkspace({
                   ? "Enviando…"
                   : submitState === "failed"
                     ? "Intentar nuevamente"
-                  : "Aplicar cambios"}
+                    : "Aplicar cambios"}
               {!loading ? <Send aria-hidden="true" className="size-4" /> : null}
             </button>
           </div>

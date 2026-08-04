@@ -9,6 +9,7 @@ import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { createClient } from "@/lib/supabase/server";
 import type { JobStatus } from "@/types/jobs";
 import type { PlanKey } from "@/types/billing";
+import { MobileAppNavigation } from "@/components/dashboard/mobile-app-navigation";
 
 export const metadata: Metadata = {
   robots: {
@@ -55,7 +56,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="dashboard-shell min-h-dvh bg-background pb-24 lg:pb-0">
       <DashboardHeader
         displayName={metadataName || fallbackName}
         email={user.email || "Cuenta de Crealy"}
@@ -71,6 +72,7 @@ export default async function DashboardLayout({
         plan={plan}
       />
       {children}
+      <MobileAppNavigation plan={plan} />
       <FeedbackWidget />
     </div>
   );

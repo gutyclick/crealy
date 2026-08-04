@@ -38,11 +38,11 @@ import {
   getVariantCreditCost,
   getVariantForPlatform,
 } from "@/config/generation-products";
+import { GENERATION_COLORS, GENERATION_STYLES } from "@/config/generation";
 import {
-  GENERATION_COLORS,
-  GENERATION_STYLES,
-} from "@/config/generation";
-import { THUMBNAIL_PRESETS, THUMBNAIL_TEXT_MODES } from "@/config/thumbnail-creation";
+  THUMBNAIL_PRESETS,
+  THUMBNAIL_TEXT_MODES,
+} from "@/config/thumbnail-creation";
 import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { trackConversion } from "@/lib/analytics/events";
 import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
@@ -117,8 +117,12 @@ export function GenerationForm({
   brandStyleEntitlement: BrandStyleEntitlement;
   initialBrandStyleId?: string;
 }) {
-  const initialProduct = getGenerationProduct(initialContentType ?? "thumbnail");
-  const [contentType, setContentType] = useState<ContentType>(initialProduct.id);
+  const initialProduct = getGenerationProduct(
+    initialContentType ?? "thumbnail",
+  );
+  const [contentType, setContentType] = useState<ContentType>(
+    initialProduct.id,
+  );
   const [platform, setPlatform] = useState<GenerationPlatform | undefined>(
     initialProduct.defaultPlatform,
   );
@@ -131,12 +135,20 @@ export function GenerationForm({
   const [description, setDescription] = useState("");
   const [primaryText, setPrimaryText] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
-  const [thumbnailPreset, setThumbnailPreset] = useState<ThumbnailPreset>("impactful");
-  const [thumbnailTextMode, setThumbnailTextMode] = useState<ThumbnailTextMode>("automatic");
-  const [brandStyleId, setBrandStyleId] = useState(() => brandStyles.some((item) => item.id === initialBrandStyleId) ? initialBrandStyleId : undefined);
-  const [styleConsistency, setStyleConsistency] = useState<StyleConsistency>("balanced");
+  const [thumbnailPreset, setThumbnailPreset] =
+    useState<ThumbnailPreset>("impactful");
+  const [thumbnailTextMode, setThumbnailTextMode] =
+    useState<ThumbnailTextMode>("automatic");
+  const [brandStyleId, setBrandStyleId] = useState(() =>
+    brandStyles.some((item) => item.id === initialBrandStyleId)
+      ? initialBrandStyleId
+      : undefined,
+  );
+  const [styleConsistency, setStyleConsistency] =
+    useState<StyleConsistency>("balanced");
   const [style, setStyle] = useState<GenerationStyle>("automatic");
-  const [colorPreference, setColorPreference] = useState<ColorPreference>("auto");
+  const [colorPreference, setColorPreference] =
+    useState<ColorPreference>("auto");
   const [customColors, setCustomColors] = useState(["#DDF527", "#10110D"]);
   const [hexDrafts, setHexDrafts] = useState(["#DDF527", "#10110D"]);
   const [profileMode, setProfileMode] = useState<ProfileMode>("professional");
@@ -165,9 +177,10 @@ export function GenerationForm({
 
   const product = getGenerationProduct(contentType);
   const variantDefinition = getGenerationVariant(variant)!;
-  const selectableVariants = contentType === "social-cover"
-    ? [variantDefinition]
-    : getSelectableVariants(contentType);
+  const selectableVariants =
+    contentType === "social-cover"
+      ? [variantDefinition]
+      : getSelectableVariants(contentType);
   const supportedQualities = getSupportedQualities(variantDefinition);
   const creditCost = getVariantCreditCost(variantDefinition, quality);
   const hasEnoughCredits =
@@ -187,7 +200,14 @@ export function GenerationForm({
     setVariant(next.defaultVariant);
     setQuality(getDefaultQuality(getGenerationVariant(next.defaultVariant)!));
     setStyle("automatic");
-    setBrandStyleId((current) => current && brandStyles.find((item) => item.id === current)?.supportedDesignTypes.includes(nextType) ? current : undefined);
+    setBrandStyleId((current) =>
+      current &&
+      brandStyles
+        .find((item) => item.id === current)
+        ?.supportedDesignTypes.includes(nextType)
+        ? current
+        : undefined,
+    );
     setProjectId(undefined);
     setResult({ status: "idle" });
     setFieldErrors({});
@@ -234,11 +254,16 @@ export function GenerationForm({
           if (reference.uploadId) return reference.uploadId;
           setReferences((current) =>
             current.map((item) =>
-              item.key === reference.key ? { ...item, status: "uploading" } : item,
+              item.key === reference.key
+                ? { ...item, status: "uploading" }
+                : item,
             ),
           );
           try {
-            const upload = await uploadPrivateImage(reference.file, "reference");
+            const upload = await uploadPrivateImage(
+              reference.file,
+              "reference",
+            );
             setReferences((current) =>
               current.map((item) =>
                 item.key === reference.key
@@ -250,7 +275,9 @@ export function GenerationForm({
           } catch (error) {
             setReferences((current) =>
               current.map((item) =>
-                item.key === reference.key ? { ...item, status: "error" } : item,
+                item.key === reference.key
+                  ? { ...item, status: "error" }
+                  : item,
               ),
             );
             throw error;
@@ -267,23 +294,33 @@ export function GenerationForm({
           contentType,
           platform,
           description,
-          primaryText: product.acceptsText ? primaryText.trim() || undefined : undefined,
+          primaryText: product.acceptsText
+            ? primaryText.trim() || undefined
+            : undefined,
           style,
           colorPreference,
           customColors: colorPreference === "custom" ? customColors : undefined,
           variant,
           format: variant,
           quality,
-          referenceUploadIds: referenceUploadIds.length ? referenceUploadIds : undefined,
-          profileMode: contentType === "profile-image" ? profileMode : undefined,
+          referenceUploadIds: referenceUploadIds.length
+            ? referenceUploadIds
+            : undefined,
+          profileMode:
+            contentType === "profile-image" ? profileMode : undefined,
           profileIntensity:
             contentType === "profile-image" ? profileIntensity : undefined,
           profileBackground:
             contentType === "profile-image" ? profileBackground : undefined,
           showSafeArea: contentType === "story" ? showSafeArea : undefined,
-          videoTitle: contentType === "thumbnail" ? videoTitle.trim() || undefined : undefined,
-          thumbnailPreset: contentType === "thumbnail" ? thumbnailPreset : undefined,
-          thumbnailTextMode: contentType === "thumbnail" ? thumbnailTextMode : undefined,
+          videoTitle:
+            contentType === "thumbnail"
+              ? videoTitle.trim() || undefined
+              : undefined,
+          thumbnailPreset:
+            contentType === "thumbnail" ? thumbnailPreset : undefined,
+          thumbnailTextMode:
+            contentType === "thumbnail" ? thumbnailTextMode : undefined,
           brandStyleId,
           styleConsistency: brandStyleId ? styleConsistency : undefined,
         }),
@@ -292,9 +329,12 @@ export function GenerationForm({
         QueuedGenerationResponse | GenerationErrorResponse
       >(response, "No pudimos completar la generación.");
       if (!response.ok || "error" in payload) {
-        if ("fields" in payload && payload.fields) setFieldErrors(payload.fields);
+        if ("fields" in payload && payload.fields)
+          setFieldErrors(payload.fields);
         throw new Error(
-          "error" in payload ? payload.error : "No pudimos completar la generación.",
+          "error" in payload
+            ? payload.error
+            : "No pudimos completar la generación.",
         );
       }
       trackConversion("generation_started", {
@@ -307,9 +347,9 @@ export function GenerationForm({
       window.dispatchEvent(
         new CustomEvent(CREATION_QUEUED_EVENT, {
           detail: {
-          jobId: payload.jobId,
-          generationId: payload.generationId,
-          label: `${product.label} · ${variantDefinition.width} × ${variantDefinition.height}`,
+            jobId: payload.jobId,
+            generationId: payload.generationId,
+            label: `${product.label} · ${variantDefinition.width} × ${variantDefinition.height}`,
             status: payload.status,
             createdAt: new Date().toISOString(),
             unread: true,
@@ -355,15 +395,46 @@ export function GenerationForm({
             calidad y el coste correctos para cada destino.
           </p>
           <div className="mt-5 flex items-center gap-3 text-xs font-semibold text-foreground/75">
-            <span aria-hidden="true" className="size-2 rounded-full bg-brand shadow-[0_0_18px_rgba(221,245,39,.38)]" />
-            <span key={`${contentType}-label`} className="creation-heading-swap">
+            <span
+              aria-hidden="true"
+              className="size-2 rounded-full bg-brand shadow-[0_0_18px_rgba(221,245,39,.38)]"
+            />
+            <span
+              key={`${contentType}-label`}
+              className="creation-heading-swap"
+            >
               Preparando {product.fullLabel.toLowerCase()}
             </span>
           </div>
         </div>
 
-        <fieldset className="mt-9">
-          <legend className="text-sm font-semibold text-foreground">¿Qué vas a crear?</legend>
+        <nav
+          aria-label="Pasos de creación"
+          className="sticky top-[4.85rem] z-20 -mx-2 mt-5 flex gap-1 overflow-x-auto rounded-xl border border-white/10 bg-surface-elevated/96 p-1.5 shadow-[0_12px_35px_rgba(0,0,0,.3)] backdrop-blur-xl sm:hidden"
+        >
+          {[
+            ["#creation-format", "1", "Formato"],
+            ["#creation-idea", "2", "Idea"],
+            ["#creation-direction", "3", "Dirección"],
+            ["#creation-summary", "4", "Generar"],
+          ].map(([href, step, label]) => (
+            <a
+              key={href}
+              href={href}
+              className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-muted active:bg-white/[0.06] active:text-foreground"
+            >
+              <span className="grid size-5 place-items-center rounded-md bg-brand/12 text-[0.625rem] text-brand">
+                {step}
+              </span>
+              {label}
+            </a>
+          ))}
+        </nav>
+
+        <fieldset id="creation-format" className="scroll-mt-40 mt-9">
+          <legend className="text-sm font-semibold text-foreground">
+            ¿Qué vas a crear?
+          </legend>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {GENERATION_PRODUCTS.map((item) => {
               const Icon = contentIcons[item.icon as keyof typeof contentIcons];
@@ -382,15 +453,24 @@ export function GenerationForm({
                   )}
                 >
                   <Icon aria-hidden="true" className="size-5" />
-                  <span className="mt-4 block text-sm font-bold">{item.label}</span>
-                  <span className={cn("mt-1 block text-xs", selected ? "text-black/65" : "text-muted")}>
+                  <span className="mt-4 block text-sm font-bold">
+                    {item.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-1 block text-xs",
+                      selected ? "text-black/65" : "text-muted",
+                    )}
+                  >
                     {item.description}
                   </span>
                 </button>
               );
             })}
           </div>
-          {fieldErrors.contentType ? <FieldError message={fieldErrors.contentType} /> : null}
+          {fieldErrors.contentType ? (
+            <FieldError message={fieldErrors.contentType} />
+          ) : null}
         </fieldset>
 
         {product.platforms.length ? (
@@ -416,7 +496,9 @@ export function GenerationForm({
                 </button>
               ))}
             </div>
-            {fieldErrors.platform ? <FieldError message={fieldErrors.platform} /> : null}
+            {fieldErrors.platform ? (
+              <FieldError message={fieldErrors.platform} />
+            ) : null}
           </fieldset>
         ) : null}
 
@@ -447,7 +529,9 @@ export function GenerationForm({
                       </span>
                     ) : null}
                   </span>
-                  <span className="mt-1 block text-xs text-muted">{item.shortLabel}</span>
+                  <span className="mt-1 block text-xs text-muted">
+                    {item.shortLabel}
+                  </span>
                 </button>
               ))}
             </div>
@@ -456,16 +540,32 @@ export function GenerationForm({
 
         {contentType === "thumbnail" ? (
           <fieldset className="mt-7">
-            <legend className="text-sm font-semibold text-foreground">Calidad</legend>
+            <legend className="text-sm font-semibold text-foreground">
+              Calidad
+            </legend>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {([
-                { quality: "standard" as const, variant: "thumbnail-standard" as const, label: "Estándar", detail: "1280 × 720 · ideal para crear y publicar.", cost: 1 },
-                { quality: "high" as const, variant: "thumbnail-high" as const, label: "HD", detail: "1920 × 1080 · mayor detalle para la versión final.", cost: 3 },
-              ]).map((item) => (
+              {[
+                {
+                  quality: "standard" as const,
+                  variant: "thumbnail-standard" as const,
+                  label: "Estándar",
+                  detail: "1280 × 720 · ideal para crear y publicar.",
+                  cost: 1,
+                },
+                {
+                  quality: "high" as const,
+                  variant: "thumbnail-high" as const,
+                  label: "HD",
+                  detail: "1920 × 1080 · mayor detalle para la versión final.",
+                  cost: 3,
+                },
+              ].map((item) => (
                 <button
                   key={item.quality}
                   type="button"
-                  aria-pressed={quality === item.quality && variant === item.variant}
+                  aria-pressed={
+                    quality === item.quality && variant === item.variant
+                  }
                   onClick={() => {
                     setVariant(item.variant);
                     setQuality(item.quality);
@@ -479,9 +579,13 @@ export function GenerationForm({
                 >
                   <span className="flex items-center justify-between gap-3 text-sm font-bold text-foreground">
                     {item.label}
-                    <span className="text-xs text-brand">{item.cost} {item.cost === 1 ? "crédito" : "créditos"}</span>
+                    <span className="text-xs text-brand">
+                      {item.cost} {item.cost === 1 ? "crédito" : "créditos"}
+                    </span>
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-muted">{item.detail}</span>
+                  <span className="mt-1 block text-xs leading-5 text-muted">
+                    {item.detail}
+                  </span>
                 </button>
               ))}
             </div>
@@ -526,16 +630,24 @@ export function GenerationForm({
           </fieldset>
         ) : (
           <div className="mt-7 rounded-xl bg-brand/[0.07] p-4 ring-1 ring-brand/25">
-            <p className="text-sm font-semibold text-foreground">Alta calidad incluida</p>
+            <p className="text-sm font-semibold text-foreground">
+              Alta calidad incluida
+            </p>
             <p className="mt-1 text-xs leading-5 text-muted">
-              La portada de YouTube siempre se genera en 2560 × 1440 con máxima calidad.
+              La portada de YouTube siempre se genera en 2560 × 1440 con máxima
+              calidad.
             </p>
           </div>
         )}
 
-        <div className="mt-8">
-          <label htmlFor="description" className="text-sm font-semibold text-foreground">
-            {contentType === "thumbnail" ? "¿De qué trata tu video?" : "Describe la pieza"}
+        <div id="creation-idea" className="scroll-mt-40 mt-8">
+          <label
+            htmlFor="description"
+            className="text-sm font-semibold text-foreground"
+          >
+            {contentType === "thumbnail"
+              ? "¿De qué trata tu video?"
+              : "Describe la pieza"}
           </label>
           <textarea
             id="description"
@@ -547,23 +659,35 @@ export function GenerationForm({
             aria-invalid={Boolean(fieldErrors.description)}
             aria-describedby="description-help"
             rows={5}
-            placeholder={contentType === "thumbnail"
-              ? "Ejemplo: Probé ChatGPT durante 30 días para crear un negocio"
-              : product.example}
+            placeholder={
+              contentType === "thumbnail"
+                ? "Ejemplo: Probé ChatGPT durante 30 días para crear un negocio"
+                : product.example
+            }
             className="mt-3 w-full resize-y rounded-xl bg-background px-4 py-3 text-sm leading-6 text-foreground outline-none ring-1 ring-white/10 transition-shadow placeholder:text-white/35 focus:ring-brand/65"
           />
-          <div id="description-help" className="mt-2 flex justify-between gap-4 text-xs text-muted">
-            <span>{fieldErrors.description ?? (contentType === "thumbnail"
-              ? "Puedes escribir una idea corta o el título completo del video."
-              : "Explica el objetivo, el sujeto y qué debe destacar.")}</span>
+          <div
+            id="description-help"
+            className="mt-2 flex justify-between gap-4 text-xs text-muted"
+          >
+            <span>
+              {fieldErrors.description ??
+                (contentType === "thumbnail"
+                  ? "Puedes escribir una idea corta o el título completo del video."
+                  : "Explica el objetivo, el sujeto y qué debe destacar.")}
+            </span>
             <span>{description.length}/1500</span>
           </div>
         </div>
 
         {contentType === "thumbnail" ? (
           <div className="mt-6">
-            <label htmlFor="videoTitle" className="text-sm font-semibold text-foreground">
-              Título del video <span className="font-normal text-muted">(opcional)</span>
+            <label
+              htmlFor="videoTitle"
+              className="text-sm font-semibold text-foreground"
+            >
+              Título del video{" "}
+              <span className="font-normal text-muted">(opcional)</span>
             </label>
             <input
               id="videoTitle"
@@ -574,15 +698,20 @@ export function GenerationForm({
               className="mt-3 h-12 w-full rounded-xl bg-background px-4 text-sm text-foreground outline-none ring-1 ring-white/10 placeholder:text-white/35 focus:ring-brand/65"
             />
             <p className="mt-2 text-xs leading-5 text-muted">
-              Ayuda a crear una miniatura que complemente el título sin repetirlo.
+              Ayuda a crear una miniatura que complemente el título sin
+              repetirlo.
             </p>
-            {fieldErrors.videoTitle ? <FieldError message={fieldErrors.videoTitle} /> : null}
+            {fieldErrors.videoTitle ? (
+              <FieldError message={fieldErrors.videoTitle} />
+            ) : null}
           </div>
         ) : null}
 
         {contentType === "thumbnail" ? (
           <fieldset className="mt-7">
-            <legend className="text-sm font-semibold text-foreground">Dirección visual</legend>
+            <legend className="text-sm font-semibold text-foreground">
+              Dirección visual
+            </legend>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {THUMBNAIL_PRESETS.map((item) => (
                 <button
@@ -599,37 +728,150 @@ export function GenerationForm({
                 >
                   <span className="flex items-center justify-between text-sm font-semibold text-foreground">
                     {item.label}
-                    {thumbnailPreset === item.id ? <Check aria-hidden="true" className="size-4 text-brand" /> : null}
+                    {thumbnailPreset === item.id ? (
+                      <Check aria-hidden="true" className="size-4 text-brand" />
+                    ) : null}
                   </span>
-                  <span className="mt-1.5 block text-xs leading-5 text-muted">{item.description}</span>
+                  <span className="mt-1.5 block text-xs leading-5 text-muted">
+                    {item.description}
+                  </span>
                 </button>
               ))}
             </div>
-            {fieldErrors.thumbnailPreset ? <FieldError message={fieldErrors.thumbnailPreset} /> : null}
+            {fieldErrors.thumbnailPreset ? (
+              <FieldError message={fieldErrors.thumbnailPreset} />
+            ) : null}
           </fieldset>
         ) : null}
 
-        {!brandStyleEntitlement.enabled && ["thumbnail", "banner", "social-post", "social-cover"].includes(contentType) ? (
+        {!brandStyleEntitlement.enabled &&
+        ["thumbnail", "banner", "social-post", "social-cover"].includes(
+          contentType,
+        ) ? (
           <section className="mt-7 rounded-xl border border-brand/20 bg-brand/[0.035] p-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
-            <div><div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Crown aria-hidden="true" className="size-4 text-brand" /> Firma visual <span className="text-xs font-semibold text-brand">Creator · Pro</span></div><p className="mt-1 text-xs leading-5 text-muted">Mantén la identidad de tu marca en cada nueva creación.</p></div>
-            <Link href="/my-style" className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-brand sm:mt-0">Descubrir la función <ArrowRight className="size-3.5" /></Link>
-          </section>
-        ) : brandStyles.some((item) => item.supportedDesignTypes.includes(contentType)) ? (
-          <fieldset className="mt-7">
-            <legend className="text-sm font-semibold text-foreground">Firma visual</legend>
-            <p className="mt-1 text-xs leading-5 text-muted">Mantén la identidad de tu marca sin copiar tus diseños anteriores.</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <button type="button" aria-pressed={!brandStyleId} onClick={() => setBrandStyleId(undefined)} className={cn("rounded-xl p-4 text-left transition-colors", !brandStyleId ? "bg-brand/[0.09] ring-1 ring-brand/65" : "bg-background ring-1 ring-white/10 hover:bg-white/[0.04]")}><span className="flex items-center justify-between text-sm font-semibold text-foreground">Automático{!brandStyleId ? <Check className="size-4 text-brand" /> : null}</span><span className="mt-1 block text-xs text-muted">Crealy decide la dirección para esta idea.</span></button>
-              {brandStyles.filter((item) => item.analysisStatus === "ready" && item.supportedDesignTypes.includes(contentType)).map((item) => <button key={item.id} type="button" aria-pressed={brandStyleId === item.id} onClick={() => { setBrandStyleId(item.id); trackConversion("brand_style_selected", { content_type: contentType }); }} className={cn("overflow-hidden rounded-xl p-4 text-left transition-colors", brandStyleId === item.id ? "bg-brand/[0.09] ring-1 ring-brand/65" : "bg-background ring-1 ring-white/10 hover:bg-white/[0.04]")}><span className="flex items-center justify-between text-sm font-semibold text-foreground">{item.name}{brandStyleId === item.id ? <Check className="size-4 text-brand" /> : null}</span><span className="mt-1 block line-clamp-2 text-xs leading-5 text-muted">{item.visualSummary}</span></button>)}
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Crown aria-hidden="true" className="size-4 text-brand" /> Firma
+                visual{" "}
+                <span className="text-xs font-semibold text-brand">
+                  Creator · Pro
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-muted">
+                Mantén la identidad de tu marca en cada nueva creación.
+              </p>
             </div>
-            {brandStyleId ? <div className="mt-4 rounded-xl bg-background p-4 ring-1 ring-white/10"><label htmlFor="styleConsistency" className="text-xs font-semibold text-foreground">Consistencia del estilo</label><select id="styleConsistency" value={styleConsistency} onChange={(event) => setStyleConsistency(event.target.value as StyleConsistency)} className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-surface px-3 text-sm text-foreground outline-none focus:border-brand/60"><option value="flexible">Flexible</option><option value="balanced">Equilibrada</option><option value="strict">Muy consistente</option></select></div> : null}
-            <Link href="/my-style" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline">Crear nueva firma visual <ArrowRight className="size-3.5" /></Link>
+            <Link
+              href="/my-style"
+              className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-brand sm:mt-0"
+            >
+              Descubrir la función <ArrowRight className="size-3.5" />
+            </Link>
+          </section>
+        ) : brandStyles.some((item) =>
+            item.supportedDesignTypes.includes(contentType),
+          ) ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">
+              Firma visual
+            </legend>
+            <p className="mt-1 text-xs leading-5 text-muted">
+              Mantén la identidad de tu marca sin copiar tus diseños anteriores.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                aria-pressed={!brandStyleId}
+                onClick={() => setBrandStyleId(undefined)}
+                className={cn(
+                  "rounded-xl p-4 text-left transition-colors",
+                  !brandStyleId
+                    ? "bg-brand/[0.09] ring-1 ring-brand/65"
+                    : "bg-background ring-1 ring-white/10 hover:bg-white/[0.04]",
+                )}
+              >
+                <span className="flex items-center justify-between text-sm font-semibold text-foreground">
+                  Automático
+                  {!brandStyleId ? (
+                    <Check className="size-4 text-brand" />
+                  ) : null}
+                </span>
+                <span className="mt-1 block text-xs text-muted">
+                  Crealy decide la dirección para esta idea.
+                </span>
+              </button>
+              {brandStyles
+                .filter(
+                  (item) =>
+                    item.analysisStatus === "ready" &&
+                    item.supportedDesignTypes.includes(contentType),
+                )
+                .map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={brandStyleId === item.id}
+                    onClick={() => {
+                      setBrandStyleId(item.id);
+                      trackConversion("brand_style_selected", {
+                        content_type: contentType,
+                      });
+                    }}
+                    className={cn(
+                      "overflow-hidden rounded-xl p-4 text-left transition-colors",
+                      brandStyleId === item.id
+                        ? "bg-brand/[0.09] ring-1 ring-brand/65"
+                        : "bg-background ring-1 ring-white/10 hover:bg-white/[0.04]",
+                    )}
+                  >
+                    <span className="flex items-center justify-between text-sm font-semibold text-foreground">
+                      {item.name}
+                      {brandStyleId === item.id ? (
+                        <Check className="size-4 text-brand" />
+                      ) : null}
+                    </span>
+                    <span className="mt-1 block line-clamp-2 text-xs leading-5 text-muted">
+                      {item.visualSummary}
+                    </span>
+                  </button>
+                ))}
+            </div>
+            {brandStyleId ? (
+              <div className="mt-4 rounded-xl bg-background p-4 ring-1 ring-white/10">
+                <label
+                  htmlFor="styleConsistency"
+                  className="text-xs font-semibold text-foreground"
+                >
+                  Consistencia del estilo
+                </label>
+                <select
+                  id="styleConsistency"
+                  value={styleConsistency}
+                  onChange={(event) =>
+                    setStyleConsistency(event.target.value as StyleConsistency)
+                  }
+                  className="mt-2 h-11 w-full rounded-lg border border-white/10 bg-surface px-3 text-sm text-foreground outline-none focus:border-brand/60"
+                >
+                  <option value="flexible">Flexible</option>
+                  <option value="balanced">Equilibrada</option>
+                  <option value="strict">Muy consistente</option>
+                </select>
+              </div>
+            ) : null}
+            <Link
+              href="/my-style"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline"
+            >
+              Crear nueva firma visual <ArrowRight className="size-3.5" />
+            </Link>
           </fieldset>
         ) : null}
 
         {contentType === "thumbnail" ? (
           <fieldset className="mt-7">
-            <legend className="text-sm font-semibold text-foreground">Texto de la miniatura</legend>
+            <legend className="text-sm font-semibold text-foreground">
+              Texto de la miniatura
+            </legend>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               {THUMBNAIL_TEXT_MODES.map((item) => (
                 <button
@@ -644,14 +886,20 @@ export function GenerationForm({
                       : "bg-background hover:bg-white/[0.055]",
                   )}
                 >
-                  <span className="text-sm font-semibold text-foreground">{item.label}</span>
-                  <span className="mt-1.5 block text-xs leading-5 text-muted">{item.description}</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {item.label}
+                  </span>
+                  <span className="mt-1.5 block text-xs leading-5 text-muted">
+                    {item.description}
+                  </span>
                 </button>
               ))}
             </div>
             {thumbnailTextMode === "custom" ? (
               <div className="mt-3">
-                <label htmlFor="primaryText" className="sr-only">Texto exacto</label>
+                <label htmlFor="primaryText" className="sr-only">
+                  Texto exacto
+                </label>
                 <input
                   id="primaryText"
                   value={primaryText}
@@ -660,16 +908,26 @@ export function GenerationForm({
                   placeholder="Ej. SOLO UNA SIRVE"
                   className="h-12 w-full rounded-xl bg-background px-4 text-sm text-foreground outline-none ring-1 ring-white/10 placeholder:text-white/35 focus:ring-brand/65"
                 />
-                <p className="mt-2 text-xs text-muted">Máximo cinco palabras.</p>
+                <p className="mt-2 text-xs text-muted">
+                  Máximo cinco palabras.
+                </p>
               </div>
             ) : null}
-            {fieldErrors.thumbnailTextMode ? <FieldError message={fieldErrors.thumbnailTextMode} /> : null}
-            {fieldErrors.primaryText ? <FieldError message={fieldErrors.primaryText} /> : null}
+            {fieldErrors.thumbnailTextMode ? (
+              <FieldError message={fieldErrors.thumbnailTextMode} />
+            ) : null}
+            {fieldErrors.primaryText ? (
+              <FieldError message={fieldErrors.primaryText} />
+            ) : null}
           </fieldset>
         ) : product.acceptsText ? (
           <div className="mt-6">
-            <label htmlFor="primaryText" className="text-sm font-semibold text-foreground">
-              Texto visible <span className="font-normal text-muted">(opcional)</span>
+            <label
+              htmlFor="primaryText"
+              className="text-sm font-semibold text-foreground"
+            >
+              Texto visible{" "}
+              <span className="font-normal text-muted">(opcional)</span>
             </label>
             <input
               id="primaryText"
@@ -680,12 +938,13 @@ export function GenerationForm({
               className="mt-3 h-12 w-full rounded-xl bg-background px-4 text-sm text-foreground outline-none ring-1 ring-white/10 placeholder:text-white/35 focus:ring-brand/65"
             />
             <p className="mt-2 text-xs leading-5 text-muted">
-              Usa una frase breve. La tipografía generada puede variar ligeramente.
+              Usa una frase breve. La tipografía generada puede variar
+              ligeramente.
             </p>
           </div>
         ) : null}
 
-        <div className="mt-6">
+        <div id="creation-direction" className="scroll-mt-40 mt-6">
           <ReferenceImagePicker
             references={references}
             setReferences={setReferences}
@@ -695,80 +954,123 @@ export function GenerationForm({
           />
           {contentType === "profile-image" ? (
             <p className="mt-3 flex gap-2 text-xs leading-5 text-muted">
-              <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
-              Sube una foto, logo u objeto si necesitas fidelidad. Conservaremos sus rasgos
-              y geometría, aunque toda generación puede presentar variaciones.
+              <ShieldCheck
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0 text-brand"
+              />
+              Sube una foto, logo u objeto si necesitas fidelidad. Conservaremos
+              sus rasgos y geometría, aunque toda generación puede presentar
+              variaciones.
             </p>
           ) : null}
         </div>
 
-        {contentType !== "thumbnail" ? <fieldset className="mt-7">
-          <legend className="text-sm font-semibold text-foreground">Estilo visual</legend>
-          <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
-            {styles.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                aria-pressed={style === item.id}
-                onClick={() => setStyle(item.id)}
-                className={cn(
-                  "group relative min-w-40 snap-start overflow-hidden rounded-xl bg-background text-left outline-none ring-1 focus-visible:ring-2 focus-visible:ring-brand sm:min-w-0",
-                  style === item.id ? "ring-brand/70" : "ring-white/10",
-                )}
-              >
-                <span className="relative block aspect-[16/9] overflow-hidden bg-[#171812]">
-                  {item.previewAsset ? (
-                    <Image
-                      src={item.previewAsset}
-                      alt={`Ejemplo de estilo ${item.label}`}
-                      fill
-                      sizes="180px"
-                      className="object-cover opacity-80 transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    <span className="absolute inset-0 grid place-items-center text-2xl text-brand">✦</span>
+        {contentType !== "thumbnail" ? (
+          <fieldset className="mt-7">
+            <legend className="text-sm font-semibold text-foreground">
+              Estilo visual
+            </legend>
+            <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
+              {styles.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  aria-pressed={style === item.id}
+                  onClick={() => setStyle(item.id)}
+                  className={cn(
+                    "group relative min-w-40 snap-start overflow-hidden rounded-xl bg-background text-left outline-none ring-1 focus-visible:ring-2 focus-visible:ring-brand sm:min-w-0",
+                    style === item.id ? "ring-brand/70" : "ring-white/10",
                   )}
-                </span>
-                <span className="flex items-center justify-between gap-2 px-3 py-3 text-xs font-semibold text-foreground">
-                  {item.label}
-                  {style === item.id ? <Check aria-hidden="true" className="size-3.5 text-brand" /> : null}
-                </span>
-              </button>
-            ))}
-          </div>
-        </fieldset> : null}
+                >
+                  <span className="relative block aspect-[16/9] overflow-hidden bg-[#171812]">
+                    {item.previewAsset ? (
+                      <Image
+                        src={item.previewAsset}
+                        alt={`Ejemplo de estilo ${item.label}`}
+                        fill
+                        sizes="180px"
+                        className="object-cover opacity-80 transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <span className="absolute inset-0 grid place-items-center text-2xl text-brand">
+                        ✦
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex items-center justify-between gap-2 px-3 py-3 text-xs font-semibold text-foreground">
+                    {item.label}
+                    {style === item.id ? (
+                      <Check
+                        aria-hidden="true"
+                        className="size-3.5 text-brand"
+                      />
+                    ) : null}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
 
-        {contentType !== "thumbnail" ? <div className="mt-7">
-          <label htmlFor="colorPreference" className="text-sm font-semibold text-foreground">
-            Color
-          </label>
-          <select
-            id="colorPreference"
-            value={colorPreference}
-            onChange={(event) => setColorPreference(event.target.value as ColorPreference)}
-            className="mt-3 h-12 w-full rounded-xl bg-background px-3 text-sm text-foreground outline-none ring-1 ring-white/10 focus:ring-brand/65"
-          >
-            {GENERATION_COLORS.map((item) => (
-              <option key={item.id} value={item.id}>{item.label}</option>
-            ))}
-          </select>
-          {colorPreference === "custom" ? (
-            <ColorPalette
-              colors={customColors}
-              drafts={hexDrafts}
-              setColors={setCustomColors}
-              setDrafts={setHexDrafts}
-              setFieldErrors={setFieldErrors}
-              error={fieldErrors.customColors}
-            />
-          ) : null}
-        </div> : null}
+        {contentType !== "thumbnail" ? (
+          <div className="mt-7">
+            <label
+              htmlFor="colorPreference"
+              className="text-sm font-semibold text-foreground"
+            >
+              Color
+            </label>
+            <select
+              id="colorPreference"
+              value={colorPreference}
+              onChange={(event) =>
+                setColorPreference(event.target.value as ColorPreference)
+              }
+              className="mt-3 h-12 w-full rounded-xl bg-background px-3 text-sm text-foreground outline-none ring-1 ring-white/10 focus:ring-brand/65"
+            >
+              {GENERATION_COLORS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+            {colorPreference === "custom" ? (
+              <ColorPalette
+                colors={customColors}
+                drafts={hexDrafts}
+                setColors={setCustomColors}
+                setDrafts={setHexDrafts}
+                setFieldErrors={setFieldErrors}
+                error={fieldErrors.customColors}
+              />
+            ) : null}
+          </div>
+        ) : null}
 
         {contentType === "profile-image" ? (
           <div className="mt-7 grid gap-5 sm:grid-cols-3">
-            <SelectField label="Modo" value={profileMode} onChange={(value) => setProfileMode(value as ProfileMode)} options={PROFILE_MODES} />
-            <SelectField label="Transformación" value={profileIntensity} onChange={(value) => setProfileIntensity(value as ProfileIntensity)} options={PROFILE_INTENSITIES} />
-            <SelectField label="Fondo" value={profileBackground} onChange={(value) => setProfileBackground(value as ProfileBackground)} options={PROFILE_BACKGROUNDS} />
+            <SelectField
+              label="Modo"
+              value={profileMode}
+              onChange={(value) => setProfileMode(value as ProfileMode)}
+              options={PROFILE_MODES}
+            />
+            <SelectField
+              label="Transformación"
+              value={profileIntensity}
+              onChange={(value) =>
+                setProfileIntensity(value as ProfileIntensity)
+              }
+              options={PROFILE_INTENSITIES}
+            />
+            <SelectField
+              label="Fondo"
+              value={profileBackground}
+              onChange={(value) =>
+                setProfileBackground(value as ProfileBackground)
+              }
+              options={PROFILE_BACKGROUNDS}
+            />
           </div>
         ) : null}
 
@@ -781,23 +1083,34 @@ export function GenerationForm({
               className="mt-0.5 size-4 accent-[#DDF527]"
             />
             <span>
-              <span className="block text-sm font-semibold text-foreground">Proteger zona segura 9:16</span>
-              <span className="mt-1 block text-xs leading-5 text-muted">Evita colocar texto o rostros bajo los controles de la plataforma.</span>
+              <span className="block text-sm font-semibold text-foreground">
+                Proteger zona segura 9:16
+              </span>
+              <span className="mt-1 block text-xs leading-5 text-muted">
+                Evita colocar texto o rostros bajo los controles de la
+                plataforma.
+              </span>
             </span>
           </label>
         ) : null}
 
         {result.status === "error" ? (
-          <div role="alert" className="mt-7 rounded-xl bg-red-950/40 px-4 py-3 text-sm leading-6 text-red-100">
-            <strong className="block font-semibold">No pudimos preparar la generación.</strong>
+          <div
+            role="alert"
+            className="mt-7 rounded-xl bg-red-950/40 px-4 py-3 text-sm leading-6 text-red-100"
+          >
+            <strong className="block font-semibold">
+              No pudimos preparar la generación.
+            </strong>
             {result.message}
           </div>
         ) : null}
 
         <div
+          id="creation-summary"
           role="status"
           aria-live="polite"
-          className="mt-7 rounded-xl bg-background p-4 lg:hidden"
+          className="scroll-mt-40 mt-7 rounded-xl bg-background p-4 lg:hidden"
         >
           <p className="text-xs font-semibold text-brand">Resumen de salida</p>
           <p className="mt-2 text-sm font-semibold text-foreground">
@@ -805,32 +1118,60 @@ export function GenerationForm({
             {creditCost} {creditCost === 1 ? "crédito" : "créditos"}
           </p>
           <p className="mt-1 text-xs text-muted">
-            Saldo después de generar: {availableCredits === null ? "se verificará al enviar" : Math.max(0, availableCredits - creditCost)}
+            Saldo después de generar:{" "}
+            {availableCredits === null
+              ? "se verificará al enviar"
+              : Math.max(0, availableCredits - creditCost)}
           </p>
         </div>
 
         <button
           type="submit"
-          disabled={!available || !hasEnoughCredits || result.status === "loading"}
+          disabled={
+            !available || !hasEnoughCredits || result.status === "loading"
+          }
           className="mt-7 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink shadow-[0_16px_40px_rgba(221,245,39,.12)] transition-transform hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-40"
         >
           {result.status === "loading" ? (
-            <><LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> Preparando tu creación…</>
+            <>
+              <LoaderCircle
+                aria-hidden="true"
+                className="size-4 animate-spin"
+              />{" "}
+              Preparando tu creación…
+            </>
           ) : (
-            <>{contentType === "thumbnail" ? "Generar miniatura" : "Generar"} · {creditCost} {creditCost === 1 ? "crédito" : "créditos"} <ArrowRight aria-hidden="true" className="size-4" /></>
+            <>
+              {contentType === "thumbnail" ? "Generar miniatura" : "Generar"} ·{" "}
+              {creditCost} {creditCost === 1 ? "crédito" : "créditos"}{" "}
+              <ArrowRight aria-hidden="true" className="size-4" />
+            </>
           )}
         </button>
         <p className="mx-auto mt-3 max-w-xl text-center text-xs leading-5 text-white/50">
-          Conservamos tus creaciones durante 7 días en Free y Starter, 30 días en
-          Creator y 90 días en Pro. Descarga lo que quieras guardar.{" "}
-          <Link href="/terms" className="text-foreground underline decoration-white/30 hover:decoration-brand">
+          Conservamos tus creaciones durante 7 días en Free y Starter, 30 días
+          en Creator y 90 días en Pro. Descarga lo que quieras guardar.{" "}
+          <Link
+            href="/terms"
+            className="text-foreground underline decoration-white/30 hover:decoration-brand"
+          >
             Ver política
           </Link>
         </p>
         {!hasEnoughCredits && availableCredits !== null ? (
-          <p role="status" aria-live="polite" className="mt-3 text-center text-sm text-amber-100">
-            Necesitas {creditCost - availableCredits} {creditCost - availableCredits === 1 ? "crédito más" : "créditos más"}.{" "}
-            <Link href="/settings/billing" className="font-semibold underline">Ver planes</Link>
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-3 text-center text-sm text-amber-100"
+          >
+            Necesitas {creditCost - availableCredits}{" "}
+            {creditCost - availableCredits === 1
+              ? "crédito más"
+              : "créditos más"}
+            .{" "}
+            <Link href="/settings/billing" className="font-semibold underline">
+              Ver planes
+            </Link>
           </p>
         ) : !available ? (
           <p className="mt-3 text-center text-sm text-amber-100">
@@ -842,11 +1183,18 @@ export function GenerationForm({
       <aside aria-live="polite" className="hidden lg:sticky lg:top-24 lg:block">
         <div className="overflow-hidden rounded-2xl bg-[#10110d] shadow-[0_24px_80px_rgba(0,0,0,.3)]">
           <div className="relative min-h-64 overflow-hidden p-6">
-            <div aria-hidden="true" className="absolute -right-16 -top-12 size-56 rounded-full bg-brand/[0.09] blur-3xl" />
+            <div
+              aria-hidden="true"
+              className="absolute -right-16 -top-12 size-56 rounded-full bg-brand/[0.09] blur-3xl"
+            />
             <div className="relative flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold text-brand">Salida preparada</p>
-                <h2 className="mt-2 text-xl font-semibold text-foreground">{product.fullLabel}</h2>
+                <p className="text-xs font-semibold text-brand">
+                  Salida preparada
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-foreground">
+                  {product.fullLabel}
+                </h2>
               </div>
               <Sparkles aria-hidden="true" className="size-5 text-brand" />
             </div>
@@ -855,28 +1203,51 @@ export function GenerationForm({
                 "relative mt-8 grid max-h-52 place-items-center overflow-hidden rounded-xl bg-black/50 ring-1 ring-white/10",
                 contentType === "profile-image" && "rounded-full",
               )}
-              style={{ aspectRatio: `${variantDefinition.width}/${variantDefinition.height}` }}
+              style={{
+                aspectRatio: `${variantDefinition.width}/${variantDefinition.height}`,
+              }}
             >
               <ImageIcon aria-hidden="true" className="size-7 text-white/25" />
-              {(contentType === "story" && showSafeArea) || contentType === "profile-image" ? (
+              {(contentType === "story" && showSafeArea) ||
+              contentType === "profile-image" ? (
                 <div
                   aria-hidden="true"
                   className={cn(
                     "absolute border border-brand/70",
-                    contentType === "profile-image" ? "inset-[12%] rounded-full" : "inset-x-[8%] inset-y-[12%] rounded-lg",
+                    contentType === "profile-image"
+                      ? "inset-[12%] rounded-full"
+                      : "inset-x-[8%] inset-y-[12%] rounded-lg",
                   )}
                 />
               ) : null}
             </div>
           </div>
           <dl className="divide-y divide-white/8 border-t border-white/8 px-6">
-            <SummaryRow label="Plataforma" value={platform ? platformLabels[platform] : "Uso general"} />
-            <SummaryRow label="Tamaño final" value={`${variantDefinition.width} × ${variantDefinition.height}`} />
-            <SummaryRow label="Calidad" value={quality === "high" ? "Alta" : "Estándar"} />
-            <SummaryRow label="Coste" value={`${creditCost} ${creditCost === 1 ? "crédito" : "créditos"}`} strong />
+            <SummaryRow
+              label="Plataforma"
+              value={platform ? platformLabels[platform] : "Uso general"}
+            />
+            <SummaryRow
+              label="Tamaño final"
+              value={`${variantDefinition.width} × ${variantDefinition.height}`}
+            />
+            <SummaryRow
+              label="Calidad"
+              value={quality === "high" ? "Alta" : "Estándar"}
+            />
+            <SummaryRow
+              label="Coste"
+              value={`${creditCost} ${creditCost === 1 ? "crédito" : "créditos"}`}
+              strong
+            />
           </dl>
           <div className="border-t border-white/8 px-6 py-4 text-xs text-muted">
-            Saldo después de generar: <strong className="text-foreground">{availableCredits === null ? "Se verificará al enviar" : Math.max(0, availableCredits - creditCost)}</strong>
+            Saldo después de generar:{" "}
+            <strong className="text-foreground">
+              {availableCredits === null
+                ? "Se verificará al enviar"
+                : Math.max(0, availableCredits - creditCost)}
+            </strong>
           </div>
         </div>
       </aside>
@@ -885,14 +1256,32 @@ export function GenerationForm({
 }
 
 function FieldError({ message }: { message: string }) {
-  return <p role="alert" className="mt-2 text-xs text-red-200">{message}</p>;
+  return (
+    <p role="alert" className="mt-2 text-xs text-red-200">
+      {message}
+    </p>
+  );
 }
 
-function SummaryRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function SummaryRow({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between gap-4 py-3 text-sm">
       <dt className="text-muted">{label}</dt>
-      <dd className={strong ? "font-bold text-brand" : "font-semibold text-foreground"}>{value}</dd>
+      <dd
+        className={
+          strong ? "font-bold text-brand" : "font-semibold text-foreground"
+        }
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -916,7 +1305,11 @@ function SelectField({
         onChange={(event) => onChange(event.target.value)}
         className="mt-3 h-12 w-full rounded-xl bg-background px-3 text-sm font-normal text-foreground outline-none ring-1 ring-white/10 focus:ring-brand/65"
       >
-        {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
       </select>
     </label>
   );
@@ -941,15 +1334,22 @@ function ColorPalette({
     <div className="mt-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {colors.map((color, index) => (
-          <div key={`${index}-${color}`} className="flex min-h-12 items-center gap-2 rounded-xl bg-background px-3 ring-1 ring-white/10">
+          <div
+            key={`${index}-${color}`}
+            className="flex min-h-12 items-center gap-2 rounded-xl bg-background px-3 ring-1 ring-white/10"
+          >
             <input
               type="color"
               aria-label={`Color ${index + 1}`}
               value={color}
               onChange={(event) => {
                 const next = event.target.value.toUpperCase();
-                setColors((current) => current.map((item, i) => i === index ? next : item));
-                setDrafts((current) => current.map((item, i) => i === index ? next : item));
+                setColors((current) =>
+                  current.map((item, i) => (i === index ? next : item)),
+                );
+                setDrafts((current) =>
+                  current.map((item, i) => (i === index ? next : item)),
+                );
               }}
               className="size-7 bg-transparent p-0"
             />
@@ -957,15 +1357,28 @@ function ColorPalette({
               aria-label={`Hexadecimal ${index + 1}`}
               value={drafts[index] ?? color}
               maxLength={7}
-              onChange={(event) => setDrafts((current) => current.map((item, i) => i === index ? event.target.value : item))}
+              onChange={(event) =>
+                setDrafts((current) =>
+                  current.map((item, i) =>
+                    i === index ? event.target.value : item,
+                  ),
+                )
+              }
               onBlur={() => {
                 const normalized = normalizeHexColor(drafts[index] ?? "");
                 if (!normalized) {
-                  setFieldErrors((current) => ({ ...current, customColors: "Usa #RGB o #RRGGBB." }));
+                  setFieldErrors((current) => ({
+                    ...current,
+                    customColors: "Usa #RGB o #RRGGBB.",
+                  }));
                   return;
                 }
-                setColors((current) => current.map((item, i) => i === index ? normalized : item));
-                setDrafts((current) => current.map((item, i) => i === index ? normalized : item));
+                setColors((current) =>
+                  current.map((item, i) => (i === index ? normalized : item)),
+                );
+                setDrafts((current) =>
+                  current.map((item, i) => (i === index ? normalized : item)),
+                );
                 setFieldErrors((current) => {
                   const next = { ...current };
                   delete next.customColors;
@@ -999,7 +1412,8 @@ function ColorPalette({
           }}
           className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-background px-3 text-xs font-semibold text-muted hover:text-foreground"
         >
-          <Plus aria-hidden="true" className="size-4" /> Añadir color ({colors.length}/5)
+          <Plus aria-hidden="true" className="size-4" /> Añadir color (
+          {colors.length}/5)
         </button>
       ) : null}
       <p className={cn("mt-2 text-xs", error ? "text-red-200" : "text-muted")}>
