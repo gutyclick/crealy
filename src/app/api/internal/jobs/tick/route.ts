@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic";
 function authorized(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
   return Boolean(
-    secret && request.headers.get("authorization") === `Bearer ${secret}`,
+    secret &&
+      (request.headers.get("authorization") === `Bearer ${secret}` ||
+        request.headers.get("x-crealy-cron-secret") === secret),
   );
 }
 

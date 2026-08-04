@@ -20,7 +20,7 @@ test("the free-tier deployment has an explicit external queue consumer", () => {
   const workflow = readFileSync(".github/workflows/job-consumer.yml", "utf8");
   const vercel = readFileSync("vercel.json", "utf8");
   assert.match(workflow, /cron: "\*\/5 \* \* \* \*"/);
-  assert.match(workflow, /Authorization: Bearer \$CRON_SECRET/);
+  assert.match(workflow, /x-crealy-cron-secret: \$CRON_SECRET/);
   assert.match(vercel, /"schedule": "0 0 \* \* \*"/);
 });
 

@@ -26,5 +26,5 @@ jobs:
             --max-time 210 \
             --retry 2 \
             --retry-all-errors \
-            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "x-crealy-cron-secret: $CRON_SECRET" \
             https://www.crealy.app/api/internal/jobs/tick
