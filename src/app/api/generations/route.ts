@@ -8,6 +8,7 @@ import { buildProjectTitle } from "@/lib/generation/build-project-title";
 import { checkImageProvider } from "@/lib/generation/check-image-provider";
 import { validateGenerationInput } from "@/lib/generation/validate-generation-input";
 import { logger } from "@/lib/observability/logger";
+import { dispatchQueuedJob } from "@/lib/jobs/dispatch-job";
 import { getOperationsConfig } from "@/lib/operations/config";
 import { getGenerationVariant } from "@/config/generation-products";
 import {
@@ -425,12 +426,14 @@ export async function POST(request: Request) {
     logger.error("job.ready_failed", { jobId: queued.job_id, userId: user.id, resourceId: queued.generation_id, errorCode: jobReadyError?.code || "not_marked_ready" });
     return reservationError("job_not_ready", input.clientRequestId);
   }
+  const dispatch = await dispatchQueuedJob(queued.job_id);
   logger.info("job.accepted", {
     jobId: queued.job_id,
     userId: user.id,
     resourceId: queued.generation_id,
     jobType: "generation",
     duplicate: queued.is_existing,
+    dispatchProvider: dispatch.provider,
   });
   return NextResponse.json<QueuedGenerationResponse>(
     {

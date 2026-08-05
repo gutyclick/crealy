@@ -18,6 +18,25 @@ test("public job routes only enqueue or read and never execute the worker", () =
   assert.match(routes, /mark_job_ready_internal/);
 });
 
+test("Trigger.dev dispatches durable jobs by id and the cron remains recovery-only", () => {
+  const routes = [
+    "src/app/api/generations/route.ts",
+    "src/app/api/edit-sessions/[sessionId]/versions/route.ts",
+  ].map(read).join("\n");
+  const dispatcher = read("src/lib/jobs/dispatch-job.ts");
+  const task = read("src/trigger/process-crealy-job.ts");
+  const workflow = read(".github/workflows/job-consumer.yml");
+
+  assert.match(routes, /dispatchQueuedJob\(queued\.job_id\)/);
+  assert.match(dispatcher, /payload: \{ jobId \}/);
+  assert.match(dispatcher, /idempotencyKey: `crealy-job:\$\{jobId\}`/);
+  assert.match(dispatcher, /recovery-cron/);
+  assert.doesNotMatch(dispatcher, /OPENAI_API_KEY|R2_SECRET_ACCESS_KEY|SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(task, /processQueuedJob\(jobId\)/);
+  assert.match(task, /concurrencyLimit: 3/);
+  assert.match(workflow, /cron: "\*\/5 \* \* \* \*"/);
+});
+
 test("storage usage is aggregated in SQL rather than from the recent-file list", () => {
   const migration = read("supabase/migrations/20260803010000_add_storage_usage_aggregate.sql");
   const page = read("src/app/(dashboard)/settings/storage/page.tsx");

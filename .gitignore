@@ -25,6 +25,7 @@ graphify-out/20*/
 # Vercel and tooling
 .vercel/
 /.codex/artifacts/
+/.trigger/
 *.tsbuildinfo
 next-env.d.ts
 

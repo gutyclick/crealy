@@ -6,6 +6,7 @@ import { getEditCreditCost } from "@/lib/credits/get-credit-cost";
 import { buildEditInstruction } from "@/lib/editing/build-edit-instruction";
 import { getEditingServerEnv } from "@/lib/env/server";
 import { getOperationsConfig } from "@/lib/operations/config";
+import { dispatchQueuedJob } from "@/lib/jobs/dispatch-job";
 import {
   enforceRateLimit,
   RATE_LIMITS,
@@ -200,6 +201,7 @@ export async function POST(
     p_max_attempts: operations.maxAttempts,
   });
   if (jobReadyError || !jobReady) return apiError("operations_unavailable", "No pudimos publicar el trabajo en la cola.", 503);
+  await dispatchQueuedJob(queued.job_id);
   return NextResponse.json<QueuedEditResponse>(
     {
       jobId: queued.job_id,
