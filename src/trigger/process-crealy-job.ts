@@ -1,4 +1,13 @@
 import { logger, task } from "@trigger.dev/sdk";
+import WebSocket from "ws";
+
+// Trigger.dev 4.5 currently runs tasks on Node 21, while the current
+// Supabase realtime client expects Node 22's native WebSocket. Crealy does not
+// use realtime in this worker, but Supabase still resolves a transport during
+// client construction, so provide the standard Node implementation first.
+if (typeof globalThis.WebSocket === "undefined") {
+  (globalThis as { WebSocket?: unknown }).WebSocket = WebSocket;
+}
 
 function safeFailureCode(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);

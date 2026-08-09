@@ -40,7 +40,8 @@
     "server-only": "^0.0.1",
     "sharp": "^0.35.3",
     "stripe": "^22.3.2",
-    "undici": "^7.29.0"
+    "undici": "^7.29.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0",
@@ -50,6 +51,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
