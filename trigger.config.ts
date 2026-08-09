@@ -4,6 +4,11 @@ export default defineConfig({
   project: "proj_avfyftfsbdbkpeqgufpc",
   dirs: ["./src/trigger"],
   maxDuration: 900,
+  build: {
+    // Crealy's backend modules use Next.js' `server-only` guard. Trigger runs
+    // those same modules in Node, so resolve the package's no-op server export.
+    conditions: ["react-server"],
+  },
   retries: {
     enabledInDev: false,
     default: {
