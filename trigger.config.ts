@@ -1,13 +1,31 @@
+import { esbuildPlugin } from "@trigger.dev/build/extensions";
 import { defineConfig } from "@trigger.dev/sdk";
+
+const serverOnlyShim = esbuildPlugin(
+  {
+    name: "crealy-server-only-shim",
+    setup(build) {
+      build.onResolve({ filter: /^server-only$/ }, () => ({
+        path: "server-only",
+        namespace: "crealy-server-only",
+      }));
+      build.onLoad(
+        { filter: /.*/, namespace: "crealy-server-only" },
+        () => ({ contents: "export {};", loader: "js" }),
+      );
+    },
+  },
+  { placement: "first" },
+);
 
 export default defineConfig({
   project: "proj_avfyftfsbdbkpeqgufpc",
   dirs: ["./src/trigger"],
   maxDuration: 900,
   build: {
-    // Crealy's backend modules use Next.js' `server-only` guard. Trigger runs
-    // those same modules in Node, so resolve the package's no-op server export.
-    conditions: ["react-server"],
+    // Only neutralize Next.js' compile-time guard. A global `react-server`
+    // condition also changes React and third-party runtime exports.
+    extensions: [serverOnlyShim],
   },
   retries: {
     enabledInDev: false,
