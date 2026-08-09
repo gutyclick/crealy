@@ -6,7 +6,7 @@ import { useActionState } from "react";
 import { signIn } from "@/app/(auth)/actions";
 import { AuthMessage } from "@/components/auth/auth-message";
 import { FormField } from "@/components/auth/form-field";
-import { AuthDivider, GoogleAuthButton } from "@/components/auth/google-auth-button";
+import { AuthDivider, SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { PasswordInput } from "@/components/auth/password-input";
 import { SubmitButton } from "@/components/auth/submit-button";
 import {
@@ -16,27 +16,42 @@ import {
 
 type LoginFormProps = {
   nextPath: string;
-  callbackError?: boolean;
+  authError?: "callback" | "oauth" | "rate_limited";
   googleEnabled?: boolean;
+  discordEnabled?: boolean;
 };
 
 export function LoginForm({
   nextPath,
-  callbackError = false,
+  authError,
   googleEnabled = false,
+  discordEnabled = false,
 }: LoginFormProps) {
-  const initialState: AuthActionState = callbackError
+  const initialState: AuthActionState = authError
     ? {
         status: "error",
-        message:
-          "El enlace de autenticación no es válido o ya expiró. Inténtalo nuevamente.",
+        message: authError === "rate_limited"
+          ? "Demasiados intentos. Espera unos minutos antes de volver a intentarlo."
+          : authError === "oauth"
+            ? "No pudimos conectar ese proveedor. Revisa tu autorización e inténtalo nuevamente."
+            : "El enlace de autenticación no es válido o ya expiró. Inténtalo nuevamente.",
       }
     : initialAuthState;
   const [state, formAction] = useActionState(signIn, initialState);
 
   return (
     <div className="grid gap-5">
-      {googleEnabled ? <><GoogleAuthButton nextPath={nextPath} /><AuthDivider /></> : null}
+      {googleEnabled || discordEnabled ? (
+        <>
+          <SocialAuthButtons
+            nextPath={nextPath}
+            flow="login"
+            googleEnabled={googleEnabled}
+            discordEnabled={discordEnabled}
+          />
+          <AuthDivider />
+        </>
+      ) : null}
       <form action={formAction} className="grid gap-5" noValidate>
       <input type="hidden" name="next" value={nextPath} />
       <AuthMessage state={state} />

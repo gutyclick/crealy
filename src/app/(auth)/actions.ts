@@ -226,31 +226,54 @@ export async function signIn(
   redirect(destination);
 }
 
-export async function signInWithGoogle(formData: FormData) {
-  if (process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "true") {
+type SocialAuthProvider = "google" | "discord";
+
+const socialAuthConfig: Record<SocialAuthProvider, { flag: string; label: string }> = {
+  google: { flag: "NEXT_PUBLIC_GOOGLE_AUTH_ENABLED", label: "Google" },
+  discord: { flag: "NEXT_PUBLIC_DISCORD_AUTH_ENABLED", label: "Discord" },
+};
+
+async function signInWithSocialProvider(
+  provider: SocialAuthProvider,
+  formData: FormData,
+) {
+  const config = socialAuthConfig[provider];
+  const launch = getLaunchConfig();
+  if (
+    process.env[config.flag] !== "true" ||
+    !launch.registrationsEnabled ||
+    launch.inviteRequired
+  ) {
     redirect("/login?error=oauth");
   }
-  if (await authRateLimited("google_oauth")) {
+  if (await authRateLimited(`${provider}_oauth`)) {
     redirect("/login?error=rate_limited");
   }
-  const launch = getLaunchConfig();
+  const isSignup = readText(formData, "flow") === "signup";
   const destination = getSafeRedirect(
     formData.get("next"),
-    launch.onboardingEnabled ? "/onboarding" : "/dashboard",
+    isSignup && launch.onboardingEnabled ? "/onboarding" : "/dashboard",
   );
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
+    provider,
     options: {
       redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}`,
-      queryParams: { access_type: "offline", prompt: "consent" },
     },
   });
   if (error || !data.url) {
-    reportAuthError("Google OAuth", error);
+    reportAuthError(`${config.label} OAuth`, error);
     redirect("/login?error=oauth");
   }
   redirect(data.url);
+}
+
+export async function signInWithGoogle(formData: FormData) {
+  return signInWithSocialProvider("google", formData);
+}
+
+export async function signInWithDiscord(formData: FormData) {
+  return signInWithSocialProvider("discord", formData);
 }
 
 export async function requestPasswordReset(

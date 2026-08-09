@@ -6,18 +6,28 @@ import { useActionState } from "react";
 import { signUp } from "@/app/(auth)/actions";
 import { AuthMessage } from "@/components/auth/auth-message";
 import { FormField } from "@/components/auth/form-field";
-import { AuthDivider, GoogleAuthButton } from "@/components/auth/google-auth-button";
+import { AuthDivider, SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { PasswordInput } from "@/components/auth/password-input";
 import { SubmitButton } from "@/components/auth/submit-button";
 import { initialAuthState } from "@/lib/auth/action-state";
 import { trackConversion } from "@/lib/analytics/events";
 
-export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", googleEnabled = false }: { inviteRequired?: boolean; nextPath?: string; googleEnabled?: boolean }) {
+export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", googleEnabled = false, discordEnabled = false }: { inviteRequired?: boolean; nextPath?: string; googleEnabled?: boolean; discordEnabled?: boolean }) {
   const [state, formAction] = useActionState(signUp, initialAuthState);
 
   return (
     <div className="grid gap-5">
-      {googleEnabled && !inviteRequired ? <><GoogleAuthButton nextPath={nextPath} /><AuthDivider /></> : null}
+      {(googleEnabled || discordEnabled) && !inviteRequired ? (
+        <>
+          <SocialAuthButtons
+            nextPath={nextPath}
+            flow="signup"
+            googleEnabled={googleEnabled}
+            discordEnabled={discordEnabled}
+          />
+          <AuthDivider />
+        </>
+      ) : null}
       <form action={formAction} onSubmit={() => trackConversion("signup_started")} className="grid gap-5" noValidate>
       <input type="hidden" name="next" value={nextPath} />
       <AuthMessage state={state} />
