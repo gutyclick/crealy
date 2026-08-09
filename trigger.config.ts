@@ -1,7 +1,7 @@
 import { defineConfig } from "@trigger.dev/sdk";
 
 export default defineConfig({
-  project: process.env.TRIGGER_PROJECT_REF || "proj_crealy_unconfigured",
+  project: "proj_avfyftfsbdbkpeqgufpc",
   dirs: ["./src/trigger"],
   maxDuration: 900,
   retries: {
