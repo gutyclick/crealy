@@ -241,8 +241,8 @@ async function signInWithSocialProvider(
   const launch = getLaunchConfig();
   if (
     process.env[config.flag] !== "true" ||
-    !launch.registrationsEnabled ||
-    launch.inviteRequired
+    (readText(formData, "flow") === "signup" &&
+      (!launch.registrationsEnabled || launch.inviteRequired))
   ) {
     redirect("/login?error=oauth");
   }
@@ -258,7 +258,7 @@ async function signInWithSocialProvider(
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}`,
+      redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}&oauth_flow=${isSignup ? "signup" : "login"}`,
     },
   });
   if (error || !data.url) {

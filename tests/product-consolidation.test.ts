@@ -27,6 +27,10 @@ test("the free-tier deployment has an explicit external queue consumer", () => {
 test("Google and Discord OAuth are gated and cannot bypass private beta", () => {
   const actions = readFileSync("src/app/(auth)/actions.ts", "utf8");
   const signup = readFileSync("src/components/auth/signup-form.tsx", "utf8");
+  const callback = readFileSync(
+    "src/app/(auth)/auth/callback/route.ts",
+    "utf8",
+  );
   const buttons = readFileSync(
     "src/components/auth/social-auth-buttons.tsx",
     "utf8",
@@ -35,6 +39,9 @@ test("Google and Discord OAuth are gated and cannot bypass private beta", () => 
   assert.match(actions, /NEXT_PUBLIC_GOOGLE_AUTH_ENABLED/);
   assert.match(actions, /NEXT_PUBLIC_DISCORD_AUTH_ENABLED/);
   assert.match(actions, /launch\.inviteRequired/);
+  assert.match(callback, /isNewOAuthAccount/);
+  assert.match(callback, /social_signup_restricted/);
+  assert.match(callback, /deleteUser/);
   assert.match(signup, /!inviteRequired/);
   assert.match(buttons, /signInWithGoogle/);
   assert.match(buttons, /signInWithDiscord/);
