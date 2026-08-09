@@ -57,7 +57,7 @@ Estado objetivo: **beta privada**. Marca cada punto con evidencia antes de invit
 
 - [ ] Nombre legal, jurisdicción, contacto, retención y reembolsos sustituyen los placeholders.
 - [ ] Revisión legal externa completada antes del lanzamiento público.
-- [ ] Analytics continúa desactivado hasta aprobar privacidad/consentimiento.
+- [x] Analytics y Speed Insights están activados mediante flags y limitados a eventos sin contenido sensible.
 - [ ] Canal y horario de soporte publicados.
 - [ ] Lista inicial de invitados y criterios de salida de beta aprobados.
 

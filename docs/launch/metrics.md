@@ -29,6 +29,7 @@ manual en escritorio y 390 px sin desbordamientos en las superficies nuevas.
 Todavía no existe una muestra de campo suficiente para publicar valores p75;
 Speed Insights debe aportar esa medición durante la beta.
 
-Vercel Analytics y Speed Insights permanecen detrás de flags. Activarlos solo
-tras la revisión de privacidad y documentar si la jurisdicción requiere
-consentimiento.
+Vercel Analytics y Speed Insights permanecen detrás de flags y están activos en
+los entornos desplegados desde el 9 de agosto de 2026. Los eventos no incluyen
+prompts, imágenes, correos ni identificadores financieros. Revisar periódicamente
+si la jurisdicción aplicable exige un mecanismo adicional de consentimiento.

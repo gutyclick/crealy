@@ -86,7 +86,7 @@ La interfaz debe funcionar con teclado, mantener foco visible y contraste sufici
 - Soporte y feedback nunca adjuntan automáticamente prompts o imágenes. Las
   solicitudes anónimas conservan únicamente el contacto necesario para poder
   responder.
-- Analytics y Speed Insights permanecen desactivados hasta aprobar privacidad
+- Vercel Analytics y Speed Insights se activan mediante flags en los entornos desplegados; sus eventos excluyen contenido sensible
   y consentimiento; sus eventos no incluyen contenido del usuario.
 - Las páginas legales son borradores no indexables hasta completar entidad,
   jurisdicción, fechas y revisión profesional.
