@@ -7,7 +7,14 @@ function safeFailureCode(error: unknown) {
     return `trigger_bootstrap_module:${missingModule[1]}`.slice(0, 120);
   }
 
-  return `trigger_bootstrap:${error instanceof Error ? error.name : "unknown"}`.slice(0, 120);
+  const sanitizedMessage = message
+    .replace(/https?:\/\/\S+/gi, "<url>")
+    .replace(/(?:Bearer\s+)?[A-Za-z0-9_-]{24,}(?:\.[A-Za-z0-9_-]{12,})+/g, "<token>")
+    .replace(/\b(?:sk|tr|sb)_[A-Za-z0-9_-]{16,}\b/gi, "<secret>")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return `trigger_bootstrap:${sanitizedMessage || (error instanceof Error ? error.name : "unknown")}`.slice(0, 300);
 }
 
 async function persistBootstrapFailure(jobId: string, code: string) {
