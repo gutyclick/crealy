@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Bell, Check, CircleAlert, Clock3, LoaderCircle, X } from "lucide-react";
+import { ArrowUpRight, Bell, Check, CircleAlert, Clock3, LoaderCircle, Volume2, VolumeX, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -27,6 +27,8 @@ type ToastState = {
 };
 
 const STORAGE_KEY = "crealy:creation-notifications";
+const SOUND_PREFERENCE_KEY = "crealy:completion-sound";
+const COMPLETION_SOUND_PATH = "/audio/generation-complete.wav";
 const ACTIVE_STATUSES = new Set<JobStatus>(["queued", "claimed", "processing", "retry_scheduled"]);
 
 function mergeNotifications(current: CreationNotification[], incoming: CreationNotification[]) {
@@ -48,8 +50,11 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
   const [notifications, setNotifications] = useState(initialNotifications);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const rootRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const announcedJobsRef = useRef(new Set<string>());
 
   useEffect(() => {
     let stored: CreationNotification[] = [];
@@ -58,12 +63,45 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
+    const storedSoundEnabled = localStorage.getItem(SOUND_PREFERENCE_KEY) !== "off";
     initializedRef.current = true;
     const timer = window.setTimeout(() => {
+      setSoundEnabled(storedSoundEnabled);
       setNotifications((current) => mergeNotifications(stored, current));
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const audio = new Audio(COMPLETION_SOUND_PATH);
+    audio.preload = "auto";
+    audio.volume = 0.45;
+    audioRef.current = audio;
+
+    async function unlockAudio() {
+      if (!soundEnabled) return;
+      try {
+        audio.muted = true;
+        await audio.play();
+        audio.pause();
+        audio.currentTime = 0;
+        audio.muted = false;
+      } catch {
+        audio.muted = false;
+      }
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    }
+
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      audio.pause();
+      audioRef.current = null;
+    };
+  }, [soundEnabled]);
 
   useEffect(() => {
     if (initializedRef.current) localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
@@ -94,21 +132,47 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
         }
       }));
       if (cancelled) return;
+      const newlyReady = active.filter((item) => {
+        const update = updates.find((candidate) => candidate?.id === item.jobId);
+        return update?.status === "completed" && !announcedJobsRef.current.has(item.jobId);
+      });
+      const newlyFailed = active.filter((item) => {
+        const update = updates.find((candidate) => candidate?.id === item.jobId);
+        return (update?.status === "failed" || update?.status === "cancelled") && !announcedJobsRef.current.has(item.jobId);
+      });
+
+      if (newlyReady.length) {
+        newlyReady.forEach((item) => announcedJobsRef.current.add(item.jobId));
+        const item = newlyReady[0];
+        setToast({ id: `${item.jobId}-ready`, title: "Tu diseño está listo", message: item.label, generationId: item.generationId, tone: "ready" });
+        if (soundEnabled && audioRef.current) {
+          audioRef.current.currentTime = 0;
+          void audioRef.current.play().catch(() => undefined);
+        }
+      } else if (newlyFailed.length) {
+        newlyFailed.forEach((item) => announcedJobsRef.current.add(item.jobId));
+        const item = newlyFailed[0];
+        setToast({ id: `${item.jobId}-failed`, title: "La creación no se completó", message: "Liberamos los créditos reservados. Puedes intentarlo otra vez.", tone: "failed" });
+      }
+
       setNotifications((current) => current.map((item) => {
         const update = updates.find((candidate) => candidate?.id === item.jobId);
         if (!update || update.status === item.status) return item;
         const becameReady = update.status === "completed";
         const becameFailed = update.status === "failed" || update.status === "cancelled";
-        if (becameReady) {
-          setToast({ id: `${item.jobId}-ready`, title: "Tu diseño está listo", message: item.label, generationId: item.generationId, tone: "ready" });
-        } else if (becameFailed) {
-          setToast({ id: `${item.jobId}-failed`, title: "La creación no se completó", message: "Liberamos los créditos reservados. Puedes intentarlo otra vez.", tone: "failed" });
-        }
         return { ...item, status: update.status, unread: becameReady || becameFailed };
       }));
     }, 2_400);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [notifications]);
+  }, [notifications, soundEnabled]);
+
+  function toggleSound() {
+    setSoundEnabled((current) => {
+      const next = !current;
+      localStorage.setItem(SOUND_PREFERENCE_KEY, next ? "on" : "off");
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!toast) return;
@@ -153,9 +217,14 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
 
         {open ? (
           <div id="creation-notifications" className="absolute right-0 top-[calc(100%+0.65rem)] z-30 w-[min(23rem,calc(100vw-1.5rem))] overflow-hidden rounded-[0.9rem] border border-white/10 bg-surface-elevated shadow-[0_24px_65px_rgba(0,0,0,.5)]">
-            <div className="border-b border-white/[0.08] px-4 py-3.5">
-              <p className="text-sm font-semibold text-foreground">Actividad de creación</p>
-              <p className="mt-0.5 text-xs text-muted">Tus diseños continúan aunque cambies de página.</p>
+            <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3.5">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Actividad de creación</p>
+                <p className="mt-0.5 text-xs text-muted">Tus diseños continúan aunque cambies de página.</p>
+              </div>
+              <button type="button" onClick={toggleSound} aria-pressed={soundEnabled} aria-label={soundEnabled ? "Silenciar avisos de trabajos completados" : "Activar avisos de trabajos completados"} title={soundEnabled ? "Silenciar avisos" : "Activar avisos"} className="grid size-11 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground">
+                {soundEnabled ? <Volume2 aria-hidden="true" className="size-4" /> : <VolumeX aria-hidden="true" className="size-4" />}
+              </button>
             </div>
             {notifications.length ? (
               <div className="max-h-[25rem] overflow-y-auto p-2">
