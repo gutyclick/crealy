@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -22,7 +23,12 @@ import {
   resolveImageSize,
 } from "../src/lib/generation/resolve-image-size";
 import { validateGenerationInput } from "../src/lib/generation/validate-generation-input";
-import { THUMBNAIL_PRESETS, THUMBNAIL_TEXT_MODES } from "../src/config/thumbnail-creation";
+import {
+  THUMBNAIL_DISTINCTIVENESS_RULES,
+  THUMBNAIL_PRESET_CRAFT,
+  THUMBNAIL_PRESETS,
+  THUMBNAIL_TEXT_MODES,
+} from "../src/config/thumbnail-creation";
 
 const validInput = {
   clientRequestId: "3f1ac702-4a56-4c80-9f7c-ae48ce8b1193",
@@ -66,6 +72,21 @@ test("thumbnail creation exposes presets and explicit text modes", () => {
     thumbnailPreset: "curiosity",
     thumbnailTextMode: "custom",
   }).success, false);
+});
+
+test("automatic thumbnail copy is contextual and presets have enforceable craft", () => {
+  const orchestrator = readFileSync(
+    new URL("../src/lib/generation/thumbnail-orchestrator.ts", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(orchestrator, /:\s*["']Â¿QUÃ‰ PASÃ“\?["']/);
+  assert.match(orchestrator, /deriveAutomaticThumbnailText\(input\)/);
+  assert.match(orchestrator, /thumbnailCreativeSignature\(input\)/);
+  assert.match(orchestrator, /Prohibido devolver ganchos intercambiables/);
+  assert.ok(THUMBNAIL_DISTINCTIVENESS_RULES.length >= 5);
+  for (const preset of THUMBNAIL_PRESETS) {
+    assert.ok(THUMBNAIL_PRESET_CRAFT[preset.id].length >= 4, preset.id);
+  }
 });
 
 test("legacy thumbnail taxonomy remains readable and normalizes at validation", () => {

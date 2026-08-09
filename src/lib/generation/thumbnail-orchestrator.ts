@@ -1,6 +1,8 @@
 import "server-only";
 
-import { THUMBNAIL_ARCHETYPES, THUMBNAIL_AVOID, THUMBNAIL_GLOBAL_RULES, THUMBNAIL_NICHES, THUMBNAIL_PRESETS } from "@/config/thumbnail-creation";
+import { createHash } from "node:crypto";
+
+import { THUMBNAIL_ARCHETYPES, THUMBNAIL_AVOID, THUMBNAIL_DISTINCTIVENESS_RULES, THUMBNAIL_GLOBAL_RULES, THUMBNAIL_NICHES, THUMBNAIL_PRESET_CRAFT, THUMBNAIL_PRESETS } from "@/config/thumbnail-creation";
 import { getEditingServerEnv } from "@/lib/env/server";
 import { getOpenAIClient } from "@/lib/openai/client";
 import type { GenerationInput, ThumbnailConcept, ThumbnailCreativePlan, ThumbnailEvaluation, ThumbnailNiche } from "@/types/generation";
@@ -56,7 +58,80 @@ const evaluationSchema = {
 function exactThumbnailText(input: GenerationInput, recommended: string) {
   if (input.thumbnailTextMode === "none") return "";
   if (input.thumbnailTextMode === "custom") return input.primaryText?.trim() ?? "";
-  return recommended.trim().split(/\s+/).slice(0, 5).join(" ");
+  const normalized = recommended.trim().replace(/[Â¿?Â¡!]/g, "").toLocaleUpperCase("es");
+  const genericHooks = ["QUÃ‰ PASÃ“", "NO LO CREERÃ�S", "INCREÃ�BLE", "IMPACTANTE", "TIENES QUE VERLO"];
+  const contextual = genericHooks.some((hook) => normalized === hook)
+    ? deriveAutomaticThumbnailText(input)
+    : recommended;
+  return contextual.trim().split(/\s+/).slice(0, 5).join(" ");
+}
+
+const AUTOMATIC_TEXT_STOP_WORDS = new Set([
+  "a", "al", "algo", "como", "con", "de", "del", "el", "en", "es",
+  "esta", "este", "esto", "la", "las", "lo", "los", "mi", "para",
+  "por", "que", "se", "sin", "su", "sus", "te", "tu", "un", "una",
+  "video", "youtube", "y",
+]);
+
+function textTokens(value: string) {
+  return value
+    .replace(/[Â¿?Â¡!.,:;()[\]{}"']/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+export function deriveAutomaticThumbnailText(input: GenerationInput) {
+  const source = `${input.videoTitle?.trim() || ""} ${input.description}`.trim();
+  const meaningful = textTokens(source).filter((token) => {
+    const normalized = token
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return /\d/.test(token) || (normalized.length > 2 && !AUTOMATIC_TEXT_STOP_WORDS.has(normalized));
+  });
+  const unique = meaningful.filter(
+    (token, index) =>
+      meaningful.findIndex((candidate) => candidate.toLowerCase() === token.toLowerCase()) === index,
+  );
+  const selected = unique.slice(0, 4);
+  if (selected.length) return selected.join(" ").toLocaleUpperCase("es");
+
+  const fallback = textTokens(source).slice(0, 3).join(" ");
+  return fallback.toLocaleUpperCase("es") || "TU IDEA";
+}
+
+const COMPOSITIONS = [
+  "primer plano lateral con una revelaciÃ³n en profundidad al lado opuesto",
+  "diagonal de tensiÃ³n entre protagonista y evidencia visual",
+  "objeto enorme en primer plano con protagonista reaccionando desde segundo plano",
+  "encuadre cenital con una anomalÃ­a central y espacio tipogrÃ¡fico lateral",
+  "sujeto recortado desde el borde con el resultado dominando el centro Ã³ptico",
+  "perspectiva sobre el hombro hacia el elemento que resuelve la historia",
+] as const;
+const LIGHTING = [
+  "luz lateral dura y fondo profundo",
+  "contraluz recortado con sombras densas",
+  "luz de estudio limpia con contraste cromÃ¡tico",
+  "fuente motivada dentro de la escena y atmÃ³sfera contenida",
+] as const;
+const TYPE_TREATMENTS = [
+  "bloque tipogrÃ¡fico compacto alineado con la mirada del sujeto",
+  "texto de gran escala parcialmente detrÃ¡s del protagonista sin perder legibilidad",
+  "titular corto dentro de una forma editorial de alto contraste",
+  "tipografÃ­a inclinada siguiendo la tensiÃ³n de la composiciÃ³n",
+] as const;
+
+export function thumbnailCreativeSignature(input: GenerationInput) {
+  const digest = createHash("sha256")
+    .update(`${input.clientRequestId}|${input.description}|${input.videoTitle || ""}|${input.thumbnailPreset || "impactful"}`)
+    .digest();
+  return [
+    `ComposiciÃ³n distintiva: ${COMPOSITIONS[digest[0] % COMPOSITIONS.length]}.`,
+    `IluminaciÃ³n: ${LIGHTING[digest[1] % LIGHTING.length]}.`,
+    `Tratamiento del texto: ${TYPE_TREATMENTS[digest[2] % TYPE_TREATMENTS.length]}.`,
+    `Firma creativa: ${digest.subarray(0, 5).toString("hex")}. No reutilices una plantilla genÃ©rica.`,
+  ];
 }
 
 function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePlan, "finalPrompt">) {
@@ -71,8 +146,12 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     `Supporting element: ${plan.brief.supportingObject || "none"}`, "",
     text ? `Thumbnail text: Render exactly "${text}". Do not add any other words, letters, logos, labels, or interface text.` : "Thumbnail text: Do not render any text, letters, logos, labels, or interface elements.",
     "Typography: large, bold, highly readable YouTube thumbnail typography with strong contrast and clean separation from the background.",
-    "", `Visual preset: ${preset.label}.`, ...preset.direction.map((rule) => `- ${rule}.`),
+    "", `Visual preset: ${preset.label}. Its visual language is mandatory, not optional.`,
+    ...preset.direction.map((rule) => `- ${rule}.`),
+    ...THUMBNAIL_PRESET_CRAFT[preset.id].map((rule) => `- ${rule}.`),
+    "", "Unique art direction for this generation:", ...thumbnailCreativeSignature(input).map((rule) => `- ${rule}`),
     "", "Mobile readability and global rules:", ...THUMBNAIL_GLOBAL_RULES.map((rule) => `- ${rule}`),
+    ...THUMBNAIL_DISTINCTIVENESS_RULES.map((rule) => `- ${rule}`),
     "", "The entire thumbnail must be generated as one complete image, ready to publish. Do not create a mockup or separate layers.",
     `Avoid: ${[...THUMBNAIL_AVOID, ...plan.brief.avoid].join(", ")}.`,
   ].join("\n");
@@ -94,19 +173,21 @@ function fallbackNiche(topic: string): ThumbnailNiche {
 }
 
 export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCreativePlan {
-  const niche = fallbackNiche(input.description);
+  const niche = fallbackNiche(`${input.videoTitle || ""} ${input.description}`);
   const requestedText =
     input.thumbnailTextMode === "custom"
       ? input.primaryText?.trim() ?? ""
       : input.thumbnailTextMode === "none"
         ? ""
-        : "¿QUÉ PASÓ?";
+        : deriveAutomaticThumbnailText(input);
   const concepts: ThumbnailConcept[] = [
     {
       strategy: "clarity",
       archetype: "result",
       concept: "Mostrar el resultado principal de forma inmediata y sin elementos innecesarios.",
-      thumbnailText: requestedText,
+      thumbnailText: input.thumbnailTextMode === "automatic"
+        ? deriveAutomaticThumbnailText({ ...input, videoTitle: `${input.videoTitle || input.description} momento decisivo` })
+        : requestedText,
       mainSubject: input.referenceUploadIds?.length ? "La persona de referencia como protagonista" : "El resultado principal del tema",
       composition: "Sujeto dominante en primer plano, resultado visible al lado opuesto y fondo simple.",
       score: 88,
@@ -115,7 +196,9 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
       strategy: "emotion",
       archetype: "extreme_moment",
       concept: "Representar el momento de mayor tensión o sorpresa relacionado con el tema.",
-      thumbnailText: requestedText,
+      thumbnailText: input.thumbnailTextMode === "automatic"
+        ? deriveAutomaticThumbnailText({ ...input, videoTitle: `${input.videoTitle || input.description} clave oculta` })
+        : requestedText,
       mainSubject: input.referenceUploadIds?.length ? "La persona de referencia con expresión legible" : "Un momento narrativo reconocible",
       composition: "Primer plano emocional con un único elemento secundario que explique la situación.",
       score: 82,
@@ -167,9 +250,16 @@ export async function planThumbnail(input: GenerationInput): Promise<ThumbnailCr
       `Preset elegido: ${preset.label} — ${preset.description}`, `Modo de texto: ${input.thumbnailTextMode || "automatic"}`,
       input.primaryText ? `Texto exacto del usuario: ${input.primaryText}` : "",
       `Hay foto del usuario: ${Boolean(input.referenceUploadIds?.length) ? "sí; debe ser el único protagonista y conservar su identidad" : "no; decide si hace falta una persona"}.`,
+      "Dirección creativa exclusiva para esta solicitud:",
+      ...thumbnailCreativeSignature(input),
       "Detecta el nicho. Si la confianza es baja usa general. Crea exactamente tres conceptos textuales realmente distintos: claridad, emoción y curiosidad.",
       "Puntúa cada concepto considerando claridad, relevancia, curiosidad, emoción, diferenciación, lectura móvil, facilidad de generación, relación con el título, honestidad y nicho.",
-      "El texto recomendado debe complementar el título, tener 1–4 palabras preferiblemente y nunca más de 5.",
+      "En modo automático, deriva cada texto del título y del tema concretos. Debe nombrar un resultado, objeto, cifra, conflicto o beneficio reconocible del video.",
+      "El texto recomendado debe complementar el título, no repetirlo literalmente, tener 1–4 palabras preferiblemente y nunca más de 5.",
+      "Prohibido devolver ganchos intercambiables como ¿QUÉ PASÓ?, NO LO CREERÁS, INCREÍBLE, IMPACTANTE o TIENES QUE VERLO.",
+      "Los tres conceptos deben diferir en metáfora, encuadre, jerarquía, texto y emoción; no son variaciones cosméticas de una plantilla.",
+      `Cumple de forma visible el preset ${preset.label}:`,
+      ...THUMBNAIL_PRESET_CRAFT[preset.id],
     ].filter(Boolean).join("\n") }] }],
     text: { format: { type: "json_schema", name: "thumbnail_creative_plan", strict: true, schema: planSchema } },
   });
@@ -202,7 +292,9 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan }: { buf
       { type: "input_text", text: [
         "Evalúa esta miniatura de YouTube usando solo evidencia visible.",
         `Tema esperado: ${input.description}`, `Texto exacto esperado: ${expectedText || "sin texto"}`,
-        "Puntuación total: claridad visual 20, calidad técnica 20, texto 20, relevancia 15, potencial de clic visual 15 y legibilidad móvil 10.",
+        `Preset visual obligatorio: ${input.thumbnailPreset || "impactful"}. Verifica que se reconozca claramente y no solo por el color.`,
+        "Puntuación total: claridad visual 15, calidad técnica 15, texto contextual 20, relevancia 15, potencial de clic visual 15, fidelidad al preset 10 y diferenciación frente a una plantilla genérica 10.",
+        "Penaliza texto intercambiable, rostro centrado con glow, fondos abstractos sin relación, flechas gratuitas y composiciones de stock.",
         "Marca approved solo con 80+ o con 70–79 sin errores críticos. Con menos de 70 o cualquier error crítico, approved debe ser false.",
       ].join("\n") },
       { type: "input_image", image_url: `data:${mimeType};base64,${buffer.toString("base64")}`, detail: "high" },
