@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { signUp } from "@/app/(auth)/actions";
 import { AuthMessage } from "@/components/auth/auth-message";
@@ -12,16 +12,39 @@ import { SubmitButton } from "@/components/auth/submit-button";
 import { initialAuthState } from "@/lib/auth/action-state";
 import { trackConversion } from "@/lib/analytics/events";
 
-export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", googleEnabled = false, discordEnabled = false }: { inviteRequired?: boolean; nextPath?: string; googleEnabled?: boolean; discordEnabled?: boolean }) {
+export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", googleEnabled = false, discordEnabled = false, inviteError = false }: { inviteRequired?: boolean; nextPath?: string; googleEnabled?: boolean; discordEnabled?: boolean; inviteError?: boolean }) {
   const [state, formAction] = useActionState(signUp, initialAuthState);
+  const [inviteCode, setInviteCode] = useState("");
 
   return (
     <div className="grid gap-5">
-      {(googleEnabled || discordEnabled) && !inviteRequired ? (
+      {inviteRequired ? (
+        <div>
+          <FormField
+            id="signup-invite-code"
+            name="inviteCodeDisplay"
+            type="text"
+            label="Código de invitación"
+            autoComplete="off"
+            minLength={12}
+            maxLength={160}
+            required
+            value={inviteCode}
+            onChange={(event) => setInviteCode(event.target.value)}
+            error={state.fieldErrors?.inviteCode || (inviteError ? "El código no está disponible o ha expirado." : undefined)}
+          />
+          <p className="mt-2 text-xs leading-5 text-muted">
+            Se aplicará al método de registro que elijas.
+          </p>
+        </div>
+      ) : null}
+      {googleEnabled || discordEnabled ? (
         <>
           <SocialAuthButtons
             nextPath={nextPath}
             flow="signup"
+            inviteCode={inviteCode}
+            inviteRequired={inviteRequired}
             googleEnabled={googleEnabled}
             discordEnabled={discordEnabled}
           />
@@ -30,6 +53,7 @@ export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", go
       ) : null}
       <form action={formAction} onSubmit={() => trackConversion("signup_started")} className="grid gap-5" noValidate>
       <input type="hidden" name="next" value={nextPath} />
+      {inviteRequired ? <input type="hidden" name="inviteCode" value={inviteCode} /> : null}
       <AuthMessage state={state} />
       <FormField
         id="signup-name"
@@ -43,19 +67,6 @@ export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", go
         defaultValue={state.values?.name}
         error={state.fieldErrors?.name}
       />
-      {inviteRequired && (
-        <FormField
-          id="signup-invite-code"
-          name="inviteCode"
-          type="text"
-          label="Código de invitación"
-          autoComplete="off"
-          minLength={12}
-          maxLength={160}
-          required
-          error={state.fieldErrors?.inviteCode}
-        />
-      )}
       <FormField
         id="signup-email"
         name="email"

@@ -42,7 +42,8 @@ test("Google and Discord OAuth are gated and cannot bypass private beta", () => 
   assert.match(callback, /isNewOAuthAccount/);
   assert.match(callback, /social_signup_restricted/);
   assert.match(callback, /deleteUser/);
-  assert.match(signup, /!inviteRequired/);
+  assert.match(signup, /inviteCode/);
+  assert.match(buttons, /inviteRequired/);
   assert.match(buttons, /signInWithGoogle/);
   assert.match(buttons, /signInWithDiscord/);
 });

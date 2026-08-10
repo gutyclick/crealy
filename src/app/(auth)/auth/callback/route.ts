@@ -7,11 +7,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeClient } from "@/lib/stripe/client";
 import { getLaunchConfig } from "@/lib/launch/server";
 import { queueTransactionalEmail } from "@/lib/email/queue-email";
+import { claimBetaInvite } from "@/lib/launch/invites";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const oauthFlow = requestUrl.searchParams.get("oauth_flow");
+  const cookieStore = await cookies();
   const requestedDestination = requestUrl.searchParams.get("next");
   const destination = getSafeRedirect(
     requestedDestination,
@@ -21,6 +23,11 @@ export async function GET(request: Request) {
   );
 
   if (!code) {
+    cookieStore.set("crealy_oauth_invite", "", {
+      httpOnly: true,
+      maxAge: 0,
+      path: "/auth/callback",
+    });
     return NextResponse.redirect(
       new URL("/login?error=auth_callback", requestUrl.origin),
     );
@@ -45,21 +52,43 @@ export async function GET(request: Request) {
     ? Date.parse(user.last_sign_in_at)
     : Number.NaN;
   const isNewOAuthAccount =
-    oauthFlow === "login" &&
     Number.isFinite(createdAt) &&
     Number.isFinite(lastSignInAt) &&
     Date.now() - createdAt < 5 * 60_000 &&
     Math.abs(lastSignInAt - createdAt) < 10_000;
 
+  const oauthInvite = cookieStore.get("crealy_oauth_invite")?.value || "";
+  let oauthInviteClaimed = !launch.inviteRequired;
   if (
-    user &&
+    user?.email &&
+    oauthFlow === "signup" &&
     isNewOAuthAccount &&
-    (!launch.registrationsEnabled || launch.inviteRequired)
+    launch.inviteRequired
   ) {
+    oauthInviteClaimed = await claimBetaInvite(oauthInvite, user.email);
+  }
+  cookieStore.set("crealy_oauth_invite", "", {
+    httpOnly: true,
+    maxAge: 0,
+    path: "/auth/callback",
+  });
+
+  const newAccountIsRestricted =
+    isNewOAuthAccount &&
+    (!launch.registrationsEnabled ||
+      (launch.inviteRequired &&
+        (oauthFlow !== "signup" || !oauthInviteClaimed)));
+
+  if (user && newAccountIsRestricted) {
     await supabase.auth.signOut({ scope: "local" });
     await createAdminClient().auth.admin.deleteUser(user.id);
     return NextResponse.redirect(
-      new URL("/login?error=social_signup_restricted", requestUrl.origin),
+      new URL(
+        oauthFlow === "signup"
+          ? "/signup?error=invite"
+          : "/login?error=social_signup_restricted",
+        requestUrl.origin,
+      ),
     );
   }
 
@@ -87,7 +116,6 @@ export async function GET(request: Request) {
     }).catch(() => null);
   }
 
-  const cookieStore = await cookies();
   cookieStore.delete("crealy_verification_email");
 
   if (destination === "/reset-password") {

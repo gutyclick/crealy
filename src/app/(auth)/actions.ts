@@ -239,17 +239,34 @@ async function signInWithSocialProvider(
 ) {
   const config = socialAuthConfig[provider];
   const launch = getLaunchConfig();
+  const isSignup = readText(formData, "flow") === "signup";
+  const inviteCode = readText(formData, "inviteCode").trim();
   if (
     process.env[config.flag] !== "true" ||
-    (readText(formData, "flow") === "signup" &&
-      (!launch.registrationsEnabled || launch.inviteRequired))
+    (isSignup && !launch.registrationsEnabled)
   ) {
     redirect("/login?error=oauth");
+  }
+  if (
+    isSignup &&
+    launch.inviteRequired &&
+    (inviteCode.length < 12 || inviteCode.length > 160)
+  ) {
+    redirect("/signup?error=invite");
   }
   if (await authRateLimited(`${provider}_oauth`)) {
     redirect("/login?error=rate_limited");
   }
-  const isSignup = readText(formData, "flow") === "signup";
+  const cookieStore = await cookies();
+  if (isSignup && launch.inviteRequired) {
+    cookieStore.set("crealy_oauth_invite", inviteCode, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 10 * 60,
+      path: "/auth/callback",
+    });
+  }
   const destination = getSafeRedirect(
     formData.get("next"),
     isSignup && launch.onboardingEnabled ? "/onboarding" : "/dashboard",

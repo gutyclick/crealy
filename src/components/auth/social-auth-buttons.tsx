@@ -10,14 +10,18 @@ import {
 type SocialAuthButtonsProps = {
   nextPath: string;
   flow: "login" | "signup";
+  inviteCode?: string;
+  inviteRequired?: boolean;
   googleEnabled?: boolean;
   discordEnabled?: boolean;
 };
 
 function ProviderButton({
   provider,
+  disabled = false,
 }: {
   provider: "google" | "discord";
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
   const isGoogle = provider === "google";
@@ -25,7 +29,7 @@ function ProviderButton({
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
       aria-label={`Continuar con ${isGoogle ? "Google" : "Discord"}`}
       className="flex min-h-12 w-full items-center justify-center gap-3 rounded-[var(--radius-control)] border border-white/[0.14] bg-white/[0.035] px-4 text-sm font-semibold text-foreground transition-[background-color,border-color,transform] hover:border-white/25 hover:bg-white/[0.07] active:scale-[0.99] disabled:cursor-wait disabled:opacity-55"
     >
@@ -59,10 +63,13 @@ function DiscordMark() {
 export function SocialAuthButtons({
   nextPath,
   flow,
+  inviteCode = "",
+  inviteRequired = false,
   googleEnabled = false,
   discordEnabled = false,
 }: SocialAuthButtonsProps) {
   if (!googleEnabled && !discordEnabled) return null;
+  const inviteReady = !inviteRequired || inviteCode.trim().length >= 12;
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -70,14 +77,16 @@ export function SocialAuthButtons({
         <form action={signInWithGoogle}>
           <input type="hidden" name="next" value={nextPath} />
           <input type="hidden" name="flow" value={flow} />
-          <ProviderButton provider="google" />
+          {inviteRequired ? <input type="hidden" name="inviteCode" value={inviteCode} /> : null}
+          <ProviderButton provider="google" disabled={!inviteReady} />
         </form>
       ) : null}
       {discordEnabled ? (
         <form action={signInWithDiscord}>
           <input type="hidden" name="next" value={nextPath} />
           <input type="hidden" name="flow" value={flow} />
-          <ProviderButton provider="discord" />
+          {inviteRequired ? <input type="hidden" name="inviteCode" value={inviteCode} /> : null}
+          <ProviderButton provider="discord" disabled={!inviteReady} />
         </form>
       ) : null}
     </div>

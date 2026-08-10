@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Crear cuenta",
 };
 
-export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const params = await searchParams;
   const nextPath = getSafeRedirect(params.next, "/dashboard");
   const launch = getLaunchConfig();
@@ -24,6 +24,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           nextPath={nextPath}
           googleEnabled={process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true"}
           discordEnabled={process.env.NEXT_PUBLIC_DISCORD_AUTH_ENABLED === "true"}
+          inviteError={params.error === "invite"}
         />
       ) : (
         <p className="rounded-xl border border-white/10 bg-white/[0.035] p-5 text-sm leading-6 text-muted">
