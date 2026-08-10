@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import type { AuthActionState } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { recordSignupConsents } from "@/lib/auth/signup-consent";
 import { getSafeRedirect } from "@/lib/auth/redirects";
 import {
   errorState,
@@ -23,6 +24,10 @@ import {
 } from "@/lib/operations/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  CURRENT_PRIVACY_VERSION,
+  CURRENT_TERMS_VERSION,
+} from "@/config/legal";
 
 const genericResetMessage =
   "Si existe una cuenta asociada a ese correo, recibirás un enlace para restablecer tu contraseña.";
@@ -67,6 +72,8 @@ export async function signUp(
   const password = readText(formData, "password");
   const confirmPassword = readText(formData, "confirmPassword");
   const inviteCode = readText(formData, "inviteCode").trim();
+  const termsAccepted = formData.get("termsAccepted") === "on";
+  const marketingOptIn = formData.get("marketingOptIn") === "on";
   const destination = getSafeRedirect(
     formData.get("next"),
     launch.onboardingEnabled ? "/onboarding" : "/dashboard",
@@ -83,6 +90,9 @@ export async function signUp(
   }
   if (launch.inviteRequired && !inviteCode) {
     fieldErrors.inviteCode = "Introduce el código de invitación.";
+  }
+  if (!termsAccepted) {
+    fieldErrors.terms = "Debes aceptar los términos y la política de privacidad.";
   }
 
   const presentErrors = Object.fromEntries(
@@ -116,7 +126,13 @@ export async function signUp(
       email,
       password,
       options: {
-        data: { full_name: name },
+        data: {
+          full_name: name,
+          terms_accepted: true,
+          terms_version: CURRENT_TERMS_VERSION,
+          privacy_version: CURRENT_PRIVACY_VERSION,
+          marketing_opt_in: marketingOptIn,
+        },
         emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}`,
       },
     });
@@ -136,15 +152,38 @@ export async function signUp(
     });
   }
 
-  if (launch.inviteRequired) {
+  // Supabase intentionally returns an obfuscated user for an existing account.
+  // Only a response with a newly created identity may consume an invite or
+  // write signup consent for that user.
+  const createdUserId =
+    result.data.user && (result.data.user.identities?.length ?? 0) > 0
+      ? result.data.user.id
+      : null;
+
+  if (launch.inviteRequired && createdUserId) {
     const claimed = await claimBetaInvite(inviteCode, email);
     if (!claimed) {
-      if (result.data.user?.id) {
-        await createAdminClient().auth.admin.deleteUser(result.data.user.id);
-      }
+      await createAdminClient().auth.admin.deleteUser(createdUserId);
       return errorState(
         "No pudimos validar el acceso a la beta. Revisa el código e inténtalo de nuevo.",
         { inviteCode: "El código no está disponible o ha expirado." },
+        { name, email },
+      );
+    }
+  }
+
+  if (createdUserId) {
+    const recorded = await recordSignupConsents({
+      userId: createdUserId,
+      marketingOptIn,
+      source: "email_signup",
+    });
+    if (!recorded) {
+      reportAuthError("consentimiento de registro", new Error("consent_record_failed"));
+      await createAdminClient().auth.admin.deleteUser(createdUserId);
+      return errorState(
+        "No pudimos guardar tus preferencias. Inténtalo nuevamente.",
+        undefined,
         { name, email },
       );
     }
@@ -241,6 +280,8 @@ async function signInWithSocialProvider(
   const launch = getLaunchConfig();
   const isSignup = readText(formData, "flow") === "signup";
   const inviteCode = readText(formData, "inviteCode").trim();
+  const termsAccepted = formData.get("termsAccepted") === "on";
+  const marketingOptIn = formData.get("marketingOptIn") === "on";
   if (
     process.env[config.flag] !== "true" ||
     (isSignup && !launch.registrationsEnabled)
@@ -254,6 +295,9 @@ async function signInWithSocialProvider(
   ) {
     redirect("/signup?error=invite");
   }
+  if (isSignup && !termsAccepted) {
+    redirect("/signup?error=terms");
+  }
   if (await authRateLimited(`${provider}_oauth`)) {
     redirect("/login?error=rate_limited");
   }
@@ -266,6 +310,19 @@ async function signInWithSocialProvider(
       maxAge: 10 * 60,
       path: "/auth/callback",
     });
+  }
+  if (isSignup) {
+    cookieStore.set(
+      "crealy_oauth_consent",
+      marketingOptIn ? "accepted:marketing" : "accepted:essential",
+      {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 10 * 60,
+        path: "/auth/callback",
+      },
+    );
   }
   const destination = getSafeRedirect(
     formData.get("next"),

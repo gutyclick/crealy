@@ -12,6 +12,8 @@ type SocialAuthButtonsProps = {
   flow: "login" | "signup";
   inviteCode?: string;
   inviteRequired?: boolean;
+  termsAccepted?: boolean;
+  marketingOptIn?: boolean;
   googleEnabled?: boolean;
   discordEnabled?: boolean;
 };
@@ -65,11 +67,14 @@ export function SocialAuthButtons({
   flow,
   inviteCode = "",
   inviteRequired = false,
+  termsAccepted = false,
+  marketingOptIn = false,
   googleEnabled = false,
   discordEnabled = false,
 }: SocialAuthButtonsProps) {
   if (!googleEnabled && !discordEnabled) return null;
   const inviteReady = !inviteRequired || inviteCode.trim().length >= 12;
+  const signupReady = flow === "login" || (inviteReady && termsAccepted);
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -78,7 +83,9 @@ export function SocialAuthButtons({
           <input type="hidden" name="next" value={nextPath} />
           <input type="hidden" name="flow" value={flow} />
           {inviteRequired ? <input type="hidden" name="inviteCode" value={inviteCode} /> : null}
-          <ProviderButton provider="google" disabled={!inviteReady} />
+          {flow === "signup" ? <input type="hidden" name="termsAccepted" value={termsAccepted ? "on" : ""} /> : null}
+          {flow === "signup" ? <input type="hidden" name="marketingOptIn" value={marketingOptIn ? "on" : ""} /> : null}
+          <ProviderButton provider="google" disabled={!signupReady} />
         </form>
       ) : null}
       {discordEnabled ? (
@@ -86,7 +93,9 @@ export function SocialAuthButtons({
           <input type="hidden" name="next" value={nextPath} />
           <input type="hidden" name="flow" value={flow} />
           {inviteRequired ? <input type="hidden" name="inviteCode" value={inviteCode} /> : null}
-          <ProviderButton provider="discord" disabled={!inviteReady} />
+          {flow === "signup" ? <input type="hidden" name="termsAccepted" value={termsAccepted ? "on" : ""} /> : null}
+          {flow === "signup" ? <input type="hidden" name="marketingOptIn" value={marketingOptIn ? "on" : ""} /> : null}
+          <ProviderButton provider="discord" disabled={!signupReady} />
         </form>
       ) : null}
     </div>

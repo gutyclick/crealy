@@ -164,6 +164,104 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_style_references: {
+        Row: {
+          content_hash: string
+          created_at: string
+          file_size: number
+          height: number | null
+          id: string
+          mime_type: string
+          original_filename: string
+          position: number
+          storage_path: string
+          style_id: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          file_size: number
+          height?: number | null
+          id?: string
+          mime_type: string
+          original_filename: string
+          position: number
+          storage_path: string
+          style_id: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          file_size?: number
+          height?: number | null
+          id?: string
+          mime_type?: string
+          original_filename?: string
+          position?: number
+          storage_path?: string
+          style_id?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_style_references_style_id_fkey"
+            columns: ["style_id"]
+            isOneToOne: false
+            referencedRelation: "brand_styles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_styles: {
+        Row: {
+          analysis_status: string
+          consistency_score: number | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          supported_design_types: string[]
+          updated_at: string
+          user_id: string
+          visual_attributes: Json | null
+          visual_summary: string | null
+          warnings: Json
+        }
+        Insert: {
+          analysis_status?: string
+          consistency_score?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          supported_design_types?: string[]
+          updated_at?: string
+          user_id: string
+          visual_attributes?: Json | null
+          visual_summary?: string | null
+          warnings?: Json
+        }
+        Update: {
+          analysis_status?: string
+          consistency_score?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          supported_design_types?: string[]
+          updated_at?: string
+          user_id?: string
+          visual_attributes?: Json | null
+          visual_summary?: string | null
+          warnings?: Json
+        }
+        Relationships: []
+      }
       credit_accounts: {
         Row: {
           available_balance: number
@@ -709,18 +807,6 @@ export type Database = {
           },
         ]
       }
-      brand_styles: {
-        Row: { id: string; user_id: string; name: string; description: string | null; visual_summary: string | null; visual_attributes: Json | null; consistency_score: number | null; warnings: Json; supported_design_types: string[]; analysis_status: string; created_at: string; updated_at: string }
-        Insert: { id?: string; user_id: string; name: string; description?: string | null; visual_summary?: string | null; visual_attributes?: Json | null; consistency_score?: number | null; warnings?: Json; supported_design_types?: string[]; analysis_status?: string; created_at?: string; updated_at?: string }
-        Update: { id?: string; user_id?: string; name?: string; description?: string | null; visual_summary?: string | null; visual_attributes?: Json | null; consistency_score?: number | null; warnings?: Json; supported_design_types?: string[]; analysis_status?: string; created_at?: string; updated_at?: string }
-        Relationships: []
-      }
-      brand_style_references: {
-        Row: { id: string; style_id: string; user_id: string; storage_path: string; original_filename: string; mime_type: string; file_size: number; width: number | null; height: number | null; content_hash: string; position: number; created_at: string }
-        Insert: { id?: string; style_id: string; user_id: string; storage_path: string; original_filename: string; mime_type: string; file_size: number; width?: number | null; height?: number | null; content_hash: string; position: number; created_at?: string }
-        Update: { id?: string; style_id?: string; user_id?: string; storage_path?: string; original_filename?: string; mime_type?: string; file_size?: number; width?: number | null; height?: number | null; content_hash?: string; position?: number; created_at?: string }
-        Relationships: [{ foreignKeyName: "brand_style_references_style_id_fkey"; columns: ["style_id"]; isOneToOne: false; referencedRelation: "brand_styles"; referencedColumns: ["id"] }]
-      }
       generations: {
         Row: {
           asset_id: string | null
@@ -756,8 +842,8 @@ export type Database = {
           provider_width: number | null
           quality: string
           reference_asset_id: string | null
-          requested_height: number | null
           requested_format: string
+          requested_height: number | null
           requested_width: number | null
           size_fallback_reason: string | null
           size_fallback_used: boolean
@@ -804,8 +890,8 @@ export type Database = {
           provider_width?: number | null
           quality: string
           reference_asset_id?: string | null
-          requested_height?: number | null
           requested_format: string
+          requested_height?: number | null
           requested_width?: number | null
           size_fallback_reason?: string | null
           size_fallback_used?: boolean
@@ -852,8 +938,8 @@ export type Database = {
           provider_width?: number | null
           quality?: string
           reference_asset_id?: string | null
-          requested_height?: number | null
           requested_format?: string
+          requested_height?: number | null
           requested_width?: number | null
           size_fallback_reason?: string | null
           size_fallback_used?: boolean
@@ -868,17 +954,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "generations_reference_asset_id_fkey"
-            columns: ["reference_asset_id"]
+            foreignKeyName: "generations_asset_id_fkey"
+            columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "assets"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "generations_asset_id_fkey"
-            columns: ["asset_id"]
+            foreignKeyName: "generations_brand_style_id_fkey"
+            columns: ["brand_style_id"]
             isOneToOne: false
-            referencedRelation: "assets"
+            referencedRelation: "brand_styles"
             referencedColumns: ["id"]
           },
           {
@@ -907,6 +993,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generations_reference_asset_id_fkey"
+            columns: ["reference_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
             referencedColumns: ["id"]
           },
         ]
@@ -1152,6 +1245,33 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_overrides: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          plan_key: string
+          reason: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          plan_key: string
+          reason: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          plan_key?: string
+          reason?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_feedback: {
         Row: {
           category: string
@@ -1188,33 +1308,6 @@ export type Database = {
           related_reference_type?: string | null
           status?: string
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      plan_overrides: {
-        Row: {
-          created_at: string
-          expires_at: string | null
-          plan_key: string
-          reason: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string | null
-          plan_key: string
-          reason: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string | null
-          plan_key?: string
-          reason?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -1560,6 +1653,36 @@ export type Database = {
           },
         ]
       }
+      user_consents: {
+        Row: {
+          consent_type: string
+          created_at: string
+          granted: boolean
+          id: string
+          policy_version: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string
+          granted: boolean
+          id?: string
+          policy_version: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string
+          granted?: boolean
+          id?: string
+          policy_version?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           created_at: string
@@ -1645,21 +1768,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_storage_usage_internal: {
-        Args: { p_user_id: string }
-        Returns: {
-          active_count: number
-          expiring_soon_count: number
-          pinned_bytes: number
-          pinned_count: number
-          temporary_count: number
-          used_bytes: number
-        }[]
-      }
-      mark_job_ready_internal: {
-        Args: { p_job_id: string; p_max_attempts: number; p_user_id: string }
-        Returns: boolean
-      }
       archive_edit_session: {
         Args: { p_archived: boolean; p_session_id: string }
         Returns: undefined
@@ -1759,7 +1867,7 @@ export type Database = {
           p_height: number
           p_mime_type: string
           p_model: string
-          p_provider_response_id: string | null
+          p_provider_response_id: string
           p_storage_path: string
           p_version_id: string
           p_width: number
@@ -1771,7 +1879,7 @@ export type Database = {
           p_height: number
           p_mime_type: string
           p_model: string
-          p_provider_response_id: string | null
+          p_provider_response_id: string
           p_reservation_id: string
           p_storage_path: string
           p_user_id: string
@@ -1944,12 +2052,19 @@ export type Database = {
         Returns: boolean
       }
       finish_stripe_event_internal: {
-        Args: {
-          p_error_code: string | null
-          p_event_id: string
-          p_status: string
-        }
+        Args: { p_error_code: string | null; p_event_id: string; p_status: string }
         Returns: undefined
+      }
+      get_storage_usage_internal: {
+        Args: { p_user_id: string }
+        Returns: {
+          active_count: number
+          expiring_soon_count: number
+          pinned_bytes: number
+          pinned_count: number
+          temporary_count: number
+          used_bytes: number
+        }[]
       }
       grant_credits_internal: {
         Args: {
@@ -1991,9 +2106,23 @@ export type Database = {
         Args: { p_job_id: string; p_worker_id: string }
         Returns: boolean
       }
+      mark_job_ready_internal: {
+        Args: { p_job_id: string; p_max_attempts: number; p_user_id: string }
+        Returns: boolean
+      }
       publish_job_outbox_internal: {
         Args: { p_limit: number }
         Returns: number
+      }
+      record_signup_consents_internal: {
+        Args: {
+          p_marketing_opt_in: boolean
+          p_privacy_version: string
+          p_source: string
+          p_terms_version: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       recover_stuck_jobs_internal: {
         Args: { p_limit: number }

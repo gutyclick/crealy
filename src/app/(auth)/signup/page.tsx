@@ -25,6 +25,8 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           googleEnabled={process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true"}
           discordEnabled={process.env.NEXT_PUBLIC_DISCORD_AUTH_ENABLED === "true"}
           inviteError={params.error === "invite"}
+          termsError={params.error === "terms"}
+          consentError={params.error === "consent"}
         />
       ) : (
         <p className="rounded-xl border border-white/10 bg-white/[0.035] p-5 text-sm leading-6 text-muted">

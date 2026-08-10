@@ -8,6 +8,7 @@ import { getStripeClient } from "@/lib/stripe/client";
 import { getLaunchConfig } from "@/lib/launch/server";
 import { queueTransactionalEmail } from "@/lib/email/queue-email";
 import { claimBetaInvite } from "@/lib/launch/invites";
+import { recordSignupConsents } from "@/lib/auth/signup-consent";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -24,6 +25,11 @@ export async function GET(request: Request) {
 
   if (!code) {
     cookieStore.set("crealy_oauth_invite", "", {
+      httpOnly: true,
+      maxAge: 0,
+      path: "/auth/callback",
+    });
+    cookieStore.set("crealy_oauth_consent", "", {
       httpOnly: true,
       maxAge: 0,
       path: "/auth/callback",
@@ -58,6 +64,9 @@ export async function GET(request: Request) {
     Math.abs(lastSignInAt - createdAt) < 10_000;
 
   const oauthInvite = cookieStore.get("crealy_oauth_invite")?.value || "";
+  const oauthConsent = cookieStore.get("crealy_oauth_consent")?.value || "";
+  const termsAccepted = oauthConsent.startsWith("accepted:");
+  const marketingOptIn = oauthConsent === "accepted:marketing";
   let oauthInviteClaimed = !launch.inviteRequired;
   if (
     user?.email &&
@@ -72,12 +81,18 @@ export async function GET(request: Request) {
     maxAge: 0,
     path: "/auth/callback",
   });
+  cookieStore.set("crealy_oauth_consent", "", {
+    httpOnly: true,
+    maxAge: 0,
+    path: "/auth/callback",
+  });
 
   const newAccountIsRestricted =
     isNewOAuthAccount &&
     (!launch.registrationsEnabled ||
       (launch.inviteRequired &&
-        (oauthFlow !== "signup" || !oauthInviteClaimed)));
+        (oauthFlow !== "signup" || !oauthInviteClaimed)) ||
+      (oauthFlow === "signup" && !termsAccepted));
 
   if (user && newAccountIsRestricted) {
     await supabase.auth.signOut({ scope: "local" });
@@ -90,6 +105,23 @@ export async function GET(request: Request) {
         requestUrl.origin,
       ),
     );
+  }
+
+  if (user && isNewOAuthAccount && oauthFlow === "signup") {
+    const provider = user.app_metadata.provider;
+    const source = provider === "discord" ? "discord_oauth" : "google_oauth";
+    const recorded = await recordSignupConsents({
+      userId: user.id,
+      marketingOptIn,
+      source,
+    });
+    if (!recorded) {
+      await supabase.auth.signOut({ scope: "local" });
+      await createAdminClient().auth.admin.deleteUser(user.id);
+      return NextResponse.redirect(
+        new URL("/signup?error=consent", requestUrl.origin),
+      );
+    }
   }
 
   if (user?.email && process.env.STRIPE_SECRET_KEY?.trim()) {

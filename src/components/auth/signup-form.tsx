@@ -12,12 +12,19 @@ import { SubmitButton } from "@/components/auth/submit-button";
 import { initialAuthState } from "@/lib/auth/action-state";
 import { trackConversion } from "@/lib/analytics/events";
 
-export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", googleEnabled = false, discordEnabled = false, inviteError = false }: { inviteRequired?: boolean; nextPath?: string; googleEnabled?: boolean; discordEnabled?: boolean; inviteError?: boolean }) {
+export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", googleEnabled = false, discordEnabled = false, inviteError = false, termsError = false, consentError = false }: { inviteRequired?: boolean; nextPath?: string; googleEnabled?: boolean; discordEnabled?: boolean; inviteError?: boolean; termsError?: boolean; consentError?: boolean }) {
   const [state, formAction] = useActionState(signUp, initialAuthState);
   const [inviteCode, setInviteCode] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
 
   return (
     <div className="grid gap-5">
+      {consentError ? (
+        <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 px-4 py-3 text-sm leading-6 text-red-200">
+          No pudimos guardar tus preferencias. Inténtalo nuevamente.
+        </p>
+      ) : null}
       {inviteRequired ? (
         <div>
           <FormField
@@ -38,6 +45,43 @@ export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", go
           </p>
         </div>
       ) : null}
+      <div className="grid gap-2">
+        <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl px-1 py-2 text-sm leading-6 text-foreground">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(event) => setTermsAccepted(event.target.checked)}
+            className="mt-0.5 size-5 shrink-0 accent-[var(--brand)]"
+            aria-describedby={state.fieldErrors?.terms || termsError ? "signup-terms-error" : undefined}
+          />
+          <span>
+            Acepto los{" "}
+            <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-brand">
+              términos de uso
+            </Link>{" "}
+            y la{" "}
+            <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-brand">
+              política de privacidad
+            </Link>.
+          </span>
+        </label>
+        {state.fieldErrors?.terms || termsError ? (
+          <p id="signup-terms-error" role="alert" className="px-1 text-sm leading-5 text-red-300">
+            {state.fieldErrors?.terms || "Debes aceptar los términos y la política de privacidad."}
+          </p>
+        ) : null}
+        <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl px-1 py-2 text-sm leading-6 text-muted">
+          <input
+            type="checkbox"
+            checked={marketingOptIn}
+            onChange={(event) => setMarketingOptIn(event.target.checked)}
+            className="mt-0.5 size-5 shrink-0 accent-[var(--brand)]"
+          />
+          <span>
+            Quiero recibir novedades y noticias de Crealy. Es opcional y puedo darme de baja cuando quiera.
+          </span>
+        </label>
+      </div>
       {googleEnabled || discordEnabled ? (
         <>
           <SocialAuthButtons
@@ -45,6 +89,8 @@ export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", go
             flow="signup"
             inviteCode={inviteCode}
             inviteRequired={inviteRequired}
+            termsAccepted={termsAccepted}
+            marketingOptIn={marketingOptIn}
             googleEnabled={googleEnabled}
             discordEnabled={discordEnabled}
           />
@@ -54,6 +100,8 @@ export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", go
       <form action={formAction} onSubmit={() => trackConversion("signup_started")} className="grid gap-5" noValidate>
       <input type="hidden" name="next" value={nextPath} />
       {inviteRequired ? <input type="hidden" name="inviteCode" value={inviteCode} /> : null}
+      <input type="hidden" name="termsAccepted" value={termsAccepted ? "on" : ""} />
+      <input type="hidden" name="marketingOptIn" value={marketingOptIn ? "on" : ""} />
       <AuthMessage state={state} />
       <FormField
         id="signup-name"
@@ -92,18 +140,7 @@ export function SignupForm({ inviteRequired = false, nextPath = "/dashboard", go
         autoComplete="new-password"
         error={state.fieldErrors?.confirmPassword}
       />
-      <p className="text-xs leading-5 text-white/65">
-        Al crear tu cuenta aceptas los{" "}
-        <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
-          términos de uso
-        </Link>{" "}
-        y la{" "}
-        <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
-          política de privacidad
-        </Link>{" "}
-        de Crealy.
-      </p>
-      <SubmitButton pendingLabel="Creando cuenta…">
+      <SubmitButton pendingLabel="Creando cuenta…" disabled={!termsAccepted}>
         Crear cuenta
       </SubmitButton>
       <p className="text-center text-sm text-muted">

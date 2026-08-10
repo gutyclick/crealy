@@ -3,7 +3,8 @@ export type AuthField =
   | "email"
   | "password"
   | "confirmPassword"
-  | "inviteCode";
+  | "inviteCode"
+  | "terms";
 
 export type AuthActionState = {
   status: "idle" | "error" | "success";
