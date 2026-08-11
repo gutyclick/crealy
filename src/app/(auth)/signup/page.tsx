@@ -16,7 +16,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   return (
     <AuthShell
       title="Crea tu cuenta."
-      description="Empieza con una cuenta personal y prepara tu espacio para crear."
+      description="Elige cómo quieres registrarte. Solo te mostraremos lo necesario para continuar."
     >
       {launch.registrationsEnabled ? (
         <SignupForm

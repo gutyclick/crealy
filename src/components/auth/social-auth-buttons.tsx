@@ -16,6 +16,7 @@ type SocialAuthButtonsProps = {
   marketingOptIn?: boolean;
   googleEnabled?: boolean;
   discordEnabled?: boolean;
+  provider?: "google" | "discord";
 };
 
 function ProviderButton({
@@ -43,7 +44,7 @@ function ProviderButton({
   );
 }
 
-function GoogleMark() {
+export function GoogleMark() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 shrink-0">
       <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.3c1.9-1.8 2.9-4.4 2.9-7.4Z" />
@@ -54,7 +55,7 @@ function GoogleMark() {
   );
 }
 
-function DiscordMark() {
+export function DiscordMark() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 shrink-0 text-[#5865F2]">
       <path fill="currentColor" d="M19.5 5.3A18 18 0 0 0 15 4l-.6 1.2a16.8 16.8 0 0 0-4.8 0L9 4a18 18 0 0 0-4.5 1.3C1.7 9.5.9 13.6 1.3 17.6A18.4 18.4 0 0 0 6.8 20l1.3-1.8a11.7 11.7 0 0 1-2-1l.5-.4a12.9 12.9 0 0 0 10.8 0l.5.4a12 12 0 0 1-2 1l1.3 1.8a18.4 18.4 0 0 0 5.5-2.4c.5-4.6-.8-8.7-3.2-12.3ZM8.6 15.2c-1.1 0-2-1-2-2.2s.9-2.2 2-2.2 2 1 2 2.2-.9 2.2-2 2.2Zm6.8 0c-1.1 0-2-1-2-2.2s.9-2.2 2-2.2 2 1 2 2.2-.9 2.2-2 2.2Z" />
@@ -71,14 +72,17 @@ export function SocialAuthButtons({
   marketingOptIn = false,
   googleEnabled = false,
   discordEnabled = false,
+  provider,
 }: SocialAuthButtonsProps) {
-  if (!googleEnabled && !discordEnabled) return null;
+  const showGoogle = googleEnabled && (!provider || provider === "google");
+  const showDiscord = discordEnabled && (!provider || provider === "discord");
+  if (!showGoogle && !showDiscord) return null;
   const inviteReady = !inviteRequired || inviteCode.trim().length >= 12;
   const signupReady = flow === "login" || (inviteReady && termsAccepted);
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {googleEnabled ? (
+    <div className={showGoogle && showDiscord ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
+      {showGoogle ? (
         <form action={signInWithGoogle}>
           <input type="hidden" name="next" value={nextPath} />
           <input type="hidden" name="flow" value={flow} />
@@ -88,7 +92,7 @@ export function SocialAuthButtons({
           <ProviderButton provider="google" disabled={!signupReady} />
         </form>
       ) : null}
-      {discordEnabled ? (
+      {showDiscord ? (
         <form action={signInWithDiscord}>
           <input type="hidden" name="next" value={nextPath} />
           <input type="hidden" name="flow" value={flow} />
