@@ -492,16 +492,25 @@ export async function updatePassword(
 }
 
 export async function signOut() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/");
-
   const supabase = await createClient();
-  const { error } = await supabase.auth.signOut();
-  if (error) {
+  try {
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error && error.name !== "AuthSessionMissingError") {
+      reportAuthError("cierre de sesión", error);
+    }
+  } catch (error) {
     reportAuthError("cierre de sesión", error);
-    await supabase.auth.signOut({ scope: "local" });
+
+    // Si Supabase no responde, elimina únicamente las cookies de autenticación
+    // de este proyecto para que el usuario no quede atrapado en el dashboard.
+    const cookieStore = await cookies();
+    for (const cookie of cookieStore.getAll()) {
+      if (cookie.name.startsWith("sb-") && cookie.name.includes("-auth-token")) {
+        cookieStore.delete(cookie.name);
+      }
+    }
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/login?signedOut=1");
 }

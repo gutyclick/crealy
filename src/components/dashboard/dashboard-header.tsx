@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Coins,
   CreditCard,
-  LogOut,
   Settings,
   ShieldCheck,
   UserRound,
@@ -15,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
 import { DashboardNavigation } from "@/components/dashboard/dashboard-navigation";
+import { SignOutButton } from "@/components/dashboard/sign-out-button";
 import {
   CreationNotificationCenter,
   type CreationNotification,
@@ -127,7 +127,6 @@ export function DashboardHeader({
               <div
                 id="dashboard-account-menu"
                 className="absolute right-0 top-[calc(100%+0.65rem)] z-20 w-[min(19rem,calc(100vw-2rem))] rounded-[0.8rem] border border-white/10 bg-surface-elevated p-2 shadow-[0_18px_50px_rgba(0,0,0,0.42)]"
-                onClick={closeMenus}
               >
                 <div className="border-b border-white/[0.08] px-3 pb-3 pt-2">
                   <p className="truncate text-sm font-semibold text-foreground">
@@ -138,6 +137,7 @@ export function DashboardHeader({
 
                 <Link
                   href="/settings/billing"
+                  onClick={closeMenus}
                   className="my-2 flex min-h-12 items-center justify-between rounded-[0.7rem] bg-white/[0.045] px-3 transition-colors hover:bg-white/[0.075]"
                 >
                   <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
@@ -158,6 +158,7 @@ export function DashboardHeader({
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={closeMenus}
                       className="flex min-h-11 w-full items-center gap-3 rounded-[0.65rem] px-3 text-sm font-medium text-white/72 transition-colors hover:bg-white/[0.05] hover:text-foreground"
                     >
                       <Icon aria-hidden="true" className="size-4" />
@@ -170,13 +171,7 @@ export function DashboardHeader({
                   action={signOut}
                   className="mt-2 border-t border-white/[0.08] pt-2"
                 >
-                  <button
-                    type="submit"
-                    className="flex min-h-11 w-full items-center gap-3 rounded-[0.65rem] px-3 text-left text-sm font-medium text-white/72 transition-colors hover:bg-white/[0.05] hover:text-foreground"
-                  >
-                    <LogOut aria-hidden="true" className="size-4" />
-                    Cerrar sesión
-                  </button>
+                  <SignOutButton />
                 </form>
               </div>
             ) : null}

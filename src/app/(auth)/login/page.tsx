@@ -12,6 +12,7 @@ type LoginPageProps = {
   searchParams: Promise<{
     next?: string;
     error?: string;
+    signedOut?: string;
   }>;
 };
 
@@ -26,6 +27,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     >
       <LoginForm
         nextPath={nextPath}
+        signedOut={params.signedOut === "1"}
         authError={
           params.error === "rate_limited"
             ? "rate_limited"

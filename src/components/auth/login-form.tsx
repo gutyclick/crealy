@@ -17,6 +17,7 @@ import {
 type LoginFormProps = {
   nextPath: string;
   authError?: "callback" | "oauth" | "rate_limited" | "restricted";
+  signedOut?: boolean;
   googleEnabled?: boolean;
   discordEnabled?: boolean;
 };
@@ -24,6 +25,7 @@ type LoginFormProps = {
 export function LoginForm({
   nextPath,
   authError,
+  signedOut = false,
   googleEnabled = false,
   discordEnabled = false,
 }: LoginFormProps) {
@@ -38,7 +40,12 @@ export function LoginForm({
             ? "No pudimos conectar ese proveedor. Revisa tu autorización e inténtalo nuevamente."
             : "El enlace de autenticación no es válido o ya expiró. Inténtalo nuevamente.",
       }
-    : initialAuthState;
+    : signedOut
+      ? {
+          status: "success",
+          message: "Sesión cerrada correctamente.",
+        }
+      : initialAuthState;
   const [state, formAction] = useActionState(signIn, initialState);
 
   return (
