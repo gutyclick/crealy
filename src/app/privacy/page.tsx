@@ -1,65 +1,22 @@
 import { LegalPage } from "@/components/legal/legal-page";
+import { LEGAL_EFFECTIVE_DATE } from "@/config/legal";
 import { createMetadata } from "@/lib/seo/create-metadata";
 
-export const metadata = createMetadata({
-  title: "Política de privacidad",
-  description: "Información provisional sobre cómo Crealy trata datos y contenido.",
-  path: "/privacy",
-  index: process.env.NEXT_PUBLIC_LEGAL_PAGES_APPROVED === "true",
-});
+export const metadata = createMetadata({ title: "Política de privacidad", description: "Cómo Crealy recopila, utiliza, comparte y conserva información personal.", path: "/privacy", index: process.env.NEXT_PUBLIC_LEGAL_PAGES_APPROVED === "true" });
 
 const sections = [
-  {
-    title: "Datos que tratamos",
-    paragraphs: [
-      "Crealy trata datos de cuenta, preferencias, uso del producto, solicitudes de soporte, información técnica y eventos operativos. También procesa las imágenes, instrucciones y resultados que decides enviar para generar o editar contenido.",
-      "No debes incluir contraseñas, claves, datos financieros completos ni información que no tengas derecho a utilizar.",
-    ],
-  },
-  {
-    title: "Para qué se utilizan",
-    paragraphs: [
-      "Los datos se utilizan para autenticarte, prestar generación y edición, administrar créditos y facturación, almacenar archivos, prevenir abuso, resolver errores, responder soporte y mejorar la estabilidad del servicio.",
-      "Los eventos de analítica permitidos describen acciones generales y no incluyen prompts, imágenes, correos, claves de almacenamiento ni mensajes de soporte.",
-    ],
-  },
-  {
-    title: "Proveedores",
-    paragraphs: [
-      "La operación actual puede involucrar a Supabase para autenticación y base de datos, OpenAI para generación y edición, Stripe para pagos, Cloudflare R2 o Supabase Storage para archivos, Vercel para alojamiento y observabilidad, y Resend para correos transaccionales.",
-      "Cada proveedor procesa únicamente la información necesaria para su función conforme a su configuración y términos aplicables.",
-    ],
-  },
-  {
-    title: "Retención y eliminación",
-    paragraphs: [
-      "Los archivos tienen periodos de retención según su tipo y plan. Algunos se marcan como expirados antes de su eliminación. Los registros de facturación, seguridad y auditoría pueden conservarse durante el tiempo necesario para operar o cumplir obligaciones.",
-      "La eliminación de cuenta y la exportación de datos se gestionan inicialmente mediante una solicitud verificada de soporte; no afirmamos una eliminación instantánea.",
-    ],
-  },
-  {
-    title: "Cookies, seguridad y transferencias",
-    paragraphs: [
-      "Se utilizan cookies esenciales de autenticación y seguridad administradas por Supabase. La analítica opcional permanece controlada por configuración y no debe recibir contenido sensible.",
-      "Aplicamos controles técnicos y organizativos razonables, pero ningún sistema puede prometer seguridad absoluta. Los proveedores pueden procesar datos en otros países; este punto requiere revisión jurídica según la entidad y usuarios finales.",
-    ],
-  },
-  {
-    title: "Tus derechos",
-    paragraphs: [
-      "Puedes solicitar acceso, corrección, exportación o eliminación según corresponda. También puedes cambiar preferencias opcionales de correo desde la cuenta.",
-      "La forma exacta de ejercer derechos, los plazos y la autoridad competente deben completarse tras definir entidad y jurisdicción.",
-    ],
-  },
+  { title: "1. Responsable", paragraphs: ["YellowCat Enterprises LLC, sociedad constituida en Nuevo México, Estados Unidos, es responsable del tratamiento de datos de Crealy. Domicilio de contacto: Vía Ricardo J. Alfaro, Edificio Century Tower, Oficina 621, Ciudad de Panamá, Panamá. Contacto: hola@crealy.app."] },
+  { title: "2. Información que tratamos", paragraphs: ["Tratamos nombre, correo, identidad de proveedores de acceso, perfil, preferencias, consentimientos y datos de seguridad de la cuenta; prompts, instrucciones, imágenes de referencia, archivos, proyectos, historial y resultados; solicitudes de soporte; y datos de facturación como plan, estado, identificadores de Stripe y registros de transacciones. Crealy no recibe ni almacena el número completo de tu tarjeta.", "También tratamos IP, datos aproximados de ubicación derivados de ella, navegador, dispositivo, identificadores técnicos, eventos de uso, errores, rendimiento, registros de seguridad y analítica. Evita introducir categorías sensibles o información de terceros que no sea necesaria o que no tengas derecho a utilizar."] },
+  { title: "3. Finalidades y bases legales", paragraphs: ["Utilizamos los datos para crear y proteger tu cuenta; ejecutar generaciones, ediciones y herramientas; conservar historial; administrar créditos, suscripciones y soporte; enviar avisos transaccionales; prevenir fraude y abuso; diagnosticar errores; cumplir obligaciones y defender derechos.", "Según el país y la actividad, el tratamiento se basa en la ejecución del contrato, cumplimiento legal, intereses legítimos de seguridad y mejora operativa, y consentimiento para comunicaciones de novedades u otros usos opcionales. Puedes retirar un consentimiento sin afectar el tratamiento previo ni los mensajes necesarios de seguridad o facturación."] },
+  { title: "4. Inteligencia artificial y entrenamiento", paragraphs: ["Los prompts, instrucciones, imágenes y demás referencias necesarias se transmiten a OpenAI para producir o editar el resultado solicitado. Crealy no utiliza actualmente el contenido de los usuarios para entrenar modelos propios.", "Si en el futuro contemplamos entrenamiento u otro uso materialmente distinto, lo comunicaremos antes de iniciarlo y solicitaremos consentimiento cuando la ley lo requiera. Un cambio futuro no autoriza el uso retroactivo de contenido eliminado ni sustituye los compromisos aplicables de nuestros proveedores."] },
+  { title: "5. Proveedores y destinatarios", paragraphs: ["Utilizamos proveedores sujetos a contratos y configuraciones aplicables: Supabase para autenticación y base de datos; OpenAI para generación y edición; Cloudflare R2 o Supabase Storage para archivos; Stripe para pagos; Vercel para alojamiento, analítica y rendimiento; Trigger.dev para colas; Sentry para errores y observabilidad; y Resend para correos.", "Google o Discord reciben y entregan datos si eliges iniciar sesión con ellos. Podemos comunicar información a autoridades, asesores o adquirentes cuando exista obligación legal, protección frente a fraude o una operación corporativa con salvaguardas apropiadas. No vendemos datos personales."] },
+  { title: "6. Transferencias internacionales", paragraphs: ["Crealy opera desde Panamá mediante una entidad constituida en Estados Unidos y utiliza proveedores que pueden procesar información en distintos países. Cuando sea aplicable el RGPD u otra norma equivalente, utilizaremos mecanismos reconocidos, como cláusulas contractuales tipo, decisiones de adecuación u otras garantías válidas."] },
+  { title: "7. Conservación", paragraphs: ["Los originales y referencias subidos se eliminan normalmente a los 7 días. Los archivos creados se conservan 7 días en Free y Starter, 30 días en Creator y 90 días en Pro. La eliminación puede requerir un periodo técnico adicional en copias de seguridad o colas de borrado restringidas.", "La información de cuenta, prompts, proyectos e historial se conserva mientras la cuenta esté activa o sea necesaria para prestar el servicio. Al eliminar la cuenta, se suprime o anonimiza salvo registros que debamos conservar por obligaciones fiscales, contables, prevención de fraude, consentimiento, seguridad o defensa de reclamaciones."] },
+  { title: "8. Seguridad", paragraphs: ["Aplicamos controles como acceso restringido, autenticación, MFA para operaciones sensibles, políticas de fila, URLs firmadas, límites de abuso, registros de auditoría y cifrado proporcionado por la infraestructura. Ningún sistema es infalible; te avisaremos de incidentes cuando la ley lo exija."] },
+  { title: "9. Derechos", paragraphs: ["Puedes solicitar acceso, rectificación, actualización, portabilidad cuando corresponda, oposición, limitación, revocación o supresión escribiendo a hola@crealy.app. Verificaremos tu identidad y responderemos dentro del plazo legal aplicable.", "También puedes reclamar ante la autoridad competente: ANTAI en Panamá, AEPD en España, INAI o la autoridad mexicana competente, o la Superintendencia de Industria y Comercio en Colombia, según corresponda. Los derechos y procedimientos obligatorios de tu jurisdicción prevalecen sobre cualquier resumen de esta política."] },
+  { title: "10. Menores y cambios", paragraphs: ["Crealy no está dirigido a menores de 16 años ni recopila conscientemente sus datos. Si detectamos una cuenta por debajo de esa edad, podremos suspenderla y eliminar la información asociada.", "Podemos actualizar esta política para reflejar cambios legales o del producto. Avisaremos de cambios materiales mediante el servicio o correo y mostraremos la nueva fecha de vigencia."] },
 ] as const;
 
 export default function PrivacyPage() {
-  return (
-    <LegalPage
-      title="Política de privacidad"
-      summary="Explica qué información procesa Crealy, por qué la necesita y qué controles tiene el usuario."
-      effectiveDate={process.env.NEXT_PUBLIC_PRIVACY_EFFECTIVE_DATE}
-      sections={sections}
-    />
-  );
+  return <LegalPage title="Política de privacidad" summary="Explica qué información trata Crealy, para qué se utiliza, cuánto se conserva y cómo ejercer tus derechos." effectiveDate={LEGAL_EFFECTIVE_DATE} sections={sections} />;
 }

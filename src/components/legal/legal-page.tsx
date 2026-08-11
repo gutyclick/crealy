@@ -1,5 +1,13 @@
 import { Container } from "@/components/layout/container";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
+import {
+  LEGAL_ADDRESS,
+  LEGAL_CONTACT_EMAIL,
+  LEGAL_EFFECTIVE_DATE,
+  LEGAL_ENTITY_NAME,
+  LEGAL_FORMATION,
+  LEGAL_GOVERNING_LAW,
+} from "@/config/legal";
 
 export type LegalSection = {
   title: string;
@@ -20,22 +28,20 @@ export function LegalPage({
 }) {
   const entity =
     process.env.NEXT_PUBLIC_LEGAL_ENTITY_NAME?.trim() ||
-    "[ENTIDAD LEGAL PENDIENTE]";
+    LEGAL_ENTITY_NAME;
   const contact =
     process.env.NEXT_PUBLIC_LEGAL_CONTACT_EMAIL?.trim() ||
-    "[CONTACTO LEGAL PENDIENTE]";
+    LEGAL_CONTACT_EMAIL;
   const country =
     process.env.NEXT_PUBLIC_LEGAL_COUNTRY?.trim() ||
-    "[PAÍS Y LEY APLICABLE PENDIENTES]";
+    LEGAL_GOVERNING_LAW;
 
   return (
     <PublicPageShell>
       <article>
         <header className="border-b border-white/8 py-16 sm:py-24">
           <Container className="max-w-4xl">
-            <p className="text-sm font-semibold text-brand">
-              Documento provisional · Revisión legal requerida
-            </p>
+            <p className="text-sm font-semibold text-brand">Información legal de Crealy</p>
             <h1 className="mt-5 text-balance text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">
               {title}
             </h1>
@@ -49,17 +55,16 @@ export function LegalPage({
               </div>
               <div>
                 <dt className="font-semibold text-foreground">Vigencia</dt>
-                <dd className="mt-1">{effectiveDate || "[FECHA PENDIENTE]"}</dd>
+                <dd className="mt-1">{effectiveDate || LEGAL_EFFECTIVE_DATE}</dd>
               </div>
             </dl>
           </Container>
         </header>
         <Container className="max-w-4xl py-12 sm:py-16">
-          <aside className="rounded-xl border border-amber-200/20 bg-amber-200/[0.055] p-5 text-sm leading-6 text-amber-50">
-            Este texto describe la implementación actual de Crealy, pero no
-            sustituye asesoría jurídica. La entidad, jurisdicción, fechas y
-            decisiones comerciales pendientes deben validarse antes de abrir el
-            servicio al público.
+          <aside className="rounded-xl border border-white/10 bg-white/[0.035] p-5 text-sm leading-6 text-muted">
+            Crealy es operado por {entity}, {LEGAL_FORMATION}, con domicilio de
+            contacto en {LEGAL_ADDRESS}. Para consultas legales o de privacidad,
+            escribe a <a className="font-semibold text-foreground underline underline-offset-4 hover:text-brand" href={`mailto:${contact}`}>{contact}</a>.
           </aside>
           <div className="mt-10 divide-y divide-white/10 border-y border-white/10">
             {sections.map((section) => (
@@ -83,12 +88,11 @@ export function LegalPage({
             ))}
           </div>
           <p className="mt-8 text-sm leading-6 text-muted">
-            Contacto para estas materias: {contact}. Jurisdicción pendiente de
-            validación: {country}.
+            Ley aplicable general: {country}. Esta elección no limita los derechos
+            imperativos que correspondan al consumidor por su lugar de residencia.
           </p>
         </Container>
       </article>
     </PublicPageShell>
   );
 }
-

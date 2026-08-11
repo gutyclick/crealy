@@ -40,11 +40,32 @@ async function handleCheckoutCompleted(
     throw new Error("checkout_customer_mismatch");
   }
   const synced = await syncStripeSubscription(subscriptionId, eventCreated);
+  const consentId = session.metadata?.checkout_consent_id;
+  let consentAcceptedAt = "";
+  if (consentId) {
+    if (session.consent?.terms_of_service !== "accepted") {
+      throw new Error("stripe_terms_consent_missing");
+    }
+    const completedAt = new Date(eventCreated * 1000).toISOString();
+    const { data: consent, error: consentError } = await admin
+      .from("checkout_consents")
+      .update({ completed_at: completedAt, stripe_checkout_session_id: session.id })
+      .eq("id", consentId)
+      .eq("user_id", userId)
+      .select("accepted_at")
+      .maybeSingle();
+    if (consentError || !consent) throw new Error("checkout_consent_mismatch");
+    consentAcceptedAt = consent.accepted_at;
+  }
   await queueTransactionalEmail({
     userId,
     type: "subscription_active",
     idempotencyKey: `subscription-active:${subscriptionId}`,
-    data: { plan: synced.planKey },
+    data: {
+      plan: synced.planKey,
+      period: session.metadata?.billing_period || "",
+      consentAcceptedAt,
+    },
   }).catch(() => null);
 }
 

@@ -3,6 +3,7 @@ export class BillingError extends Error {
     public readonly code:
       | "billing_disabled"
       | "invalid_plan"
+      | "consent_required"
       | "billing_customer_missing"
       | "subscription_already_exists"
       | "checkout_creation_failed"

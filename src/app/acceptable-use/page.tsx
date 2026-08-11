@@ -1,48 +1,17 @@
 import { LegalPage } from "@/components/legal/legal-page";
+import { LEGAL_EFFECTIVE_DATE } from "@/config/legal";
 import { createMetadata } from "@/lib/seo/create-metadata";
 
-export const metadata = createMetadata({
-  title: "Política de uso aceptable",
-  description: "Usos permitidos y prohibidos en Crealy.",
-  path: "/acceptable-use",
-  index: process.env.NEXT_PUBLIC_LEGAL_PAGES_APPROVED === "true",
-});
+export const metadata = createMetadata({ title: "Política de uso aceptable", description: "Reglas de seguridad y contenido aplicables a Crealy.", path: "/acceptable-use", index: process.env.NEXT_PUBLIC_LEGAL_PAGES_APPROVED === "true" });
 
 const sections = [
-  {
-    title: "Usa Crealy de forma responsable",
-    paragraphs: [
-      "No puedes utilizar el servicio para causar daño, vulnerar derechos, engañar de manera ilícita ni interferir con la operación de Crealy o sus proveedores.",
-    ],
-    items: [
-      "Actividad ilegal, fraude, suplantación engañosa o documentos falsos.",
-      "Acoso, explotación sexual, abuso sexual infantil o violencia extrema.",
-      "Infracción de propiedad intelectual, privacidad, imagen o marcas.",
-      "Malware, spam, automatización abusiva, evasión de controles o pruebas no autorizadas.",
-      "Reventa no autorizada, scraping intensivo o uso que perjudique la infraestructura.",
-    ],
-  },
-  {
-    title: "Contenido sensible y referencias",
-    paragraphs: [
-      "No subas contenido sobre el que no tengas autorización. Las imágenes de personas deben utilizarse con base legítima y sin crear engaños, acoso o perjuicio.",
-      "Crealy puede rechazar solicitudes, limitar el acceso o conservar evidencia mínima de seguridad cuando sea necesario investigar abuso.",
-    ],
-  },
-  {
-    title: "Aplicación",
-    paragraphs: [
-      "La respuesta puede incluir advertencia, limitación, suspensión o cierre según gravedad y recurrencia. Los casos de riesgo inmediato pueden escalarse conforme a la ley aplicable.",
-    ],
-  },
+  { title: "1. Principio general", paragraphs: ["Utiliza Crealy de forma legal, segura y respetuosa. No puedes emplear el servicio para causar daño, engañar, vulnerar derechos de terceros, explotar a personas ni interferir con la plataforma o sus proveedores."] },
+  { title: "2. Contenido y conductas prohibidas", paragraphs: ["No solicites, subas, generes, edites, distribuyas ni facilites contenido o actividades incluidos en las siguientes categorías:"], items: ["Explotación o sexualización de menores, imágenes íntimas sin consentimiento o cualquier material de abuso sexual infantil.", "Desnudos sexuales explícitos, violencia gráfica extrema, amenazas creíbles, promoción del suicidio o instrucciones para causar daño físico.", "Fraude, phishing, documentos falsos, estafas, desinformación ilícita o suplantación engañosa de personas, empresas o autoridades.", "Uso de rostros o identidad de personas reales sin autorización para pornografía, difamación, fraude, acoso, manipulación electoral o perjuicio.", "Infracción deliberada de derechos de autor, marcas, imagen, privacidad, publicidad o secretos comerciales.", "Malware, evasión de controles, extracción automatizada abusiva, spam, sobrecarga, acceso no autorizado o reventa no permitida del servicio.", "Discriminación ilegal, odio dirigido, acoso o contenido destinado a excluir o degradar personas por características protegidas."] },
+  { title: "3. Personas reales, marcas y referencias", paragraphs: ["Debes contar con derechos y autorización para utilizar fotos, objetos, diseños, logos, marcas y demás referencias. Que una imagen sea accesible públicamente no significa que pueda usarse libremente.", "Los resultados que representen personas reales o acontecimientos deben revisarse y, cuando corresponda, identificarse como generados o alterados con IA. No uses Crealy para hacer pasar una pieza sintética como evidencia auténtica."] },
+  { title: "4. Actividades reguladas", paragraphs: ["No utilices resultados como sustituto de asesoramiento médico, legal o financiero ni para decisiones automatizadas de alto impacto sobre empleo, crédito, vivienda, educación, seguros o acceso a servicios esenciales sin revisión humana y cumplimiento aplicable."] },
+  { title: "5. Aplicación y apelación", paragraphs: ["Podemos bloquear solicitudes, retirar acceso, conservar evidencia mínima, suspender cuentas o cooperar con autoridades cuando exista un riesgo o una obligación legal. Consideraremos gravedad, contexto, intención, recurrencia y posibilidad de daño.", "Puedes solicitar revisión escribiendo a hola@crealy.app. Una apelación no obliga a restaurar contenido que infrinja la ley, derechos de terceros o reglas de proveedores."] },
 ] as const;
 
 export default function AcceptableUsePage() {
-  return (
-    <LegalPage
-      title="Política de uso aceptable"
-      summary="Establece límites claros para proteger a usuarios, terceros y la infraestructura."
-      sections={sections}
-    />
-  );
+  return <LegalPage title="Política de uso aceptable" summary="Límites claros para proteger a usuarios, personas representadas, titulares de derechos y la infraestructura." effectiveDate={LEGAL_EFFECTIVE_DATE} sections={sections} />;
 }

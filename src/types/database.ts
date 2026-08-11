@@ -164,6 +164,51 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_consents: {
+        Row: {
+          accepted: boolean
+          accepted_at: string
+          billing_period: string
+          client_request_id: string
+          completed_at: string | null
+          consent_version: string
+          id: string
+          public_plan: string
+          refund_policy_version: string
+          stripe_checkout_session_id: string | null
+          terms_version: string
+          user_id: string
+        }
+        Insert: {
+          accepted: boolean
+          accepted_at?: string
+          billing_period: string
+          client_request_id: string
+          completed_at?: string | null
+          consent_version: string
+          id?: string
+          public_plan: string
+          refund_policy_version: string
+          stripe_checkout_session_id?: string | null
+          terms_version: string
+          user_id: string
+        }
+        Update: {
+          accepted?: boolean
+          accepted_at?: string
+          billing_period?: string
+          client_request_id?: string
+          completed_at?: string | null
+          consent_version?: string
+          id?: string
+          public_plan?: string
+          refund_policy_version?: string
+          stripe_checkout_session_id?: string | null
+          terms_version?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       brand_style_references: {
         Row: {
           content_hash: string

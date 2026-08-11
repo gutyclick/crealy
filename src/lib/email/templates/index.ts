@@ -116,7 +116,7 @@ export function renderEmailTemplate(
         ...layout({
           preheader: "La suscripción se sincronizó correctamente.",
           title: "Tu plan está activo.",
-          body: `<p>El plan ${escapeHtml(data.plan || "seleccionado")} ya aparece en tu cuenta.</p>`,
+          body: `<p>El plan ${escapeHtml(data.plan || "seleccionado")} ya aparece en tu cuenta.</p><p>Periodo: ${escapeHtml(data.period || "según lo mostrado en Stripe")}.</p><p>Solicitaste la activación inmediata del servicio digital${data.consentAcceptedAt ? ` el ${escapeHtml(data.consentAcceptedAt)}` : ""}. Esta confirmación no limita los derechos irrenunciables que te correspondan como consumidor.</p><p>Consulta los <a href="${escapeHtml(siteUrl)}/terms" style="color:#F7F7F5">Términos</a> y la <a href="${escapeHtml(siteUrl)}/refund-policy" style="color:#F7F7F5">Política de reembolsos</a>.</p>`,
           ctaLabel: "Ver facturación",
           ctaUrl: `${siteUrl}/settings/billing`,
         }),
