@@ -9,7 +9,6 @@ import { enforceRateLimit, RATE_LIMITS } from "@/lib/operations/rate-limit";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/get-or-create-customer";
 import { getStripeClient } from "@/lib/stripe/client";
 import { createClient } from "@/lib/supabase/server";
-import { getAal2ApiAccess } from "@/lib/auth/mfa-assurance";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   CURRENT_DIGITAL_SUPPLY_CONSENT_VERSION,
@@ -30,8 +29,6 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ code: "unauthorized", error: "Inicia sesión para elegir un plan." }, { status: 401 });
-    const aal2 = await getAal2ApiAccess();
-    if (!aal2.ok) return NextResponse.json({ code: aal2.code, error: "Confirma tu identidad antes de administrar la facturación.", challengeUrl: aal2.challengeUrl }, { status: aal2.status });
     if (!user.email_confirmed_at) return NextResponse.json({ code: "email_unverified", error: "Confirma tu correo antes de elegir un plan." }, { status: 403 });
     const rateLimit = await enforceRateLimit({ request, userId: user.id, action: "billing.checkout", userPolicy: RATE_LIMITS.billingUser, ipPolicy: RATE_LIMITS.billingIp });
     if (!rateLimit.allowed) return NextResponse.json({ code: "rate_limited", error: "Espera un momento antes de intentarlo otra vez." }, { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } });

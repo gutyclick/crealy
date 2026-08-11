@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { requireUser } from "@/lib/auth/require-user";
@@ -10,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { JobStatus } from "@/types/jobs";
 import type { PlanKey } from "@/types/billing";
 import { MobileAppNavigation } from "@/components/dashboard/mobile-app-navigation";
+import { MfaSecurityReminder } from "@/components/auth/mfa-security-reminder";
 
 export const metadata: Metadata = {
   robots: {
@@ -35,14 +37,30 @@ export default async function DashboardLayout({
   let credits: number | null = null;
   let plan: PlanKey = "free";
   const supabase = await createClient();
-  const { data: activeJobs } = await supabase
-    .from("jobs")
-    .select("id, status, resource_id, created_at")
-    .eq("user_id", user.id)
-    .eq("job_type", "generation")
-    .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
-    .order("created_at", { ascending: false })
-    .limit(8);
+  const [{ data: activeJobs }, { data: profile }, { data: factors }] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("id, status, resource_id, created_at")
+      .eq("user_id", user.id)
+      .eq("job_type", "generation")
+      .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
+      .order("created_at", { ascending: false })
+      .limit(8),
+    supabase
+      .from("profiles")
+      .select("mfa_reminder_disabled")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase.auth.mfa.listFactors(),
+  ]);
+  const cookieStore = await cookies();
+  const hasVerifiedMfa = Boolean(
+    factors?.totp.some((factor) => factor.status === "verified"),
+  );
+  const showMfaReminder =
+    !hasVerifiedMfa &&
+    profile?.mfa_reminder_disabled !== true &&
+    cookieStore.get("crealy_mfa_reminder_dismissed")?.value !== "1";
   try {
     await ensureWelcomeCredits(user.id);
     const billing = await getUserBillingState(user.id);
@@ -71,6 +89,7 @@ export default async function DashboardLayout({
         }))}
         plan={plan}
       />
+      {showMfaReminder ? <MfaSecurityReminder /> : null}
       {children}
       <MobileAppNavigation plan={plan} />
       <FeedbackWidget />

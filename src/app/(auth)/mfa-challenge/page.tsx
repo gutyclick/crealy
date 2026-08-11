@@ -16,10 +16,10 @@ export default async function MfaChallengePage({ searchParams }: { searchParams:
   const assurance = await getMfaAssurance();
   if (assurance.currentLevel === "aal2") redirect(nextPath);
   const factorId = assurance.verifiedFactorIds[0];
-  if (!factorId) redirect(`/settings/security?mfaSetup=required&next=${encodeURIComponent(nextPath)}`);
+  if (!factorId) redirect(`/settings/security?mfaSetup=optional&next=${encodeURIComponent(nextPath)}`);
 
   return (
-    <AuthShell title="Confirma que eres tú." description="Tu contraseña fue aceptada. Completa el segundo paso para continuar.">
+    <AuthShell title="Una comprobación adicional." description="Usa tu app de autenticación para elevar la seguridad de esta sesión. Puedes omitir este paso.">
       <MfaChallengeForm factorId={factorId} nextPath={nextPath} />
     </AuthShell>
   );

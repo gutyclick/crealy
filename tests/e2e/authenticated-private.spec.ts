@@ -66,13 +66,6 @@ test.describe("flujos privados con Supabase de testing", () => {
     await page.getByLabel("Correo electrónico").fill(users[0].email);
     await page.getByLabel("Contraseña", { exact: true }).fill(users[0].password);
     await page.getByRole("button", { name: "Iniciar sesión" }).click();
-    await expect(page).toHaveURL(/\/mfa-challenge/);
-    const millisecondsRemaining = 30_000 - Date.now() % 30_000;
-    if (millisecondsRemaining < 3_000) {
-      await page.waitForTimeout(millisecondsRemaining + 750);
-    }
-    await page.getByLabel("Código de autenticación").fill(totp(primaryTotpSecret));
-    await page.getByRole("button", { name: "Verificar y continuar" }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
     await page.goto("/create");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -82,16 +75,18 @@ test.describe("flujos privados con Supabase de testing", () => {
     await expect(page.getByRole("heading", { name: /Plan y créditos/i })).toBeVisible();
   });
 
-  test("exige configurar MFA antes de facturación y datos sensibles", async ({ page }) => {
+  test("recomienda MFA sin bloquear facturación ni datos de cuenta", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Correo electrónico").fill(users[1].email);
     await page.getByLabel("Contraseña", { exact: true }).fill(users[1].password);
     await page.getByRole("button", { name: "Iniciar sesión" }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
+    await expect(page.getByText("Añade una capa extra de seguridad")).toBeVisible();
     await page.goto("/settings/billing");
-    await expect(page).toHaveURL(/\/settings\/security\?mfaSetup=required/);
-    await expect(page.getByRole("heading", { name: "Autenticación multifactor" })).toBeVisible();
+    await expect(page).toHaveURL(/\/settings\/billing/);
+    await expect(page.getByRole("heading", { name: /Plan y créditos/i })).toBeVisible();
     await page.goto("/settings/account");
-    await expect(page).toHaveURL(/\/settings\/security\?mfaSetup=required/);
+    await expect(page).toHaveURL(/\/settings\/account/);
+    await expect(page.getByRole("heading", { name: "Cuenta y datos" })).toBeVisible();
   });
 });

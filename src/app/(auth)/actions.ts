@@ -256,11 +256,6 @@ export async function signIn(
     });
   }
 
-  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (assurance?.nextLevel === "aal2" && assurance.currentLevel !== "aal2") {
-    redirect(`/mfa-challenge?next=${encodeURIComponent(destination)}`);
-  }
-
   revalidatePath("/", "layout");
   redirect(destination);
 }
@@ -511,6 +506,8 @@ export async function signOut() {
     }
   }
 
+  const cookieStore = await cookies();
+  cookieStore.delete("crealy_mfa_reminder_dismissed");
   revalidatePath("/", "layout");
   redirect("/login?signedOut=1");
 }

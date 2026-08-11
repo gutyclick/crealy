@@ -17,7 +17,6 @@ export default async function SecurityPage({
   const user = await requireUser("/settings/security");
   const params = await searchParams;
   const assurance = await getMfaAssurance();
-  const canManageSensitiveSecurity = assurance.currentLevel === "aal2";
   const nextPath = params.next ? getSafeRedirect(params.next, "/settings/security") : undefined;
   return (
     <main className="py-12 sm:py-16">
@@ -28,8 +27,8 @@ export default async function SecurityPage({
           <p className="mt-4 text-base leading-7 text-muted">
             Tu sesión está vinculada a <span className="text-foreground">{user.email}</span>.
           </p>
-          {params.mfaSetup ? <div role="status" className="mt-8 rounded-xl bg-brand/[0.07] p-4 text-sm leading-6 text-white/80">Configura el segundo factor para proteger y continuar hacia la operación solicitada.</div> : null}
-          {canManageSensitiveSecurity ? <form action={updatePassword} className="mt-10 border-y border-white/10 py-8">
+          {params.mfaSetup ? <div role="status" className="mt-8 rounded-xl bg-brand/[0.07] p-4 text-sm leading-6 text-white/80">Puedes configurar el segundo factor ahora o hacerlo más adelante. El resto de Crealy seguirá disponible.</div> : null}
+          <form action={updatePassword} className="mt-10 border-y border-white/10 py-8">
             <div className="grid gap-5 sm:grid-cols-2">
               <label className="text-sm font-semibold">
                 Nueva contraseña
@@ -49,16 +48,16 @@ export default async function SecurityPage({
             <button className="mt-6 min-h-11 rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink hover:bg-[var(--brand-hover)]">
               Actualizar contraseña
             </button>
-          </form> : <div className="mt-10 border-y border-white/10 py-7"><h2 className="text-lg font-semibold">Cambios sensibles protegidos</h2><p className="mt-2 text-sm leading-6 text-muted">Activa TOTP y completa la verificación para cambiar la contraseña o cerrar sesiones.</p></div>}
+          </form>
           <MfaSettings assuranceLevel={assurance.currentLevel} nextPath={nextPath} />
-          {canManageSensitiveSecurity ? <form action={closeOtherSessions} className="border-b border-white/10 py-8">
+          <form action={closeOtherSessions} className="border-b border-white/10 py-8">
             <h2 className="text-lg font-semibold">Sesiones</h2>
             <p className="mt-2 text-sm leading-6 text-muted">
               Cierra todas las demás sesiones y conserva la actual. Los tokens ya emitidos pueden seguir activos hasta su expiración.
             </p>
             {params.sessionsClosed ? <p role="status" className="mt-4 text-sm text-brand">Las otras sesiones se cerraron.</p> : null}
             <button className="mt-5 min-h-11 rounded-xl border border-white/15 px-4 text-sm font-semibold hover:bg-white/[0.05]">Cerrar otras sesiones</button>
-          </form> : null}
+          </form>
         </div>
       </Container>
     </main>

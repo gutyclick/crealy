@@ -21,7 +21,7 @@ test("rejects manipulated pricing and external redirects", () => {
   );
 });
 
-test("preserves only exact MFA destinations for sensitive areas", () => {
+test("preserves only exact authenticated settings destinations", () => {
   assert.equal(getSafeRedirect("/settings/billing", "/dashboard"), "/settings/billing");
   assert.equal(getSafeRedirect("/settings/account", "/dashboard"), "/settings/account");
   assert.equal(getSafeRedirect("/settings/billing/evil", "/dashboard"), "/dashboard");

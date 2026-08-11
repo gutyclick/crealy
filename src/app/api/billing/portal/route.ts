@@ -5,7 +5,6 @@ import { getSiteUrl } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getAal2ApiAccess } from "@/lib/auth/mfa-assurance";
 
 export const runtime = "nodejs";
 
@@ -20,8 +19,6 @@ export async function POST() {
       { status: 401 },
     );
   }
-  const aal2 = await getAal2ApiAccess();
-  if (!aal2.ok) return NextResponse.json({ code: aal2.code, error: "Confirma tu identidad antes de abrir Stripe.", challengeUrl: aal2.challengeUrl }, { status: aal2.status });
 
   try {
     const { data: customer, error } = await createAdminClient()

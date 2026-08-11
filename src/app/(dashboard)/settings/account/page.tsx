@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Container } from "@/components/layout/container";
-import { requireAal2 } from "@/lib/auth/mfa-assurance";
+import { requireUser } from "@/lib/auth/require-user";
 
 export const metadata: Metadata = { title: "Cuenta" };
 
 export default async function AccountSettingsPage() {
-  await requireAal2("/settings/account");
+  await requireUser("/settings/account");
   return (
     <main className="py-10 sm:py-14">
       <Container className="max-w-3xl">
