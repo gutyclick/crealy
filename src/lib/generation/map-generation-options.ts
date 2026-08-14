@@ -11,7 +11,9 @@ export function mapGenerationOptions(
 ) {
   const definition = getGenerationVariant(format);
   if (!definition) throw new Error("invalid_generation_variant");
-  const quality = requestedQuality === "fast"
+  const quality = definition.contentType === "thumbnail"
+    ? "standard"
+    : requestedQuality === "fast"
     ? "standard"
     : requestedQuality ?? getDefaultQuality(definition);
   return {

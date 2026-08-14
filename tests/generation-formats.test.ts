@@ -43,16 +43,16 @@ const validInput = {
   quality: "standard",
 };
 
-test("thumbnail quality maps to its canonical variant, dimensions and cost", () => {
+test("thumbnail has one canonical creation format, dimensions and cost", () => {
   const standard = mapGenerationOptions("thumbnail-standard", "standard");
   assert.equal(standard.finalSize, "1280x720");
   assert.equal(standard.quality, "medium");
   assert.equal(standard.creditCost, 1);
 
-  const high = mapGenerationOptions("thumbnail-high", "high");
-  assert.equal(high.finalSize, "1920x1080");
-  assert.equal(high.quality, "high");
-  assert.equal(high.creditCost, 3);
+  const legacyHigh = mapGenerationOptions("thumbnail-high", "high");
+  assert.equal(legacyHigh.finalSize, "1280x720");
+  assert.equal(legacyHigh.quality, "medium");
+  assert.equal(legacyHigh.creditCost, 1);
 
   const validated = validateGenerationInput(validInput);
   assert.equal(validated.success, true);
@@ -91,7 +91,7 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
 
 test("legacy thumbnail taxonomy remains readable and normalizes at validation", () => {
   assert.equal(normalizeContentType("youtube-thumbnail"), "thumbnail");
-  assert.equal(normalizeGenerationVariant("youtube-16-9"), "thumbnail-high");
+  assert.equal(normalizeGenerationVariant("youtube-16-9"), "thumbnail-standard");
   const legacy = validateGenerationInput({
     ...validInput,
     contentType: "youtube-thumbnail",
@@ -102,7 +102,7 @@ test("legacy thumbnail taxonomy remains readable and normalizes at validation", 
   assert.equal(legacy.success, true);
   if (legacy.success) {
     assert.equal(legacy.data.contentType, "thumbnail");
-    assert.equal(legacy.data.variant, "thumbnail-high");
+    assert.equal(legacy.data.variant, "thumbnail-standard");
     assert.equal(legacy.data.quality, "standard");
   }
 });
@@ -118,12 +118,17 @@ test("all six creation products and their required defaults are present", () => 
   assert.equal(getGenerationVariant("profile-master")?.height, 800);
 });
 
-test("every visible generation format supports standard and high except YouTube cover", () => {
+test("visible generation formats expose only compatible quality choices", () => {
   for (const product of GENERATION_PRODUCTS) {
     for (const variant of getSelectableVariants(product.id)) {
+      const expected = variant.id === "thumbnail-standard"
+        ? ["standard"]
+        : variant.id === "cover-youtube"
+          ? ["high"]
+          : ["standard", "high"];
       assert.deepEqual(
         getSupportedQualities(variant),
-        variant.id === "cover-youtube" ? ["high"] : ["standard", "high"],
+        expected,
       );
     }
   }
@@ -156,7 +161,7 @@ test("credit cost is recomputed from product and variant, not client input", () 
       variant: "banner-2k",
       quality: "high",
     }),
-    4,
+    5,
   );
   assert.throws(() =>
     getGenerationCreditCost({
@@ -182,6 +187,43 @@ test("credit cost is recomputed from product and variant, not client input", () 
       quality: "standard",
     }),
   );
+});
+
+test("credit costs follow the public creation matrix", () => {
+  assert.equal(getGenerationCreditCost({
+    contentType: "thumbnail",
+    variant: "thumbnail-standard",
+    platform: "youtube",
+    quality: "standard",
+  }), 1);
+  assert.equal(getGenerationCreditCost({
+    contentType: "social-post",
+    variant: "post-square",
+    quality: "standard",
+  }), 1);
+  assert.equal(getGenerationCreditCost({
+    contentType: "social-post",
+    variant: "post-square",
+    quality: "high",
+  }), 2);
+  assert.equal(getGenerationCreditCost({
+    contentType: "social-post",
+    variant: "post-square",
+    quality: "standard",
+    creationMode: "recreate",
+  }), 2);
+  assert.equal(getGenerationCreditCost({
+    contentType: "social-post",
+    variant: "post-square",
+    quality: "high",
+    creationMode: "recreate",
+  }), 3);
+  assert.equal(getGenerationCreditCost({
+    contentType: "social-cover",
+    variant: "cover-youtube",
+    platform: "youtube",
+    quality: "high",
+  }), 5);
 });
 
 test("custom palettes accept up to five unique hexadecimal colors", () => {

@@ -81,7 +81,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   const style = rawInput.style === "auto" ? "automatic" : rawInput.style;
   const colorPreference = rawInput.colorPreference;
   const requestedQuality =
-    rawInput.quality === "fast" ? "standard" : rawInput.quality;
+    contentType === "thumbnail" || rawInput.quality === "fast"
+      ? "standard"
+      : rawInput.quality;
   const quality = requestedQuality ?? (definition ? getDefaultQuality(definition) : undefined);
   const brandStyleId = typeof rawInput.brandStyleId === "string" ? rawInput.brandStyleId : undefined;
   const creationMode = rawInput.creationMode === "recreate" ? "recreate" : "create";

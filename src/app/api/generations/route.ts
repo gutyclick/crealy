@@ -300,6 +300,7 @@ export async function POST(request: Request) {
     variant: input.variant,
     platform: input.platform,
     quality: input.quality,
+    creationMode: input.creationMode,
   });
   const admin = createAdminClient();
   const estimatedCost =

@@ -25,9 +25,9 @@ import {
   getGenerationVariant,
   getSelectableVariants,
   getSupportedQualities,
-  getVariantCreditCost,
   getVariantForPlatform,
 } from "@/config/generation-products";
+import { getGenerationCreditCost } from "@/lib/credits/get-generation-credit-cost";
 import { trackConversion } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
@@ -138,7 +138,13 @@ export function RecreateForm({
       ? [definition]
       : getSelectableVariants(contentType);
   const qualities = getSupportedQualities(definition);
-  const creditCost = getVariantCreditCost(definition, quality);
+  const creditCost = getGenerationCreditCost({
+    contentType,
+    variant,
+    platform,
+    quality,
+    creationMode: "recreate",
+  });
   const hasEnoughCredits =
     availableCredits === null || availableCredits >= creditCost;
   const ready =
@@ -430,7 +436,13 @@ export function RecreateForm({
                     {item === "high" ? "Alta calidad" : "Estándar"}
                   </span>
                   <span className="mt-1 block text-xs text-brand">
-                    {getVariantCreditCost(definition, item)} créditos
+                    {getGenerationCreditCost({
+                      contentType,
+                      variant,
+                      platform,
+                      quality: item,
+                      creationMode: "recreate",
+                    })} créditos
                   </span>
                 </button>
               ))}
@@ -531,8 +543,10 @@ export function RecreateForm({
         <div className="mt-6 rounded-xl bg-background p-4 lg:hidden">
           <p className="text-xs font-semibold text-brand">Tu salida</p>
           <p className="mt-2 text-sm font-semibold text-foreground">
-            {definition.width} × {definition.height} ·{" "}
-            {quality === "high" ? "Alta calidad" : "Estándar"}
+            {definition.width} × {definition.height}
+            {contentType !== "thumbnail"
+              ? ` · ${quality === "high" ? "Alta calidad" : "Estándar"}`
+              : ""}
           </p>
           <p className="mt-1 text-xs text-muted">
             {creditCost} {creditCost === 1 ? "crédito" : "créditos"}
@@ -599,12 +613,14 @@ export function RecreateForm({
                 {definition.width} × {definition.height}
               </dd>
             </div>
-            <div className="flex justify-between gap-4 py-3">
-              <dt className="text-muted">Calidad</dt>
-              <dd className="font-semibold text-foreground">
-                {quality === "high" ? "Alta" : "Estándar"}
-              </dd>
-            </div>
+            {contentType !== "thumbnail" ? (
+              <div className="flex justify-between gap-4 py-3">
+                <dt className="text-muted">Calidad</dt>
+                <dd className="font-semibold text-foreground">
+                  {quality === "high" ? "Alta" : "Estándar"}
+                </dd>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-4 py-3">
               <dt className="text-muted">Coste</dt>
               <dd className="font-bold text-brand">{creditCost} créditos</dd>

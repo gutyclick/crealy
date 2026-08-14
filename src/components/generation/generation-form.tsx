@@ -35,7 +35,6 @@ import {
   getGenerationVariant,
   getSelectableVariants,
   getSupportedQualities,
-  getVariantCreditCost,
   getVariantForPlatform,
 } from "@/config/generation-products";
 import { GENERATION_COLORS, GENERATION_STYLES } from "@/config/generation";
@@ -46,6 +45,7 @@ import {
 import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { trackConversion } from "@/lib/analytics/events";
 import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
+import { getGenerationCreditCost } from "@/lib/credits/get-generation-credit-cost";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
 import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
@@ -182,7 +182,12 @@ export function GenerationForm({
       ? [variantDefinition]
       : getSelectableVariants(contentType);
   const supportedQualities = getSupportedQualities(variantDefinition);
-  const creditCost = getVariantCreditCost(variantDefinition, quality);
+  const creditCost = getGenerationCreditCost({
+    contentType,
+    variant,
+    platform,
+    quality,
+  });
   const hasEnoughCredits =
     availableCredits === null || availableCredits >= creditCost;
   const styles = useMemo(
@@ -538,66 +543,19 @@ export function GenerationForm({
           </fieldset>
         ) : null}
 
-        {contentType === "thumbnail" ? (
-          <fieldset className="mt-7">
-            <legend className="text-sm font-semibold text-foreground">
-              Calidad
-            </legend>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {[
-                {
-                  quality: "standard" as const,
-                  variant: "thumbnail-standard" as const,
-                  label: "Estándar",
-                  detail: "1280 × 720 · ideal para crear y publicar.",
-                  cost: 1,
-                },
-                {
-                  quality: "high" as const,
-                  variant: "thumbnail-high" as const,
-                  label: "HD",
-                  detail: "1920 × 1080 · mayor detalle para la versión final.",
-                  cost: 3,
-                },
-              ].map((item) => (
-                <button
-                  key={item.quality}
-                  type="button"
-                  aria-pressed={
-                    quality === item.quality && variant === item.variant
-                  }
-                  onClick={() => {
-                    setVariant(item.variant);
-                    setQuality(item.quality);
-                  }}
-                  className={cn(
-                    "rounded-xl p-4 text-left transition-colors",
-                    quality === item.quality && variant === item.variant
-                      ? "bg-brand/[0.09] ring-1 ring-brand/65"
-                      : "bg-background hover:bg-white/[0.055]",
-                  )}
-                >
-                  <span className="flex items-center justify-between gap-3 text-sm font-bold text-foreground">
-                    {item.label}
-                    <span className="text-xs text-brand">
-                      {item.cost} {item.cost === 1 ? "crédito" : "créditos"}
-                    </span>
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-muted">
-                    {item.detail}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </fieldset>
-        ) : supportedQualities.length > 1 ? (
+        {supportedQualities.length > 1 ? (
           <fieldset className="mt-7">
             <legend className="text-sm font-semibold text-foreground">
               Calidad
             </legend>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {supportedQualities.map((item) => {
-                const cost = getVariantCreditCost(variantDefinition, item);
+                const cost = getGenerationCreditCost({
+                  contentType,
+                  variant,
+                  platform,
+                  quality: item,
+                });
                 const selected = quality === item;
                 return (
                   <button
@@ -628,7 +586,7 @@ export function GenerationForm({
               })}
             </div>
           </fieldset>
-        ) : (
+        ) : variantDefinition.id === "cover-youtube" ? (
           <div className="mt-7 rounded-xl bg-brand/[0.07] p-4 ring-1 ring-brand/25">
             <p className="text-sm font-semibold text-foreground">
               Alta calidad incluida
@@ -638,7 +596,7 @@ export function GenerationForm({
               calidad.
             </p>
           </div>
-        )}
+        ) : null}
 
         <div id="creation-idea" className="scroll-mt-40 mt-8">
           <label
@@ -1142,7 +1100,7 @@ export function GenerationForm({
             </>
           ) : (
             <>
-              {contentType === "thumbnail" ? "Generar miniatura" : "Generar"} ·{" "}
+              {contentType === "thumbnail" ? "Crear miniatura" : "Generar"} ·{" "}
               {creditCost} {creditCost === 1 ? "crédito" : "créditos"}{" "}
               <ArrowRight aria-hidden="true" className="size-4" />
             </>
@@ -1231,10 +1189,12 @@ export function GenerationForm({
               label="Tamaño final"
               value={`${variantDefinition.width} × ${variantDefinition.height}`}
             />
-            <SummaryRow
-              label="Calidad"
-              value={quality === "high" ? "Alta" : "Estándar"}
-            />
+            {contentType !== "thumbnail" ? (
+              <SummaryRow
+                label="Calidad"
+                value={quality === "high" ? "Alta" : "Estándar"}
+              />
+            ) : null}
             <SummaryRow
               label="Coste"
               value={`${creditCost} ${creditCost === 1 ? "crédito" : "créditos"}`}

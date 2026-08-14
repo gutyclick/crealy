@@ -93,10 +93,14 @@ export function GenerationGrid({
                 </time>
               </p>
               <p className="mt-2 flex items-center gap-2 text-xs text-white/45">
-                <span>{item.quality === "high" ? "Alta calidad" : "Estándar"}</span>
+                {item.contentType !== "thumbnail" ? (
+                  <span>{item.quality === "high" ? "Alta calidad" : "Estándar"}</span>
+                ) : null}
                 {item.creditCost ? (
                   <>
-                    <span aria-hidden="true">·</span>
+                    {item.contentType !== "thumbnail" ? (
+                      <span aria-hidden="true">·</span>
+                    ) : null}
                     <span>
                       {item.creditCost} {item.creditCost === 1 ? "crédito" : "créditos"}
                     </span>

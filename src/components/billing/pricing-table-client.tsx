@@ -183,9 +183,9 @@ export function PricingTableClient({
                   <Tooltip
                     label={`Cómo se calculan los ${plan.estimatedUsage.standard} diseños`}
                   >
-                    Calculado con diseños en calidad estándar. Puedes combinar
-                    tus créditos como quieras entre diseños estándar, HD,
-                    banners y covers.
+                    Calculado con piezas de 1 crédito. Miniatura: 1; post: 1 o
+                    2; Recreate: 2 o 3; banner o cover: 5 créditos. Puedes
+                    combinarlos como quieras.
                   </Tooltip>
                 </div>
                 <div className="mt-3 flex items-end gap-2" aria-live="polite">

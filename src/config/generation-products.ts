@@ -69,7 +69,7 @@ export const GENERATION_PRODUCTS = [
     example: "Una miniatura sobre productividad con un sujeto claro y un titular breve.",
     acceptsText: true,
     acceptsReferences: true,
-    selectableQuality: true,
+    selectableQuality: false,
     platforms: ["youtube"],
     defaultPlatform: "youtube",
     defaultVariant: "thumbnail-standard",
@@ -91,22 +91,6 @@ export const GENERATION_PRODUCTS = [
         platform: "youtube",
         promptGuidelines: ["Un solo foco dominante.", "Lectura inmediata en tamaño pequeño."],
         legacy: true,
-      },
-      {
-        id: "thumbnail-high",
-        label: "Alta calidad",
-        shortLabel: "1920 × 1080",
-        description: "Más detalle para la versión final.",
-        width: 1920,
-        height: 1080,
-        requestedProviderSize: "1920x1088",
-        fallbackProviderSize: "1536x1024",
-        quality: "high",
-        creditCost: 3,
-        safeArea: safe(1920, 1080),
-        exportStrategy: "cover",
-        platform: "youtube",
-        promptGuidelines: ["Un solo foco dominante.", "Detalle nítido y lectura inmediata en tamaño pequeño."],
       },
     ],
   },
@@ -172,22 +156,22 @@ export const GENERATION_PRODUCTS = [
     variants: [
       {
         id: "banner-small", label: "Pequeño", shortLabel: "1024 × 512", description: "Ligero para web.", width: 1024, height: 512,
-        requestedProviderSize: "1024x512", fallbackProviderSize: "1536x1024", quality: "standard", creditCost: 1,
+        requestedProviderSize: "1024x512", fallbackProviderSize: "1536x1024", quality: "standard", creditCost: 5,
         safeArea: safe(1024, 512), exportStrategy: "cover", promptGuidelines: ["Composición panorámica simple.", "Texto grande y poco contenido."],
       },
       {
         id: "banner-standard", label: "Estándar", shortLabel: "1536 × 768", description: "Equilibrio entre detalle y coste.", width: 1536, height: 768,
-        requestedProviderSize: "1536x768", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 2, recommended: true,
+        requestedProviderSize: "1536x768", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 5, recommended: true,
         safeArea: safe(1536, 768), exportStrategy: "cover", promptGuidelines: ["Jerarquía panorámica.", "Reserva aire alrededor del mensaje."],
       },
       {
         id: "banner-large", label: "Grande", shortLabel: "1920 × 1080", description: "Mayor resolución para campañas.", width: 1920, height: 1080,
-        requestedProviderSize: "1920x1088", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 3,
+        requestedProviderSize: "1920x1088", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 5,
         safeArea: safe(1920, 1080), exportStrategy: "cover", promptGuidelines: ["Detalle alto.", "Mantén el mensaje central y adaptable."],
       },
       {
         id: "banner-2k", label: "2K", shortLabel: "2560 × 1440", description: "Máster 2K para exportaciones exigentes.", width: 2560, height: 1440,
-        requestedProviderSize: "2560x1440", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 4,
+        requestedProviderSize: "2560x1440", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 5,
         safeArea: safe(2560, 1440), exportStrategy: "cover", promptGuidelines: ["Máximo detalle.", "Composición adaptable a recortes."],
       },
     ],
@@ -208,25 +192,25 @@ export const GENERATION_PRODUCTS = [
     variants: [
       {
         id: "cover-youtube", label: "YouTube", shortLabel: "2560 × 1440", description: "Portada de canal.", width: 2560, height: 1440,
-        requestedProviderSize: "2560x1440", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 3, platform: "youtube",
+        requestedProviderSize: "2560x1440", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 5, platform: "youtube",
         safeArea: { x: 663, y: 551, width: 1235, height: 338 }, exportStrategy: "extend-background",
         promptGuidelines: ["Mantén texto, logos, rostros y elementos esenciales dentro de la zona segura central.", "Usa los extremos como extensión natural del fondo."],
       },
       {
         id: "cover-facebook", label: "Facebook", shortLabel: "1702 × 630", description: "Portada de página o perfil.", width: 1702, height: 630,
-        requestedProviderSize: "1712x640", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 2, platform: "facebook",
+        requestedProviderSize: "1712x640", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 5, platform: "facebook",
         safeArea: { x: 205, y: 64, width: 1292, height: 502 }, exportStrategy: "cover",
         promptGuidelines: ["Reserva el extremo inferior izquierdo para el avatar.", "Mantén texto y marca en la zona central."],
       },
       {
         id: "cover-x", label: "X", shortLabel: "1500 × 500", description: "Cabecera de perfil.", width: 1500, height: 500,
-        requestedProviderSize: "1504x512", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 2, platform: "x",
+        requestedProviderSize: "1504x512", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 5, platform: "x",
         safeArea: { x: 180, y: 45, width: 1170, height: 360 }, exportStrategy: "cover",
         promptGuidelines: ["Reserva el extremo inferior izquierdo para el avatar.", "Extiende el fondo a ambos lados."],
       },
       {
         id: "cover-linkedin", label: "LinkedIn", shortLabel: "1584 × 396", description: "Portada de perfil.", width: 1584, height: 396,
-        requestedProviderSize: "1584x400", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 2, platform: "linkedin",
+        requestedProviderSize: "1584x400", fallbackProviderSize: "1536x1024", quality: "high", creditCost: 5, platform: "linkedin",
         safeArea: { x: 245, y: 42, width: 1180, height: 300 }, exportStrategy: "cover",
         promptGuidelines: ["Reserva el extremo inferior izquierdo para el avatar.", "Mantén una composición sobria y legible."],
       },
@@ -301,7 +285,8 @@ export const LEGACY_CONTENT_TYPE_MAP = {
 } as const;
 
 export const LEGACY_VARIANT_MAP: Partial<Record<GenerationFormat, GenerationFormat>> = {
-  "youtube-16-9": "thumbnail-high",
+  "thumbnail-high": "thumbnail-standard",
+  "youtube-16-9": "thumbnail-standard",
   "youtube-cover": "cover-youtube",
   "social-square": "post-square",
   "social-portrait": "post-portrait",
@@ -351,6 +336,7 @@ export function getSelectableVariants(contentType: ContentType) {
 export function getSupportedQualities(
   variant: GenerationVariantDefinition,
 ): readonly GenerationQuality[] {
+  if (variant.id === "thumbnail-standard") return ["standard"] as const;
   return variant.id === "cover-youtube"
     ? (["high"] as const)
     : (["standard", "high"] as const);

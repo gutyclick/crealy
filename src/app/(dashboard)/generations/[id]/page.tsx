@@ -131,15 +131,17 @@ export default async function GenerationDetailPage({
                   <dd className="mt-1 text-foreground">{data.primary_text}</dd>
                 </div>
               ) : null}
-              <div className="grid grid-cols-2 gap-4 py-3">
+              <div className={data.content_type === "thumbnail" ? "py-3" : "grid grid-cols-2 gap-4 py-3"}>
                 <div>
                   <dt className="text-muted">Estilo</dt>
                   <dd className="mt-1 capitalize text-foreground">{data.style}</dd>
                 </div>
-                <div>
-                  <dt className="text-muted">Calidad</dt>
-                  <dd className="mt-1 capitalize text-foreground">{data.quality}</dd>
-                </div>
+                {data.content_type !== "thumbnail" ? (
+                  <div>
+                    <dt className="text-muted">Calidad</dt>
+                    <dd className="mt-1 capitalize text-foreground">{data.quality}</dd>
+                  </div>
+                ) : null}
               </div>
             </dl>
             {imageUrl ? (
