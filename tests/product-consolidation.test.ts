@@ -68,6 +68,50 @@ test("checkout requires and preserves express digital supply consent", () => {
   assert.match(webhook, /checkout_consent_mismatch/);
 });
 
+test("active paid plans open Stripe Portal directly and safely", () => {
+  const pricing = readFileSync(
+    "src/components/billing/pricing-table-client.tsx",
+    "utf8",
+  );
+  const portalButton = readFileSync(
+    "src/components/billing/portal-button.tsx",
+    "utf8",
+  );
+  const portalRoute = readFileSync(
+    "src/app/api/billing/portal/route.ts",
+    "utf8",
+  );
+
+  assert.match(pricing, /active && plan\.id !== "free"/);
+  assert.match(pricing, /<PortalButton/);
+  assert.match(pricing, /Administrar mi suscripción/);
+  assert.match(portalButton, /fetch\("\/api\/billing\/portal"/);
+  assert.match(portalRoute, /billingPortal\.sessions\.create/);
+  assert.match(portalRoute, /return_url: `\$\{getSiteUrl\(\)\}\/settings\/billing`/);
+  assert.match(portalRoute, /action: "billing\.portal"/);
+});
+
+test("public product surfaces no longer present Crealy as beta", () => {
+  for (const file of [
+    "src/components/layout/header.tsx",
+    "src/components/layout/footer.tsx",
+    "src/app/onboarding/page.tsx",
+    "src/components/auth/login-form.tsx",
+  ]) {
+    assert.doesNotMatch(readFileSync(file, "utf8"), /\bbeta\b/i, file);
+  }
+});
+
+test("dashboard translates internal billing keys into public plan names", () => {
+  const dashboard = readFileSync(
+    "src/components/dashboard/dashboard-home.tsx",
+    "utf8",
+  );
+  assert.match(dashboard, /pro: "Creator"/);
+  assert.match(dashboard, /business: "Pro"/);
+  assert.doesNotMatch(dashboard, /plan === "free" \? "Free" : plan/);
+});
+
 test("legal policies identify the operator and disclose product data flows", () => {
   const legal = readFileSync("src/config/legal.ts", "utf8");
   const privacy = readFileSync("src/app/privacy/page.tsx", "utf8");

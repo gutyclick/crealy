@@ -4,8 +4,15 @@ import { ExternalLink, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function PortalButton() {
+export function PortalButton({
+  label = "Administrar en Stripe",
+  className,
+}: {
+  label?: string;
+  className?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -14,18 +21,18 @@ export function PortalButton() {
     setMessage(null);
     try {
       const response = await fetch("/api/billing/portal", { method: "POST" });
-      const payload = (await response.json()) as {
+      const payload = (await response.json().catch(() => null)) as {
         url?: string;
         error?: string;
         challengeUrl?: string;
-      };
-      if (payload.challengeUrl) {
+      } | null;
+      if (payload?.challengeUrl) {
         window.location.assign(payload.challengeUrl);
         return;
       }
-      if (!response.ok || !payload.url) {
+      if (!response.ok || !payload?.url) {
         throw new Error(
-          payload.error || "No pudimos abrir el portal de facturación.",
+          payload?.error || "No pudimos abrir el portal de facturación.",
         );
       }
       window.location.assign(payload.url);
@@ -40,13 +47,14 @@ export function PortalButton() {
   }
 
   return (
-    <div>
+    <div className={cn(className)}>
       <Button
         type="button"
         variant="secondary"
         size="lg"
         disabled={loading}
         onClick={openPortal}
+        className="w-full"
       >
         {loading ? (
           <>
@@ -58,7 +66,7 @@ export function PortalButton() {
           </>
         ) : (
           <>
-            Administrar en Stripe
+            {label}
             <ExternalLink aria-hidden="true" className="size-4" />
           </>
         )}

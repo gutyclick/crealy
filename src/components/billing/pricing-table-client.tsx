@@ -4,6 +4,7 @@ import { Check, CircleHelp, LockKeyhole } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { CheckoutButton } from "@/components/billing/checkout-button";
+import { PortalButton } from "@/components/billing/portal-button";
 import { Button } from "@/components/ui/button";
 import {
   PRICING_PLANS,
@@ -253,14 +254,19 @@ export function PricingTableClient({
               </ul>
 
               <div className="mt-auto">
-                {active ? (
+                {active && plan.id !== "free" ? (
+                  <PortalButton
+                    label="Administrar mi suscripción"
+                    className="w-full"
+                  />
+                ) : active ? (
                   <Button
-                    href="/settings/billing"
+                    href="/create"
                     variant="secondary"
                     size="lg"
                     className="w-full"
                   >
-                    Ver mi facturación
+                    Seguir creando
                   </Button>
                 ) : plan.id === "free" ? (
                   <Button

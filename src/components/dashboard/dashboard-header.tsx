@@ -49,9 +49,13 @@ export function DashboardHeader({
   const initial = displayName.charAt(0).toUpperCase() || "C";
   const [openMenu, setOpenMenu] = useState<"account" | null>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
+  const firstAccountLinkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     if (!openMenu) return;
+
+    firstAccountLinkRef.current?.focus();
 
     function closeOnOutsideClick(event: PointerEvent) {
       const target = event.target as Node;
@@ -61,7 +65,9 @@ export function DashboardHeader({
     }
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpenMenu(null);
+      if (event.key !== "Escape") return;
+      setOpenMenu(null);
+      accountButtonRef.current?.focus();
     }
 
     document.addEventListener("pointerdown", closeOnOutsideClick);
@@ -90,6 +96,7 @@ export function DashboardHeader({
 
           <div ref={accountMenuRef} className="relative">
             <button
+              ref={accountButtonRef}
               type="button"
               aria-label="Abrir menú de usuario"
               aria-expanded={openMenu === "account"}
@@ -136,6 +143,7 @@ export function DashboardHeader({
                 </div>
 
                 <Link
+                  ref={firstAccountLinkRef}
                   href="/settings/billing"
                   onClick={closeMenus}
                   className="my-2 flex min-h-12 items-center justify-between rounded-[0.7rem] bg-white/[0.045] px-3 transition-colors hover:bg-white/[0.075]"

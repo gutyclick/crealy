@@ -28,10 +28,9 @@ export default async function OnboardingPage() {
     <main className="min-h-dvh bg-background px-5 py-6 sm:py-10">
       <div className="mx-auto mb-10 flex max-w-3xl items-center justify-between">
         <Logo />
-        <span className="text-xs font-medium text-muted">Beta de Crealy</span>
+        <span className="text-xs font-medium text-muted">Tu espacio creativo</span>
       </div>
       <OnboardingFlow />
     </main>
   );
 }
-

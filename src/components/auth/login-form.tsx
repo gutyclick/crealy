@@ -35,7 +35,7 @@ export function LoginForm({
         message: authError === "rate_limited"
           ? "Demasiados intentos. Espera unos minutos antes de volver a intentarlo."
           : authError === "restricted"
-            ? "Esta cuenta todavía necesita una invitación para entrar a la beta."
+            ? "Esta cuenta todavía necesita una invitación para acceder."
           : authError === "oauth"
             ? "No pudimos conectar ese proveedor. Revisa tu autorización e inténtalo nuevamente."
             : "El enlace de autenticación no es válido o ya expiró. Inténtalo nuevamente.",

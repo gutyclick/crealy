@@ -112,7 +112,7 @@ export async function signUp(
     !(await validateBetaInvite(inviteCode, email))
   ) {
     return errorState(
-      "No pudimos validar el acceso a la beta. Revisa el código e inténtalo de nuevo.",
+      "No pudimos validar el acceso. Revisa el código e inténtalo de nuevo.",
       { inviteCode: "El código no está disponible o ha expirado." },
       { name, email },
     );
@@ -165,7 +165,7 @@ export async function signUp(
     if (!claimed) {
       await createAdminClient().auth.admin.deleteUser(createdUserId);
       return errorState(
-        "No pudimos validar el acceso a la beta. Revisa el código e inténtalo de nuevo.",
+        "No pudimos validar el acceso. Revisa el código e inténtalo de nuevo.",
         { inviteCode: "El código no está disponible o ha expirado." },
         { name, email },
       );

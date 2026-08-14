@@ -1,27 +1,42 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { siteConfig } from "@/config/site";
 
 export function MobileNavigation() {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     if (!open) return;
 
+    firstLinkRef.current?.focus();
+
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
 
     document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+    };
   }, [open]);
 
   return (
-    <div className="lg:hidden">
+    <div ref={rootRef} className="lg:hidden">
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-controls="mobile-navigation"
@@ -42,8 +57,9 @@ export function MobileNavigation() {
         className="absolute inset-x-0 top-full origin-top border-b border-white/[0.08] bg-background/98 px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.42)] backdrop-blur-xl"
       >
         <nav aria-label="Navegación móvil" className="grid gap-1">
-          {siteConfig.navigation.map((item) => (
+          {siteConfig.navigation.map((item, index) => (
             <a
+              ref={index === 0 ? firstLinkRef : undefined}
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}

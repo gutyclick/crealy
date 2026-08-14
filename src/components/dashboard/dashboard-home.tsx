@@ -36,6 +36,13 @@ const recommended = [
   { type: "profile-image", label: "Imagen de perfil", detail: "800 × 800 · optimizada para redes", shape: "aspect-square rounded-full" },
 ] as const;
 
+const planLabels: Record<string, string> = {
+  free: "Gratis",
+  starter: "Starter",
+  pro: "Creator",
+  business: "Pro",
+};
+
 export function DashboardHome({
   firstName,
   recentGenerations,
@@ -98,7 +105,7 @@ export function DashboardHome({
               <div>
                 <dt className="text-muted">Plan</dt>
                 <dd className="mt-1 font-semibold text-foreground">
-                  {billingAvailable ? (plan === "free" ? "Free" : plan) : "No disponible"}
+                  {billingAvailable && plan ? planLabels[plan] ?? "Plan activo" : "No disponible"}
                 </dd>
               </div>
               <div>

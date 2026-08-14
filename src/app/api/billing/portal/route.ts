@@ -3,12 +3,13 @@ import { NextResponse } from "next/server";
 import { BillingError } from "@/lib/billing/billing-errors";
 import { getSiteUrl } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe/client";
+import { enforceRateLimit, RATE_LIMITS } from "@/lib/operations/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,6 +22,20 @@ export async function POST() {
   }
 
   try {
+    const rateLimit = await enforceRateLimit({
+      request,
+      userId: user.id,
+      action: "billing.portal",
+      userPolicy: RATE_LIMITS.billingUser,
+      ipPolicy: RATE_LIMITS.billingIp,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { code: "rate_limited", error: "Espera un momento antes de intentarlo otra vez." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } },
+      );
+    }
+
     const { data: customer, error } = await createAdminClient()
       .from("billing_customers")
       .select("stripe_customer_id")
