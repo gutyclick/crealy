@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import type { AuthActionState } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getAuthCallbackUrl } from "@/lib/auth/request-origin";
 import { recordSignupConsents } from "@/lib/auth/signup-consent";
 import { getSafeRedirect } from "@/lib/auth/redirects";
 import {
@@ -133,7 +134,7 @@ export async function signUp(
           privacy_version: CURRENT_PRIVACY_VERSION,
           marketing_opt_in: marketingOptIn,
         },
-        emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}`,
+        emailRedirectTo: await getAuthCallbackUrl(destination),
       },
     });
   } catch (error) {
@@ -323,11 +324,12 @@ async function signInWithSocialProvider(
     formData.get("next"),
     isSignup && launch.onboardingEnabled ? "/onboarding" : "/dashboard",
   );
+  const oauthFlow = isSignup ? "signup" : "login";
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}&oauth_flow=${isSignup ? "signup" : "login"}`,
+      redirectTo: await getAuthCallbackUrl(destination, oauthFlow),
     },
   });
   if (error || !data.url) {
@@ -367,7 +369,7 @@ export async function requestPasswordReset(
 
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=/reset-password`,
+      redirectTo: await getAuthCallbackUrl("/reset-password"),
     });
     if (error) reportAuthError("recuperación", error);
   } catch (error) {
@@ -405,7 +407,7 @@ export async function resendVerificationEmail(
       type: "signup",
       email,
       options: {
-        emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(destination)}`,
+        emailRedirectTo: await getAuthCallbackUrl(destination),
       },
     });
 
