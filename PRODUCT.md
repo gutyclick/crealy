@@ -60,8 +60,8 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 ## Evidence on Hand
 
 No existen todavía testimonios, clientes, métricas ni casos de estudio. Los
-precios publicados son $0, $5, $15 y $39 al mes; los periodos anuales son $48,
-$144 y $374. No se fabrican testimonios, temporizadores ni urgencia.
+precios publicados son $0, $5, $15 y $40 al mes; los periodos anuales son $48,
+$144 y $384. No se fabrican testimonios, temporizadores ni urgencia.
 
 ## Product Principles
 

@@ -19,9 +19,9 @@ test("pricing exposes the four plans in comparison order", () => {
     })),
     [
       { monthlyPrice: 0, credits: 3 },
-      { monthlyPrice: 5, credits: 15 },
-      { monthlyPrice: 15, credits: 75 },
-      { monthlyPrice: 39, credits: 225 },
+      { monthlyPrice: 5, credits: 10 },
+      { monthlyPrice: 15, credits: 60 },
+      { monthlyPrice: 40, credits: 180 },
     ],
   );
 });
@@ -42,9 +42,9 @@ test("annual pricing shows the monthly equivalent and exact annual charge", () =
     detail: "$144 facturados anualmente",
   });
   assert.deepEqual(annual.pro, {
-    primary: "$31",
+    primary: "$32",
     suffix: "/ mes",
-    detail: "$374 facturados anualmente",
+    detail: "$384 facturados anualmente",
   });
 });
 

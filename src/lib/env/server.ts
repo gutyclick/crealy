@@ -173,18 +173,18 @@ export function getCreditServerEnv() {
   return {
     starterMonthlyCredits: readPositiveInteger(
       "STARTER_MONTHLY_CREDITS",
-      15,
+      10,
       1_000_000,
     ),
     freeSignupCredits: readNonNegativeInteger("FREE_SIGNUP_CREDITS", 3, 10_000),
     creatorMonthlyCredits: readPositiveInteger(
       "CREATOR_MONTHLY_CREDITS",
-      75,
+      60,
       1_000_000,
     ),
     proMonthlyCredits: readPositiveInteger(
       "PRO_MONTHLY_CREDITS",
-      225,
+      180,
       1_000_000,
     ),
     generationStandardCost: readPositiveInteger(
