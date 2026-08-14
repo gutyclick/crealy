@@ -130,7 +130,7 @@ export default async function BillingPage() {
                   <>
                     <PortalButton />
                     {state.effectivePlan.key === "free" ? (
-                      <BillingSyncButton />
+                      <BillingSyncButton auto />
                     ) : null}
                   </>
                 ) : state.canCheckoutPro ? (

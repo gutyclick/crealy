@@ -2,14 +2,15 @@
 
 import { LoaderCircle, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export function BillingSyncButton() {
+export function BillingSyncButton({ auto = false }: { auto?: boolean }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const attemptedAutomatically = useRef(false);
 
-  async function synchronize() {
+  const synchronize = useCallback(async () => {
     setLoading(true);
     setMessage(null);
     try {
@@ -33,7 +34,13 @@ export function BillingSyncButton() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    if (!auto || attemptedAutomatically.current) return;
+    attemptedAutomatically.current = true;
+    void synchronize();
+  }, [auto, synchronize]);
 
   return (
     <div className="mt-3">
