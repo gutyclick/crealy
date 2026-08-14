@@ -77,8 +77,9 @@ La interfaz debe funcionar con teclado, mantener foco visible y contraste sufici
 
 ## Launch Operations
 
-- La etapa inicial es beta privada, con invitaciones habilitadas por defecto en
-  producción y ampliación gradual por cohortes.
+- La etapa operativa es producción pública, con registro abierto y sin
+  invitación obligatoria. Los controles de invitación se conservan solo como
+  mecanismo de contingencia ante abuso o incidentes.
 - El onboarding tiene tres pasos opcionales y personaliza accesos sin consumir
   créditos ni decidir permisos, seguridad o facturación.
 - Los correos de producto se envían con Resend mediante jobs idempotentes; los

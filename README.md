@@ -292,7 +292,7 @@ npm run build
 
 ## Preparación para lanzamiento
 
-Producción arranca como **beta privada**. La configuración se centraliza con
+Producción opera como un servicio público, con registro abierto y sin invitación obligatoria. La configuración se centraliza con
 `NEXT_PUBLIC_LAUNCH_STAGE`, `REGISTRATIONS_ENABLED`, `INVITE_REQUIRED` y los
 flags de generación, edición, cobros, herramientas, correo y analítica. No
 actives una integración hasta que sus credenciales y webhooks estén probados.

@@ -6,13 +6,13 @@ import { getLaunchStage } from "../src/config/launch";
 import { renderEmailTemplate } from "../src/lib/email/templates";
 import { getPublicSiteUrl } from "../src/lib/seo/get-public-site-url";
 
-test("production defaults conservatively to private beta", () => {
+test("production defaults to the public production stage", () => {
   const mutableEnv = process.env as Record<string, string | undefined>;
   const previousNodeEnv = process.env.NODE_ENV;
   const previousStage = process.env.NEXT_PUBLIC_LAUNCH_STAGE;
   mutableEnv.NODE_ENV = "production";
   delete process.env.NEXT_PUBLIC_LAUNCH_STAGE;
-  assert.equal(getLaunchStage(), "private_beta");
+  assert.equal(getLaunchStage(), "production");
   mutableEnv.NODE_ENV = previousNodeEnv;
   if (previousStage === undefined) delete process.env.NEXT_PUBLIC_LAUNCH_STAGE;
   else process.env.NEXT_PUBLIC_LAUNCH_STAGE = previousStage;

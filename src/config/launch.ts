@@ -26,7 +26,7 @@ export function getLaunchStage(): LaunchStage {
     | LaunchStage
     | undefined;
   if (value && launchStages.has(value)) return value;
-  return process.env.NODE_ENV === "production" ? "private_beta" : "development";
+  return process.env.NODE_ENV === "production" ? "production" : "development";
 }
 
 export function isBetaStage(stage = getLaunchStage()) {
