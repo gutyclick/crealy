@@ -52,3 +52,14 @@ test("mobile editor switches between canvas and conversation instead of stacking
   assert.match(editor, /mobilePanel === "canvas"/);
   assert.match(editor, /mobilePanel === "conversation"/);
 });
+
+test("creation notifications stay inside the mobile viewport", () => {
+  const notifications = readFileSync(
+    "src/components/dashboard/creation-notification-center.tsx",
+    "utf8",
+  );
+
+  assert.match(notifications, /fixed inset-x-3 top-\[4\.75rem\]/);
+  assert.match(notifications, /max-h-\[calc\(100dvh-6rem\)\]/);
+  assert.match(notifications, /env\(safe-area-inset-bottom\)/);
+});

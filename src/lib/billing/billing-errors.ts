@@ -8,6 +8,8 @@ export class BillingError extends Error {
       | "subscription_already_exists"
       | "checkout_creation_failed"
       | "portal_creation_failed"
+      | "billing_confirmation_pending"
+      | "billing_reconciliation_failed"
       | "subscription_sync_failed"
       | "credit_grant_failed",
     public readonly status: number,

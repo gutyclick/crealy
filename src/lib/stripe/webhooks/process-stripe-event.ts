@@ -69,7 +69,7 @@ async function handleCheckoutCompleted(
   }).catch(() => null);
 }
 
-async function handleInvoicePaid(
+export async function syncPaidInvoice(
   invoice: Stripe.Invoice,
   eventCreated: number,
 ) {
@@ -157,7 +157,7 @@ export async function processStripeEvent(event: Stripe.Event) {
         break;
       }
       case "invoice.paid":
-        status = await handleInvoicePaid(
+        status = await syncPaidInvoice(
           event.data.object as Stripe.Invoice,
           event.created,
         );

@@ -410,7 +410,7 @@ export function GenerationForm({
 
         <nav
           aria-label="Pasos de creación"
-          className="sticky top-[4.85rem] z-20 -mx-2 mt-5 flex gap-1 overflow-x-auto rounded-xl border border-white/10 bg-surface-elevated/96 p-1.5 shadow-[0_12px_35px_rgba(0,0,0,.3)] backdrop-blur-xl sm:hidden"
+          className="sticky top-[4.85rem] z-20 -mx-2 mt-5 flex max-w-[calc(100%+1rem)] gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-white/10 bg-surface-elevated/96 p-1.5 shadow-[0_12px_35px_rgba(0,0,0,.3)] backdrop-blur-xl [scrollbar-width:none] sm:hidden"
         >
           {[
             ["#creation-format", "1", "Formato"],
@@ -435,7 +435,7 @@ export function GenerationForm({
           <legend className="text-sm font-semibold text-foreground">
             ¿Qué vas a crear?
           </legend>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:grid-cols-3">
             {GENERATION_PRODUCTS.map((item) => {
               const Icon = contentIcons[item.icon as keyof typeof contentIcons];
               const selected = item.id === contentType;
@@ -446,19 +446,19 @@ export function GenerationForm({
                   aria-pressed={selected}
                   onClick={() => selectContentType(item.id)}
                   className={cn(
-                    "min-h-24 rounded-xl px-4 py-3 text-left transition-[background-color,color,box-shadow] focus-visible:outline-brand",
+                    "min-w-0 min-h-24 rounded-xl px-4 py-3 text-left transition-[background-color,color,box-shadow] focus-visible:outline-brand",
                     selected
                       ? "bg-brand text-brand-ink shadow-[0_14px_34px_rgba(221,245,39,.12)]"
                       : "bg-background text-muted hover:bg-white/[0.055] hover:text-foreground",
                   )}
                 >
                   <Icon aria-hidden="true" className="size-5" />
-                  <span className="mt-4 block text-sm font-bold">
+                  <span className="mt-4 block break-words text-sm font-bold">
                     {item.label}
                   </span>
                   <span
                     className={cn(
-                      "mt-1 block text-xs",
+                      "mt-1 block break-words text-xs",
                       selected ? "text-black/65" : "text-muted",
                     )}
                   >
@@ -521,10 +521,10 @@ export function GenerationForm({
                       : "bg-background hover:bg-white/[0.055]",
                   )}
                 >
-                  <span className="flex items-center justify-between gap-3 text-sm font-bold text-foreground">
+                  <span className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-sm font-bold text-foreground">
                     {item.label}
                     {item.recommended ? (
-                      <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] text-brand-ink">
+                      <span className="shrink-0 rounded-full bg-brand px-2 py-0.5 text-[10px] text-brand-ink">
                         Recomendado
                       </span>
                     ) : null}
@@ -1332,7 +1332,7 @@ function ColorPalette({
 }) {
   return (
     <div className="mt-3">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:grid-cols-3">
         {colors.map((color, index) => (
           <div
             key={`${index}-${color}`}

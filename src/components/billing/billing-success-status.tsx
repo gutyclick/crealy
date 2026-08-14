@@ -1,20 +1,21 @@
 "use client";
 
 import { Check, LoaderCircle, RotateCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
 type BillingStatus = {
-  plan: "free" | "pro" | "business";
+  plan: "free" | "starter" | "pro" | "business";
   status: string | null;
   credits: number;
 };
 
-export function BillingSuccessStatus() {
+export function BillingSuccessStatus({ sessionId }: { sessionId?: string }) {
   const [state, setState] = useState<BillingStatus | null>(null);
   const [attempts, setAttempts] = useState(0);
   const [delayed, setDelayed] = useState(false);
+  const reconciliationAttempted = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -22,6 +23,14 @@ export function BillingSuccessStatus() {
 
     async function check() {
       try {
+        if (sessionId && !reconciliationAttempted.current) {
+          reconciliationAttempted.current = true;
+          await fetch("/api/billing/reconcile", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ sessionId }),
+          });
+        }
         const response = await fetch("/api/billing/status", {
           cache: "no-store",
         });
@@ -51,9 +60,9 @@ export function BillingSuccessStatus() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [sessionId]);
 
-  const active = state?.plan === "pro" || state?.plan === "business";
+  const active = Boolean(state && state.plan !== "free");
 
   return (
     <div
@@ -81,7 +90,7 @@ export function BillingSuccessStatus() {
       </h1>
       <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-muted">
         {active
-          ? `Tu cuenta tiene ${state.credits} créditos disponibles. Ya puedes volver a crear.`
+          ? `Tu cuenta tiene ${state?.credits ?? 0} créditos disponibles. Ya puedes volver a crear.`
           : delayed
             ? "Stripe recibió el pago, pero la confirmación está tardando más de lo habitual. No vuelvas a pagar: revisa Facturación en unos minutos."
             : "Esperamos la confirmación segura de Stripe. Esta pantalla se actualizará automáticamente."}
@@ -96,7 +105,11 @@ export function BillingSuccessStatus() {
           <Button
             type="button"
             size="lg"
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setAttempts(0);
+              setDelayed(false);
+              window.location.reload();
+            }}
           >
             <RotateCw aria-hidden="true" className="size-4" />
             Revisar de nuevo

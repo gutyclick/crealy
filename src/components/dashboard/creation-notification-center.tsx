@@ -216,7 +216,7 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
         </button>
 
         {open ? (
-          <div id="creation-notifications" className="absolute right-0 top-[calc(100%+0.65rem)] z-30 w-[min(23rem,calc(100vw-1.5rem))] overflow-hidden rounded-[0.9rem] border border-white/10 bg-surface-elevated shadow-[0_24px_65px_rgba(0,0,0,.5)]">
+          <div id="creation-notifications" className="fixed inset-x-3 top-[4.75rem] z-30 max-h-[calc(100dvh-6rem)] overflow-hidden rounded-[0.9rem] border border-white/10 bg-surface-elevated shadow-[0_24px_65px_rgba(0,0,0,.5)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+0.65rem)] sm:w-[min(23rem,calc(100vw-1.5rem))]">
             <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3.5">
               <div>
                 <p className="text-sm font-semibold text-foreground">Actividad de creación</p>
@@ -227,7 +227,7 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
               </button>
             </div>
             {notifications.length ? (
-              <div className="max-h-[25rem] overflow-y-auto p-2">
+              <div className="max-h-[calc(100dvh-12rem)] overscroll-contain overflow-y-auto p-2 sm:max-h-[25rem]">
                 {notifications.map((item) => {
                   const active = ACTIVE_STATUSES.has(item.status);
                   const ready = item.status === "completed";
@@ -243,7 +243,7 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
                         <p className={`mt-1 text-xs ${ready ? "text-brand" : "text-muted"}`}>{statusCopy(item.status)}</p>
                         {ready ? <Link onClick={() => setOpen(false)} href={`/generations/${item.generationId}`} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:text-brand">Ver diseño <ArrowUpRight aria-hidden="true" className="size-3.5" /></Link> : null}
                       </div>
-                      {!active ? <button type="button" onClick={() => dismiss(item.jobId)} aria-label={`Quitar ${item.label}`} className="grid size-11 shrink-0 place-items-center rounded-lg text-white/35 opacity-0 hover:bg-white/[0.06] hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"><X aria-hidden="true" className="size-4" /></button> : null}
+                      {!active ? <button type="button" onClick={() => dismiss(item.jobId)} aria-label={`Quitar ${item.label}`} className="grid size-11 shrink-0 place-items-center rounded-lg text-white/35 opacity-100 hover:bg-white/[0.06] hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"><X aria-hidden="true" className="size-4" /></button> : null}
                     </div>
                   );
                 })}
@@ -260,7 +260,7 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
       </div>
 
       {toast && typeof document !== "undefined" ? createPortal((
-        <div key={toast.id} role="status" aria-live="polite" className="creation-toast fixed bottom-5 right-4 z-[70] w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-surface-elevated p-4 shadow-[0_24px_70px_rgba(0,0,0,.55)] sm:bottom-6 sm:right-6">
+        <div key={toast.id} role="status" aria-live="polite" className="creation-toast fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[70] rounded-2xl border border-white/10 bg-surface-elevated p-4 shadow-[0_24px_70px_rgba(0,0,0,.55)] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[min(24rem,calc(100vw-2rem))]">
           <div className="flex items-start gap-3">
             <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${toast.tone === "ready" ? "bg-brand text-brand-ink" : toast.tone === "failed" ? "bg-red-400/10 text-red-200" : "bg-brand/10 text-brand"}`}>
               {toast.tone === "ready" ? <Check className="size-5" /> : toast.tone === "failed" ? <CircleAlert className="size-5" /> : <Clock3 className="size-5" />}

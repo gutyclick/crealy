@@ -91,6 +91,28 @@ test("active paid plans open Stripe Portal directly and safely", () => {
   assert.match(portalRoute, /action: "billing\.portal"/);
 });
 
+test("paid checkout can recover safely when the Stripe webhook is delayed", () => {
+  const success = readFileSync(
+    "src/components/billing/billing-success-status.tsx",
+    "utf8",
+  );
+  const route = readFileSync(
+    "src/app/api/billing/reconcile/route.ts",
+    "utf8",
+  );
+  const reconciliation = readFileSync(
+    "src/lib/stripe/reconcile-user-billing.ts",
+    "utf8",
+  );
+
+  assert.match(success, /plan !== "free"/);
+  assert.match(success, /\/api\/billing\/reconcile/);
+  assert.match(route, /action: "billing\.reconcile"/);
+  assert.match(reconciliation, /session\.client_reference_id === userId/);
+  assert.match(reconciliation, /session\.metadata\?\.supabase_user_id === userId/);
+  assert.match(reconciliation, /syncPaidInvoice/);
+});
+
 test("public product surfaces no longer present Crealy as beta", () => {
   for (const file of [
     "src/components/layout/header.tsx",

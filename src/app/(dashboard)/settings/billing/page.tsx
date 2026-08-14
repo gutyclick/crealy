@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AlertCircle, ArrowRight, Coins } from "lucide-react";
 
 import { PortalButton } from "@/components/billing/portal-button";
+import { BillingSyncButton } from "@/components/billing/billing-sync-button";
 import { PricingTable } from "@/components/billing/pricing-table";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
@@ -126,11 +127,19 @@ export default async function BillingPage() {
               <p className="mt-5 text-sm text-muted">{periodLabel}</p>
               <div className="mt-8">
                 {state.hasBillingCustomer ? (
-                  <PortalButton />
+                  <>
+                    <PortalButton />
+                    {state.effectivePlan.key === "free" ? (
+                      <BillingSyncButton />
+                    ) : null}
+                  </>
                 ) : state.canCheckoutPro ? (
-                  <Button href="/pricing" variant="secondary" size="lg">
-                    Ver plan Pro
-                  </Button>
+                  <>
+                    <Button href="/pricing" variant="secondary" size="lg">
+                      Ver plan
+                    </Button>
+                    <BillingSyncButton />
+                  </>
                 ) : (
                   <p className="text-sm leading-6 text-muted">
                     Los pagos todavía no están disponibles. Tus créditos
@@ -203,7 +212,8 @@ export default async function BillingPage() {
                 ¿Necesitas un saldo nuevo cada mes?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted">
-                Pro añade créditos en cada ciclo confirmado por Stripe.
+                Cada plan de pago añade créditos en el ciclo confirmado por
+                Stripe.
               </p>
               <div className="mt-9">
                 <PricingTable
