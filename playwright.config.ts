@@ -1,4 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import { loadEnvConfig } from "@next/env";
+
+// Playwright runs in Node, outside Next.js, so load local E2E variables before
+// evaluating safety gates and selecting the target test project.
+loadEnvConfig(process.cwd());
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -9,6 +14,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000",
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
   },
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
@@ -16,12 +22,18 @@ export default defineConfig({
         command: "npm run build && npm run start",
         url: "http://127.0.0.1:3000",
         reuseExistingServer: false,
-        timeout: 120_000,
+        timeout: 180_000,
       },
   projects: [
     {
-      name: "chromium",
+      name: "desktop-chromium",
+      testIgnore: /mobile-authenticated\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile-chromium",
+      testMatch: /mobile-authenticated\.spec\.ts/,
+      use: { ...devices["iPhone 13"] },
     },
   ],
 });

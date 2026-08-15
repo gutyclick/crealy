@@ -55,11 +55,15 @@ jobs:
       contents: read
     env:
       E2E_ALLOW_REMOTE_TEST_PROJECT: "true"
+      E2E_REQUIRE_CONFIG: "true"
       E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
       E2E_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.E2E_SUPABASE_PUBLISHABLE_KEY }}
       E2E_SUPABASE_SECRET_KEY: ${{ secrets.E2E_SUPABASE_SECRET_KEY }}
+      E2E_SUPABASE_PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.E2E_SUPABASE_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "true"
+      NEXT_PUBLIC_DISCORD_AUTH_ENABLED: "true"
       SUPABASE_SECRET_KEY: ${{ secrets.E2E_SUPABASE_SECRET_KEY }}
       IP_HASH_SALT: ${{ secrets.E2E_IP_HASH_SALT }}
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
@@ -67,6 +71,9 @@ jobs:
       INVITE_REQUIRED: "false"
       OPENAI_GENERATION_ENABLED: "false"
       STRIPE_BILLING_ENABLED: "false"
+      STRIPE_SECRET_KEY: sk_test_e2e_contract_only
+      STRIPE_WEBHOOK_SECRET: whsec_e2e_contract_only
+      E2E_STRIPE_WEBHOOK_SECRET: whsec_e2e_contract_only
       TRANSACTIONAL_EMAILS_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
@@ -76,4 +83,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e -- tests/e2e/authenticated-private.spec.ts
+      - run: npm run test:e2e -- tests/e2e/authenticated-private.spec.ts tests/e2e/mobile-authenticated.spec.ts
+      - name: Upload authenticated E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-e2e-diagnostics
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7

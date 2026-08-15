@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
     "test:e2e": "playwright test",
+    "test:e2e:authenticated": "playwright test tests/e2e/authenticated-private.spec.ts tests/e2e/mobile-authenticated.spec.ts",
     "check:secrets": "tsx scripts/check-secrets.ts",
     "validate:production-env": "tsx scripts/validate-production-env.ts",
     "smoke:production": "tsx scripts/smoke-test-production.ts",

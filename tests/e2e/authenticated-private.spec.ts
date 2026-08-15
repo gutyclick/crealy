@@ -1,13 +1,16 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { expect, test } from "@playwright/test";
 import { createHmac } from "node:crypto";
 
-const testUrl = process.env.E2E_SUPABASE_URL?.trim() || "";
-const appUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "";
-const publishableKey = process.env.E2E_SUPABASE_PUBLISHABLE_KEY?.trim() || "";
-const secretKey = process.env.E2E_SUPABASE_SECRET_KEY?.trim() || "";
-const explicitlyAllowed = process.env.E2E_ALLOW_REMOTE_TEST_PROJECT === "true";
-const configured = explicitlyAllowed && Boolean(testUrl && publishableKey && secretKey) && testUrl === appUrl;
+import { expect, test } from "@playwright/test";
+
+import {
+  adminClient,
+  authenticatedE2EConfigured,
+  createConfirmedUser,
+  findUserByEmail,
+  login,
+  uniqueTestUser,
+  userClient,
+} from "./support/authenticated-test-project";
 
 function totp(secret: string, counter = Math.floor(Date.now() / 30_000)) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -17,7 +20,9 @@ function totp(secret: string, counter = Math.floor(Date.now() / 30_000)) {
     if (value < 0) throw new Error("invalid_totp_secret");
     bits += value.toString(2).padStart(5, "0");
   }
-  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((byte) => Number.parseInt(byte, 2)));
+  const key = Buffer.from(
+    (bits.match(/.{8}/g) ?? []).map((byte) => Number.parseInt(byte, 2)),
+  );
   const moving = Buffer.alloc(8);
   moving.writeBigUInt64BE(BigInt(counter));
   const digest = createHmac("sha1", key).update(moving).digest();
@@ -27,66 +32,328 @@ function totp(secret: string, counter = Math.floor(Date.now() / 30_000)) {
 }
 
 test.describe("flujos privados con Supabase de testing", () => {
-  test.skip(!configured, "Requiere un proyecto Supabase E2E separado y E2E_ALLOW_REMOTE_TEST_PROJECT=true.");
+  test.skip(
+    !authenticatedE2EConfigured,
+    "Requiere un proyecto Supabase E2E separado y autorizado.",
+  );
   test.describe.configure({ mode: "serial" });
   test.setTimeout(90_000);
 
-  let admin: SupabaseClient;
-  const users = [
-    { email: `crealy-e2e-primary-${Date.now()}@example.test`, password: `Crealy-E2E-${crypto.randomUUID()}!` },
-    { email: `crealy-e2e-isolation-${Date.now()}@example.test`, password: `Crealy-E2E-${crypto.randomUUID()}!` },
-  ];
-  const userIds: string[] = [];
+  let admin: ReturnType<typeof adminClient>;
+  const primary = uniqueTestUser("primary");
+  const isolated = uniqueTestUser("isolation");
+  const createdUserIds = new Set<string>();
   let primaryTotpSecret = "";
 
   test.beforeAll(async () => {
-    admin = createClient(testUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
-    for (const candidate of users) {
-      const { data, error } = await admin.auth.admin.createUser({ email: candidate.email, password: candidate.password, email_confirm: true });
-      if (error || !data.user) throw error ?? new Error("e2e_user_creation_failed");
-      userIds.push(data.user.id);
-    }
-    const userClient = createClient(testUrl, publishableKey, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { error: signInError } = await userClient.auth.signInWithPassword(users[0]);
+    admin = adminClient();
+    await createConfirmedUser(admin, primary);
+    await createConfirmedUser(admin, isolated);
+    createdUserIds.add(primary.id!);
+    createdUserIds.add(isolated.id!);
+
+    const client = userClient();
+    const { error: signInError } = await client.auth.signInWithPassword(primary);
     if (signInError) throw signInError;
-    const { data: enrollment, error: enrollmentError } = await userClient.auth.mfa.enroll({ factorType: "totp", friendlyName: "Crealy E2E" });
+    const { data: enrollment, error: enrollmentError } =
+      await client.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Crealy E2E",
+      });
     if (enrollmentError) throw enrollmentError;
     primaryTotpSecret = enrollment.totp.secret;
-    const { error: verifyError } = await userClient.auth.mfa.challengeAndVerify({ factorId: enrollment.id, code: totp(primaryTotpSecret) });
+    const { error: verifyError } = await client.auth.mfa.challengeAndVerify({
+      factorId: enrollment.id,
+      code: totp(primaryTotpSecret),
+    });
     if (verifyError) throw verifyError;
-    await userClient.auth.signOut();
+    await client.auth.signOut();
   });
 
   test.afterAll(async () => {
-    await Promise.all(userIds.map((id) => admin.auth.admin.deleteUser(id)));
+    await Promise.all(
+      [...createdUserIds].map((id) => admin.auth.admin.deleteUser(id)),
+    );
   });
 
-  test("inicia sesión y abre Create y Recreate sin compartir estado", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Correo electrónico").fill(users[0].email);
-    await page.getByLabel("Contraseña", { exact: true }).fill(users[0].password);
-    await page.getByRole("button", { name: "Iniciar sesión" }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
+  test("registra una cuenta por correo con consentimiento obligatorio", async ({
+    page,
+  }) => {
+    const registered = uniqueTestUser("signup");
+    await page.goto("/signup");
+    await page
+      .getByRole("button", { name: "Registrarme con correo" })
+      .click();
+    await page.getByLabel("Nombre").fill("Registro E2E");
+    await page.getByLabel("Correo electrónico").fill(registered.email);
+    await page
+      .getByLabel("Contraseña", { exact: true })
+      .fill(registered.password);
+    await page.getByLabel("Confirmar contraseña").fill(registered.password);
+    await page
+      .getByRole("checkbox", { name: /Acepto los términos de uso/i })
+      .check();
+    await page.getByRole("button", { name: "Crear cuenta" }).click();
+    await expect(page).toHaveURL(/\/verify-email/, { timeout: 20_000 });
+
+    const created = await findUserByEmail(admin, registered.email);
+    expect(created).not.toBeNull();
+    createdUserIds.add(created!.id);
+    const { error } = await admin.auth.admin.updateUserById(created!.id, {
+      email_confirm: true,
+    });
+    expect(error).toBeNull();
+  });
+
+  for (const provider of ["Google", "Discord"] as const) {
+    test(`entrega el registro a ${provider} con términos aceptados`, async ({
+      page,
+    }) => {
+      const authorizeRequest = page.waitForRequest((request) =>
+        request.url().includes("/auth/v1/authorize"),
+      );
+      await page.route("**/auth/v1/authorize**", async (route) => {
+        await route.fulfill({ status: 200, body: "OAuth handoff E2E" });
+      });
+      await page.goto("/signup");
+      await page
+        .getByRole("button", { name: `Continuar con ${provider}` })
+        .click();
+      await page
+        .getByRole("checkbox", { name: /Acepto los términos de uso/i })
+        .check();
+      await page
+        .getByRole("button", { name: `Continuar con ${provider}` })
+        .click();
+
+      const request = await authorizeRequest;
+      expect(new URL(request.url()).searchParams.get("provider")).toBe(
+        provider.toLowerCase(),
+      );
+    });
+  }
+
+  test("inicia y cierra sesión sin dejar acceso privado", async ({ page }) => {
+    await login(page, isolated);
+    await expect(page).toHaveURL(/\/dashboard/);
+    await page.getByRole("button", { name: "Abrir menú de usuario" }).click();
+    await page.getByRole("button", { name: "Cerrar sesión" }).click();
+    await expect(page).toHaveURL(/\/login\?signedOut=1/, { timeout: 20_000 });
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("abre Create y Recreate como superficies independientes", async ({
+    page,
+  }) => {
+    await login(page, isolated);
     await page.goto("/create");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      /crea|idea|diseña/i,
+    );
+    await expect(
+      page.getByRole("button", { name: /Crear miniatura/i }),
+    ).toBeVisible();
+
     await page.goto("/recreate");
-    await expect(page.getByRole("heading", { level: 1, name: /Recrea/i })).toBeVisible();
-    await page.goto("/settings/billing");
-    await expect(page.getByRole("heading", { name: /Plan y créditos/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Una referencia clara. Un resultado hecho para ti.",
+    );
+    await expect(page.getByText("Elige el tipo de pieza")).toBeVisible();
+    await expect(
+      page.getByText("Sube el diseño que quieres adaptar", { exact: false }),
+    ).toBeVisible();
   });
 
-  test("recomienda MFA sin bloquear facturación ni datos de cuenta", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Correo electrónico").fill(users[1].email);
-    await page.getByLabel("Contraseña", { exact: true }).fill(users[1].password);
-    await page.getByRole("button", { name: "Iniciar sesión" }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
-    await expect(page.getByText("Añade una capa extra de seguridad")).toBeVisible();
+  test("reserva créditos y los devuelve de forma atómica", async () => {
+    const referenceId = crypto.randomUUID();
+    const { error: grantError } = await admin.rpc("grant_credits_internal", {
+      p_user_id: isolated.id!,
+      p_source_type: "promotion",
+      p_source_reference: `e2e:${crypto.randomUUID()}`,
+      p_amount: 5,
+      p_expires_at: null,
+      p_description: "Créditos para prueba E2E",
+    });
+    expect(grantError).toBeNull();
+    const { data: before } = await admin
+      .from("credit_accounts")
+      .select("available_balance, reserved_balance")
+      .eq("user_id", isolated.id!)
+      .single();
+
+    const { data: reservation, error: reserveError } = await admin.rpc(
+      "reserve_credits_internal",
+      {
+        p_user_id: isolated.id!,
+        p_amount: 2,
+        p_reference_type: "generation",
+        p_reference_id: referenceId,
+        p_idempotency_key: `generation:${referenceId}`,
+      },
+    );
+    expect(reserveError).toBeNull();
+    expect(reservation?.[0]?.credits_remaining).toBe(
+      before!.available_balance - 2,
+    );
+
+    const { data: released, error: releaseError } = await admin.rpc(
+      "release_reserved_credits_internal",
+      {
+        p_user_id: isolated.id!,
+        p_reservation_id: reservation![0].reservation_id,
+      },
+    );
+    expect(releaseError).toBeNull();
+    expect(released).toBe(before!.available_balance);
+    const { data: after } = await admin
+      .from("credit_accounts")
+      .select("available_balance, reserved_balance")
+      .eq("user_id", isolated.id!)
+      .single();
+    expect(after).toEqual(before);
+  });
+
+  test("un webhook firmado es idempotente y un plan activo aparece en Billing", async ({
+    page,
+    request,
+  }) => {
+    const webhookSecret = process.env.E2E_STRIPE_WEBHOOK_SECRET!;
+    const timestamp = Math.floor(Date.now() / 1000);
+    const eventId = `evt_e2e_${crypto.randomUUID().replaceAll("-", "")}`;
+    const payload = JSON.stringify({
+      id: eventId,
+      object: "event",
+      api_version: "2026-06-30.basil",
+      created: timestamp,
+      data: { object: { id: `cs_${eventId}`, object: "checkout.session" } },
+      livemode: false,
+      pending_webhooks: 0,
+      request: null,
+      type: "checkout.session.expired",
+    });
+    const digest = createHmac("sha256", webhookSecret)
+      .update(`${timestamp}.${payload}`)
+      .digest("hex");
+    const headers = {
+      "content-type": "application/json",
+      "stripe-signature": `t=${timestamp},v1=${digest}`,
+    };
+    const first = await request.post("/api/webhooks/stripe", {
+      data: payload,
+      headers,
+    });
+    const second = await request.post("/api/webhooks/stripe", {
+      data: payload,
+      headers,
+    });
+    expect(first.status()).toBe(200);
+    expect(await first.json()).toEqual({ received: true, duplicate: false });
+    expect(await second.json()).toEqual({ received: true, duplicate: true });
+
+    const subscriptionId = `sub_e2e_${crypto.randomUUID().replaceAll("-", "")}`;
+    const now = new Date();
+    const { error: subscriptionError } = await admin.from("subscriptions").insert({
+      user_id: isolated.id!,
+      stripe_customer_id: `cus_e2e_${crypto.randomUUID().replaceAll("-", "")}`,
+      stripe_subscription_id: subscriptionId,
+      stripe_price_id: "price_e2e_creator",
+      stripe_product_id: "prod_e2e_creator",
+      plan_key: "pro",
+      status: "active",
+      currency: "usd",
+      current_period_start: now.toISOString(),
+      current_period_end: new Date(now.getTime() + 30 * 86_400_000).toISOString(),
+      cancel_at_period_end: false,
+      last_stripe_event_created_at: now.toISOString(),
+      livemode: false,
+    });
+    expect(subscriptionError).toBeNull();
+    await login(page, isolated);
     await page.goto("/settings/billing");
-    await expect(page).toHaveURL(/\/settings\/billing/);
-    await expect(page.getByRole("heading", { name: /Plan y créditos/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Creator" }),
+    ).toBeVisible();
+    await admin
+      .from("subscriptions")
+      .delete()
+      .eq("stripe_subscription_id", subscriptionId);
+  });
+
+  test("exige aislamiento de proyectos y descargas entre usuarios", async ({
+    page,
+  }) => {
+    const { data: project, error: projectError } = await admin
+      .from("projects")
+      .insert({
+        user_id: primary.id!,
+        title: "Proyecto privado E2E",
+        content_type: "youtube-thumbnail",
+      })
+      .select("id")
+      .single();
+    expect(projectError).toBeNull();
+    const { data: generation, error: generationError } = await admin
+      .from("generations")
+      .insert({
+        project_id: project!.id,
+        user_id: primary.id!,
+        client_request_id: crypto.randomUUID(),
+        status: "completed",
+        user_prompt: "Miniatura privada para validar aislamiento E2E",
+        content_type: "youtube-thumbnail",
+        requested_format: "youtube-16-9",
+        output_size: "1280x720",
+        style: "auto",
+        quality: "fast",
+        color_preference: "auto",
+        storage_path: `${primary.id}/e2e/private.png`,
+        mime_type: "image/png",
+        width: 1280,
+        height: 720,
+        completed_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    expect(generationError).toBeNull();
+
+    const isolatedClient = userClient();
+    const { error: signInError } = await isolatedClient.auth.signInWithPassword(
+      isolated,
+    );
+    expect(signInError).toBeNull();
+    const { data: leakedRows, error: rlsError } = await isolatedClient
+      .from("generations")
+      .select("id")
+      .eq("id", generation!.id);
+    expect(rlsError).toBeNull();
+    expect(leakedRows).toEqual([]);
+    await isolatedClient.auth.signOut();
+
+    await login(page, isolated);
+    const response = await page.request.get(
+      `/api/generations/${generation!.id}/download`,
+    );
+    expect(response.status()).toBe(404);
+  });
+
+  test("completa el desafío MFA y conserva las áreas no sensibles disponibles", async ({
+    page,
+  }) => {
+    await login(page, primary);
+    await page.goto("/mfa-challenge?next=%2Fsettings%2Fsecurity");
+    await page
+      .getByLabel("Código de autenticación")
+      .fill(totp(primaryTotpSecret));
+    await page.getByRole("button", { name: "Verificar y continuar" }).click();
+    await expect(page).toHaveURL(/\/settings\/security/, { timeout: 20_000 });
+    await page.goto("/settings/billing");
+    await expect(
+      page.getByRole("heading", { name: /Plan y créditos/i }),
+    ).toBeVisible();
     await page.goto("/settings/account");
-    await expect(page).toHaveURL(/\/settings\/account/);
-    await expect(page.getByRole("heading", { name: "Cuenta y datos" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Cuenta y datos" }),
+    ).toBeVisible();
   });
 });
