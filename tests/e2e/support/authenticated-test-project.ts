@@ -46,7 +46,9 @@ export type TestUser = {
 
 export function uniqueTestUser(label: string): TestUser {
   return {
-    email: `crealy-e2e-${label}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}@example.test`,
+    // Use Crealy's real domain: Supabase's public signup validation can reject
+    // reserved test TLDs even though admin-created users accept them.
+    email: `e2e+${label}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}@crealy.app`,
     password: `Crealy-E2E-${crypto.randomUUID()}!`,
   };
 }

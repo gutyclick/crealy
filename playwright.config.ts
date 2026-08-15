@@ -33,7 +33,7 @@ export default defineConfig({
     {
       name: "mobile-chromium",
       testMatch: /mobile-authenticated\.spec\.ts/,
-      use: { ...devices["iPhone 13"] },
+      use: { ...devices["Pixel 7"] },
     },
   ],
 });
