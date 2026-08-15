@@ -22,6 +22,15 @@ E2E_STRIPE_WEBHOOK_SECRET=whsec_e2e_contract_only
 
 La URL, la referencia del proyecto y el indicador explícito deben coincidir. En CI, `E2E_REQUIRE_CONFIG=true` hace fallar el job si la configuración está incompleta; localmente la suite se omite mientras no exista autorización expresa.
 
+El proyecto de testing usa [`tests/supabase/config.toml`](../../tests/supabase/config.toml) para confirmar correos automáticamente sin consumir la cuota SMTP compartida y mantener TOTP habilitado. Sincroniza infraestructura antes de habilitar el job:
+
+```text
+npx supabase config push --project-ref azzwpakaoeupdrqtdmtx
+npx supabase db push --project-ref azzwpakaoeupdrqtdmtx --skip-vault
+```
+
+Ejecuta el primer comando desde `tests/` y el segundo desde la raíz del repositorio. Revisa siempre el diff: esta configuración pertenece exclusivamente a `CrealyApp Testing`, nunca a producción.
+
 La cobertura incluye registro por correo, entrega segura a Google y Discord, login y logout, separación de Create y Recreate, reserva y devolución de créditos, firma e idempotencia del webhook, activación visible de planes, MFA, RLS, descargas aisladas y un recorrido móvil sin desbordes. La prueba OAuth valida el handoff a Supabase sin entregar credenciales reales a Google o Discord.
 
 Ejecuta `npm run test:e2e:authenticated`. En GitHub, define `E2E_AUTH_ENABLED=true` y `E2E_SUPABASE_PROJECT_REF` como variables del repositorio, y carga URL y claves E2E como secretos.

@@ -5,6 +5,7 @@ import { expect, test } from "@playwright/test";
 import {
   adminClient,
   authenticatedE2EConfigured,
+  cleanupStaleTestUsers,
   createConfirmedUser,
   findUserByEmail,
   login,
@@ -47,6 +48,7 @@ test.describe("flujos privados con Supabase de testing", () => {
 
   test.beforeAll(async () => {
     admin = adminClient();
+    await cleanupStaleTestUsers(admin);
     await createConfirmedUser(admin, primary);
     await createConfirmedUser(admin, isolated);
     createdUserIds.add(primary.id!);
@@ -94,15 +96,19 @@ test.describe("flujos privados con Supabase de testing", () => {
       .getByRole("checkbox", { name: /Acepto los términos de uso/i })
       .check();
     await page.getByRole("button", { name: "Crear cuenta" }).click();
-    await expect(page).toHaveURL(/\/verify-email/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/(dashboard|verify-email)/, {
+      timeout: 20_000,
+    });
 
     const created = await findUserByEmail(admin, registered.email);
     expect(created).not.toBeNull();
     createdUserIds.add(created!.id);
-    const { error } = await admin.auth.admin.updateUserById(created!.id, {
-      email_confirm: true,
-    });
-    expect(error).toBeNull();
+    if (!created!.email_confirmed_at) {
+      const { error } = await admin.auth.admin.updateUserById(created!.id, {
+        email_confirm: true,
+      });
+      expect(error).toBeNull();
+    }
   });
 
   for (const provider of ["Google", "Discord"] as const) {

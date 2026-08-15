@@ -1,0 +1,20 @@
+# Configuration intentionally scoped to the disposable CrealyApp Testing project.
+project_id = "azzwpakaoeupdrqtdmtx"
+
+[auth]
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000"]
+
+[auth.email]
+enable_signup = true
+# CI must not depend on Supabase's shared SMTP quota or deliver real messages.
+enable_confirmations = false
+max_frequency = "1m"
+otp_length = 8
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[storage.vector]
+enabled = false

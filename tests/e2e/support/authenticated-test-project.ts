@@ -109,3 +109,20 @@ export async function findUserByEmail(
   }
   return null;
 }
+
+export async function cleanupStaleTestUsers(admin: SupabaseClient) {
+  for (let page = 1; page <= 5; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+    if (error) throw error;
+    const staleIds = data.users
+      .filter((user) => user.email?.startsWith("e2e+"))
+      .map((user) => user.id);
+    await Promise.all(
+      staleIds.map((id) => admin.auth.admin.deleteUser(id)),
+    );
+    if (data.users.length < 200) break;
+  }
+}
