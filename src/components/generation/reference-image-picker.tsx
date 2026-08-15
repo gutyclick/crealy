@@ -7,12 +7,14 @@ import { useRef, useState } from "react";
 
 import { MAX_GENERATION_REFERENCE_IMAGES } from "@/config/generation";
 import { cn } from "@/lib/utils";
+import type { RecreateReferenceRole } from "@/types/recreate";
 
 export type ReferenceDraft = {
   key: string;
   file: File;
   previewUrl: string;
   uploadId?: string;
+  recreateRole?: RecreateReferenceRole;
   status: "ready" | "uploading" | "uploaded" | "error";
 };
 

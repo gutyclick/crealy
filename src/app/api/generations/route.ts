@@ -385,6 +385,8 @@ export async function POST(request: Request) {
           recreateBlueprint: input.recreateBlueprint ?? null,
           recreateFocus: input.recreateFocus ?? null,
           recreateGoal: input.recreateGoal ?? null,
+          recreateReferenceRoles: input.recreateReferenceRoles ?? null,
+          recreatePreservation: input.recreatePreservation ?? null,
         },
         brand_style_id: input.brandStyleId ?? null,
         style_consistency: input.styleConsistency ?? null,

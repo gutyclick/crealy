@@ -16,6 +16,10 @@ import {
 } from "@/config/generation";
 import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { THUMBNAIL_PRESETS, THUMBNAIL_TEXT_MODES } from "@/config/thumbnail-creation";
+import {
+  DEFAULT_RECREATE_PRESERVATION,
+  RECREATE_REFERENCE_ROLES,
+} from "@/config/recreate";
 import { validateColorPalette } from "@/lib/colors/validate-color-palette";
 import type {
   ColorPreference,
@@ -31,7 +35,14 @@ import type {
   StyleConsistency,
 } from "@/types/generation";
 import { isRecreateCategory } from "@/lib/recreate/reference";
-import type { RecreateBlueprint, RecreateFocus, RecreateGoal, RecreateSimilarity } from "@/types/recreate";
+import type {
+  RecreateBlueprint,
+  RecreateFocus,
+  RecreateGoal,
+  RecreatePreservation,
+  RecreateReferenceRole,
+  RecreateSimilarity,
+} from "@/types/recreate";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -42,6 +53,9 @@ const PROFILE_INTENSITY_IDS = new Set(PROFILE_INTENSITIES.map((item) => item.id)
 const PROFILE_BACKGROUND_IDS = new Set(PROFILE_BACKGROUNDS.map((item) => item.id));
 const THUMBNAIL_PRESET_IDS = new Set(THUMBNAIL_PRESETS.map((item) => item.id));
 const THUMBNAIL_TEXT_MODE_IDS = new Set(THUMBNAIL_TEXT_MODES.map((item) => item.id));
+const RECREATE_REFERENCE_ROLE_IDS = new Set(
+  RECREATE_REFERENCE_ROLES.map((item) => item.id),
+);
 
 type ValidationResult =
   | { success: true; data: GenerationInput }
@@ -189,6 +203,54 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   }
   if (creationMode === "recreate" && !referenceUploadIds?.length) fields.referenceUploadIds = "Añade una referencia para recrear.";
 
+  let recreateReferenceRoles: RecreateReferenceRole[] | undefined;
+  let recreatePreservation: RecreatePreservation | undefined;
+  if (creationMode === "recreate") {
+    const supportingCount = Math.max(0, (referenceUploadIds?.length ?? 0) - 1);
+    if (rawInput.recreateReferenceRoles === undefined) {
+      recreateReferenceRoles = Array.from(
+        { length: supportingCount },
+        (_, index) => index === 0 ? "protagonist" : "supporting",
+      );
+    } else if (
+      !Array.isArray(rawInput.recreateReferenceRoles) ||
+      rawInput.recreateReferenceRoles.length !== supportingCount ||
+      rawInput.recreateReferenceRoles.some(
+        (role) =>
+          typeof role !== "string" ||
+          !RECREATE_REFERENCE_ROLE_IDS.has(role as RecreateReferenceRole),
+      )
+    ) {
+      fields.recreateReferenceRoles =
+        "Define un papel válido para cada imagen adicional.";
+    } else {
+      recreateReferenceRoles =
+        rawInput.recreateReferenceRoles as RecreateReferenceRole[];
+    }
+
+    const preservationCandidate = rawInput.recreatePreservation;
+    if (preservationCandidate === undefined) {
+      recreatePreservation = { ...DEFAULT_RECREATE_PRESERVATION };
+    } else if (!isRecord(preservationCandidate)) {
+      fields.recreatePreservation =
+        "Elige opciones válidas para conservar la referencia.";
+    } else if (
+      Object.keys(DEFAULT_RECREATE_PRESERVATION).some(
+        (key) => typeof preservationCandidate[key] !== "boolean",
+      )
+    ) {
+      fields.recreatePreservation =
+        "Elige opciones válidas para conservar la referencia.";
+    } else {
+      recreatePreservation = Object.fromEntries(
+        Object.keys(DEFAULT_RECREATE_PRESERVATION).map((key) => [
+          key,
+          preservationCandidate[key],
+        ]),
+      ) as RecreatePreservation;
+    }
+  }
+
   let customColors: string[] | undefined;
   if (colorPreference === "custom") {
     const palette = validateColorPalette(rawInput.customColors);
@@ -284,7 +346,16 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
         : {}),
       ...(brandStyleId ? { brandStyleId, styleConsistency: styleConsistency as StyleConsistency } : {}),
       creationMode,
-      ...(creationMode === "recreate" && recreateBlueprint ? { recreateSimilarity, recreateBlueprint, recreateFocus, recreateGoal } : {}),
+      ...(creationMode === "recreate" && recreateBlueprint
+        ? {
+            recreateSimilarity,
+            recreateBlueprint,
+            recreateFocus,
+            recreateGoal,
+            recreateReferenceRoles,
+            recreatePreservation,
+          }
+        : {}),
     },
   };
 }

@@ -265,6 +265,57 @@ test("generation accepts at most four distinct reference images", () => {
   if (!tooMany.success) assert.ok(tooMany.fields.referenceUploadIds);
 });
 
+test("Recreate validates one role per supporting reference and preservation controls", () => {
+  const referenceUploadIds = [
+    "8c9f0c30-7932-4ec1-9eb1-369f4fac0321",
+    "4ed245f2-01dc-4294-a482-71b78e3cd08d",
+  ];
+  const recreate = {
+    ...validInput,
+    creationMode: "recreate",
+    referenceUploadIds,
+    recreateReferenceRoles: ["protagonist"],
+    recreatePreservation: {
+      composition: true,
+      pose: false,
+      lighting: true,
+      colors: false,
+      typography: true,
+    },
+    recreateBlueprint: {
+      category: "thumbnail",
+      composition: "Sujeto a la derecha y titular a la izquierda.",
+      hierarchy: "Sujeto, titular y fondo.",
+      visualStyle: "Editorial de alto contraste.",
+      background: "Fondo limpio.",
+      emotion: "Curiosidad.",
+      textDensity: "Baja",
+      subjectScale: "Grande",
+      colorPalette: ["amarillo", "negro"],
+      focalElements: ["rostro", "titular"],
+      replaceableElements: ["persona", "texto"],
+    },
+  };
+  assert.equal(validateGenerationInput(recreate).success, true);
+  const missingRole = validateGenerationInput({
+    ...recreate,
+    recreateReferenceRoles: [],
+  });
+  assert.equal(missingRole.success, false);
+  if (!missingRole.success) assert.ok(missingRole.fields.recreateReferenceRoles);
+  const invalidPreservation = validateGenerationInput({
+    ...recreate,
+    recreatePreservation: {
+      ...recreate.recreatePreservation,
+      pose: "yes",
+    },
+  });
+  assert.equal(invalidPreservation.success, false);
+  if (!invalidPreservation.success) {
+    assert.ok(invalidPreservation.fields.recreatePreservation);
+  }
+});
+
 test("covers use fixed platform variants and reject mismatches", () => {
   const cover = {
     ...validInput,

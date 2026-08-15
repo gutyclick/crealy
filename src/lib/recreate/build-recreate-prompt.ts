@@ -1,3 +1,7 @@
+import {
+  RECREATE_PRESERVATION_OPTIONS,
+  RECREATE_REFERENCE_ROLES,
+} from "@/config/recreate";
 import { getSimilarityInstructions } from "@/lib/recreate/reference";
 import type { GenerationInput } from "@/types/generation";
 
@@ -15,11 +19,31 @@ const goalInstructions = {
   bold: "Aumenta contraste, escala, tensión visual y energía sin perder legibilidad.",
 } as const;
 
+const preservationInstructions = {
+  composition: "conserva la distribución relativa, jerarquía, balance y recorrido visual",
+  pose: "conserva el gesto, la dirección corporal y la relación espacial de la pose sin copiar la identidad de la referencia base",
+  lighting: "conserva dirección, dureza, contraste y profundidad de la iluminación",
+  colors: "conserva las familias cromáticas y sus proporciones, adaptándolas al contenido nuevo",
+  typography: "conserva escala, peso, densidad y ubicación tipográfica, pero nunca el texto, la fuente de una marca ni sus rasgos identificables",
+} as const;
+
 export function buildRecreatePrompt(input: GenerationInput) {
   const blueprint = input.recreateBlueprint;
   if (input.creationMode !== "recreate" || !blueprint) return null;
   const referenceCount = input.referenceUploadIds?.length ?? 0;
   const supportingCount = Math.max(0, referenceCount - 1);
+  const roleLines = Array.from({ length: supportingCount }, (_, index) => {
+    const roleId = input.recreateReferenceRoles?.[index] ??
+      (index === 0 ? "protagonist" : "supporting");
+    const role = RECREATE_REFERENCE_ROLES.find((item) => item.id === roleId) ??
+      RECREATE_REFERENCE_ROLES.at(-1)!;
+    return `Imagen ${index + 2}: ${role.prompt}.`;
+  });
+  const selectedPreservation = input.recreatePreservation
+    ? RECREATE_PRESERVATION_OPTIONS
+        .filter((item) => input.recreatePreservation?.[item.id])
+        .map((item) => preservationInstructions[item.id])
+    : [];
   return [
     "MODO RECREATE — CREA UNA PIEZA NUEVA Y ORIGINAL.",
     "La primera imagen adjunta es una referencia de fórmula visual, no contenido para copiar ni una fuente de identidad.",
@@ -36,12 +60,17 @@ export function buildRecreatePrompt(input: GenerationInput) {
     `Focos a reinterpretar: ${blueprint.focalElements.join(", ") || "jerarquía principal"}.`,
     `Elementos que deben reemplazarse: ${blueprint.replaceableElements.join(", ") || "texto, personas, logos, marcas y objetos identificables"}.`,
     `Nivel de cercanía: ${getSimilarityInstructions(input.recreateSimilarity ?? "similar")}`,
-    `Prioridad a conservar: ${focusInstructions[input.recreateFocus ?? "composition"]}`,
+    input.recreatePreservation
+      ? selectedPreservation.length
+        ? `CONSERVACIÓN SOLICITADA:\n${selectedPreservation.map((rule) => `- ${rule}.`).join("\n")}`
+        : "CONSERVACIÓN SOLICITADA: reinterpreta libremente composición, pose, iluminación, colores y tratamiento tipográfico."
+      : `Prioridad a conservar: ${focusInstructions[input.recreateFocus ?? "composition"]}`,
     `Mejora buscada: ${goalInstructions[input.recreateGoal ?? "performance"]}`,
     "REGLAS DE ORIGINALIDAD: nunca copies texto, nombres, logos, branding, una persona, un personaje protegido ni objetos distintivos de la referencia. No hagas una réplica píxel a píxel. Conserva solamente principios abstractos de composición, contraste, ritmo, jerarquía y emoción.",
     supportingCount > 0
       ? `MAPA DE REFERENCIAS: la imagen 1 solo define la fórmula visual. Las imágenes 2 a ${referenceCount} son ${supportingCount} sujetos, productos u objetos aportados por el usuario y deben aparecer en el resultado.`
       : "MAPA DE REFERENCIAS: la imagen 1 solo define la fórmula visual. No copies ni reproduzcas a las personas u objetos identificables que aparezcan en ella.",
+    ...roleLines,
     supportingCount > 0
       ? "FIDELIDAD DE SUJETOS: conserva identidad, edad aparente, facciones, tono de piel y rasgos distintivos de cada material adicional. Representa cada sujeto u objeto una sola vez; no mezcles rostros, no fusiones elementos, no los dupliques ni sustituyas uno por otro, salvo petición expresa del usuario."
       : null,

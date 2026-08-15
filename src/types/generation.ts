@@ -197,6 +197,8 @@ export type GenerationInput = {
   recreateBlueprint?: import("@/types/recreate").RecreateBlueprint;
   recreateFocus?: import("@/types/recreate").RecreateFocus;
   recreateGoal?: import("@/types/recreate").RecreateGoal;
+  recreateReferenceRoles?: import("@/types/recreate").RecreateReferenceRole[];
+  recreatePreservation?: import("@/types/recreate").RecreatePreservation;
 };
 
 export type GenerationReferenceImage = {

@@ -14,6 +14,11 @@ import { getEditingServerEnv, getGenerationServerEnv } from "@/lib/env/server";
 import { getPublicSiteUrl } from "@/lib/seo/get-public-site-url";
 import { buildImagePrompt } from "@/lib/generation/build-image-prompt";
 import { buildRecreatePrompt } from "@/lib/recreate/build-recreate-prompt";
+import { evaluateRecreate } from "@/lib/recreate/evaluate-recreate";
+import {
+  buildCorrectiveRecreatePrompt,
+  shouldCorrectRecreate,
+} from "@/lib/recreate/evaluation-policy";
 import { generateImage } from "@/lib/generation/generate-image";
 import { loadGenerationReferences } from "@/lib/generation/load-generation-references";
 import { mapGenerationOptions } from "@/lib/generation/map-generation-options";
@@ -256,6 +261,10 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     recreateBlueprint: (generationMetadata.recreateBlueprint as GenerationInput["recreateBlueprint"]) ?? undefined,
     recreateFocus: (generationMetadata.recreateFocus as GenerationInput["recreateFocus"]) ?? undefined,
     recreateGoal: (generationMetadata.recreateGoal as GenerationInput["recreateGoal"]) ?? undefined,
+    recreateReferenceRoles:
+      (generationMetadata.recreateReferenceRoles as GenerationInput["recreateReferenceRoles"]) ?? undefined,
+    recreatePreservation:
+      (generationMetadata.recreatePreservation as GenerationInput["recreatePreservation"]) ?? undefined,
   };
 
   const { data: referenceRows, error: referenceError } = await admin
@@ -273,6 +282,9 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     referenceIds,
     getEditingServerEnv(),
   );
+  const recreateReferences = input.creationMode === "recreate"
+    ? [...references]
+    : [];
   let brandStylePrompt: string | null = null;
   if (input.brandStyleId) {
     const { data: brandStyle } = await admin.from("brand_styles").select("*").eq("id", input.brandStyleId).eq("user_id", generation.user_id).eq("analysis_status", "ready").maybeSingle();
@@ -333,7 +345,10 @@ async function processGeneration(job: JobRecord, startedAt: number) {
 
   let generated = await generateImage(input, enhancedPrompt, references);
   let thumbnailEvaluation = null;
+  let recreateEvaluation = null;
   let wasAutomaticallyRegenerated = false;
+  let wasRecreateAutomaticallyRegenerated = false;
+  let recreateUsedCorrectedResult = false;
   if (thumbnailPlan) {
     try {
       const firstEvaluation = await evaluateThumbnail({
@@ -366,6 +381,45 @@ async function processGeneration(job: JobRecord, startedAt: number) {
         jobId: job.id,
         resourceId: generation.id,
         errorCode: evaluationError instanceof Error ? evaluationError.message : "unknown",
+      });
+    }
+  }
+  if (input.creationMode === "recreate" && recreateReferences.length) {
+    try {
+      const firstEvaluation = await evaluateRecreate({
+        buffer: generated.imageBuffer,
+        mimeType: generated.mimeType,
+        input,
+        references: recreateReferences,
+      });
+      recreateEvaluation = firstEvaluation;
+      if (shouldCorrectRecreate(firstEvaluation)) {
+        wasRecreateAutomaticallyRegenerated = true;
+        const corrected = await generateImage(
+          input,
+          buildCorrectiveRecreatePrompt(enhancedPrompt, firstEvaluation),
+          references,
+        );
+        const correctedEvaluation = await evaluateRecreate({
+          buffer: corrected.imageBuffer,
+          mimeType: corrected.mimeType,
+          input,
+          references: recreateReferences,
+        });
+        if (correctedEvaluation.score >= firstEvaluation.score) {
+          generated = corrected;
+          recreateEvaluation = correctedEvaluation;
+          recreateUsedCorrectedResult = true;
+        }
+      }
+    } catch (evaluationError) {
+      logger.warn("generation.recreate_evaluation_failed", {
+        jobId: job.id,
+        resourceId: generation.id,
+        errorCode:
+          evaluationError instanceof Error
+            ? evaluationError.message
+            : "unknown",
       });
     }
   }
@@ -487,6 +541,25 @@ async function processGeneration(job: JobRecord, startedAt: number) {
               shownResult: wasAutomaticallyRegenerated && thumbnailEvaluation
                 ? "best_after_correction"
                 : "initial",
+            }
+          : {}),
+        ...(input.creationMode === "recreate"
+          ? {
+              recreateEvaluationScore: recreateEvaluation?.score ?? null,
+              recreateIdentityScore:
+                recreateEvaluation?.identityScore ?? null,
+              recreateCompositionScore:
+                recreateEvaluation?.compositionScore ?? null,
+              recreateTextScore: recreateEvaluation?.textScore ?? null,
+              recreateCriticalErrors:
+                recreateEvaluation?.criticalErrors ?? [],
+              recreateEvaluationProblems:
+                recreateEvaluation?.problems ?? [],
+              wasRecreateAutomaticallyRegenerated,
+              recreateShownResult:
+                recreateUsedCorrectedResult
+                  ? "best_after_correction"
+                  : "initial",
             }
           : {}),
       },

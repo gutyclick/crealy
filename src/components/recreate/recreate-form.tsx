@@ -27,6 +27,7 @@ import {
   getSupportedQualities,
   getVariantForPlatform,
 } from "@/config/generation-products";
+import { DEFAULT_RECREATE_PRESERVATION } from "@/config/recreate";
 import { getGenerationCreditCost } from "@/lib/credits/get-generation-credit-cost";
 import {
   publishCreditBalance,
@@ -120,6 +121,7 @@ export function RecreateForm({
     similarity: "similar",
     focus: "composition",
     goal: "performance",
+    preservation: { ...DEFAULT_RECREATE_PRESERVATION },
     ready: false,
   });
   const [result, setResult] = useState<SubmitState>({ status: "idle" });
@@ -175,7 +177,13 @@ export function RecreateForm({
     setVariant(next.defaultVariant);
     setQuality(getDefaultQuality(getGenerationVariant(next.defaultVariant)!));
     setReferences([]);
-    setRecreate({ similarity: "similar", focus: "composition", goal: "performance", ready: false });
+    setRecreate({
+      similarity: "similar",
+      focus: "composition",
+      goal: "performance",
+      preservation: { ...DEFAULT_RECREATE_PRESERVATION },
+      ready: false,
+    });
     setResult({ status: "idle" });
     setFieldErrors({});
     setBrandStyleId((current) =>
@@ -255,6 +263,10 @@ export function RecreateForm({
           recreateBlueprint: recreate.blueprint,
           recreateFocus: recreate.focus,
           recreateGoal: recreate.goal,
+          recreateReferenceRoles: references
+            .slice(1)
+            .map((reference) => reference.recreateRole ?? "supporting"),
+          recreatePreservation: recreate.preservation,
         }),
       });
       const payload = await readApiResponse<
