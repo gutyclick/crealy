@@ -9,7 +9,11 @@ import {
   normalizeContentType,
   normalizeGenerationVariant,
 } from "@/config/generation-products";
-import { GENERATION_COLORS, GENERATION_STYLES } from "@/config/generation";
+import {
+  GENERATION_COLORS,
+  GENERATION_STYLES,
+  MAX_GENERATION_REFERENCE_IMAGES,
+} from "@/config/generation";
 import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { THUMBNAIL_PRESETS, THUMBNAIL_TEXT_MODES } from "@/config/thumbnail-creation";
 import { validateColorPalette } from "@/lib/colors/validate-color-palette";
@@ -173,10 +177,10 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   if (rawInput.referenceUploadIds !== undefined) {
     if (
       !Array.isArray(rawInput.referenceUploadIds) ||
-      rawInput.referenceUploadIds.length > 4 ||
+      rawInput.referenceUploadIds.length > MAX_GENERATION_REFERENCE_IMAGES ||
       rawInput.referenceUploadIds.some((id) => typeof id !== "string" || !UUID_PATTERN.test(id))
     ) {
-      fields.referenceUploadIds = "Puedes usar hasta cuatro imágenes de referencia válidas.";
+      fields.referenceUploadIds = `Puedes usar hasta ${MAX_GENERATION_REFERENCE_IMAGES} imágenes de referencia válidas.`;
     } else if (new Set(rawInput.referenceUploadIds).size !== rawInput.referenceUploadIds.length) {
       fields.referenceUploadIds = "No repitas una imagen de referencia.";
     } else if (rawInput.referenceUploadIds.length) {

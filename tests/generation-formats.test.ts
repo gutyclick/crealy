@@ -10,7 +10,10 @@ import {
   normalizeContentType,
   normalizeGenerationVariant,
 } from "../src/config/generation-products";
-import { GENERATION_STYLES } from "../src/config/generation";
+import {
+  GENERATION_STYLES,
+  MAX_GENERATION_REFERENCE_IMAGES,
+} from "../src/config/generation";
 import { isValidFlexibleImageSize } from "../src/config/image-models";
 import { PLATFORM_COVERS } from "../src/config/content-formats";
 import { resolveAutomaticStyle } from "../src/config/visual-styles";
@@ -234,6 +237,32 @@ test("custom palettes accept up to five unique hexadecimal colors", () => {
   });
   assert.equal(tooMany.success, false);
   if (!tooMany.success) assert.ok(tooMany.fields.customColors);
+});
+
+test("generation accepts at most four distinct reference images", () => {
+  const references = [
+    "8c9f0c30-7932-4ec1-9eb1-369f4fac0321",
+    "4ed245f2-01dc-4294-a482-71b78e3cd08d",
+    "a1f5b3e0-a60d-4889-8b95-119f618422ea",
+    "07e86096-9c80-4d62-a2aa-35cf0265c5cd",
+  ];
+  assert.equal(MAX_GENERATION_REFERENCE_IMAGES, 4);
+  assert.equal(
+    validateGenerationInput({
+      ...validInput,
+      referenceUploadIds: references,
+    }).success,
+    true,
+  );
+  const tooMany = validateGenerationInput({
+    ...validInput,
+    referenceUploadIds: [
+      ...references,
+      "ab86a394-ebf1-4413-a47f-4dff1ad7d437",
+    ],
+  });
+  assert.equal(tooMany.success, false);
+  if (!tooMany.success) assert.ok(tooMany.fields.referenceUploadIds);
 });
 
 test("covers use fixed platform variants and reject mismatches", () => {

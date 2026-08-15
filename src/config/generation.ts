@@ -51,6 +51,8 @@ export const GENERATION_QUALITIES = [
   description: string;
 }>;
 
+export const MAX_GENERATION_REFERENCE_IMAGES = 4;
+
 export const DEFAULT_GENERATION_VALUES = {
   contentType: "thumbnail",
   format: "thumbnail-standard",

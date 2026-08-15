@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Dispatch, SetStateAction } from "react";
 import { useRef, useState } from "react";
 
+import { MAX_GENERATION_REFERENCE_IMAGES } from "@/config/generation";
 import { cn } from "@/lib/utils";
 
 export type ReferenceDraft = {
@@ -21,7 +22,7 @@ export function ReferenceImagePicker({
   references,
   setReferences,
   maxFileMb,
-  maxFiles = 4,
+  maxFiles = MAX_GENERATION_REFERENCE_IMAGES,
   disabled,
 }: {
   references: ReferenceDraft[];

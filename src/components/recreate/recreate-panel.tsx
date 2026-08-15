@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 
 import type { ReferenceDraft } from "@/components/generation/reference-image-picker";
+import { MAX_GENERATION_REFERENCE_IMAGES } from "@/config/generation";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
 import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
@@ -12,6 +13,8 @@ import { buildFallbackBlueprint } from "@/lib/recreate/default-blueprint";
 import type { RecreateBlueprint, RecreateCategory, RecreateFocus, RecreateGoal, RecreateSimilarity } from "@/types/recreate";
 
 export type RecreateState = { similarity: RecreateSimilarity; focus: RecreateFocus; goal: RecreateGoal; blueprint?: RecreateBlueprint; ready: boolean };
+
+const ACCEPTED_REFERENCE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export function RecreatePanel({ category, references, setReferences, disabled, maxFileMb, onChange }: {
   category: RecreateCategory;
@@ -22,7 +25,7 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
   onChange: (state: RecreateState) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const protagonistInputRef = useRef<HTMLInputElement>(null);
+  const supportingInputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
   const [similarity, setSimilarity] = useState<RecreateSimilarity>("similar");
   const [focus, setFocus] = useState<RecreateFocus>("composition");
@@ -30,8 +33,9 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
   const stateRef = useRef<RecreateState>({ similarity: "similar", focus: "composition", goal: "performance", ready: false });
   const [status, setStatus] = useState<"empty" | "loading" | "analyzing" | "ready" | "error">("empty");
   const [message, setMessage] = useState("");
+  const [supportingError, setSupportingError] = useState("");
   const source = references[0];
-  const protagonist = references[1];
+  const supportingReferences = references.slice(1);
   const busy = status === "loading" || status === "analyzing";
 
   function emitChange(patch: Partial<RecreateState>) {
@@ -39,26 +43,74 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
     onChange(stateRef.current);
   }
 
-  function addProtagonist(file: File) {
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      setStatus("error"); setMessage("Usa una imagen PNG, JPEG o WebP para el protagonista."); return;
+  function addSupportingReferences(files: File[]) {
+    setSupportingError("");
+    const remaining = MAX_GENERATION_REFERENCE_IMAGES - references.length;
+    if (remaining <= 0) {
+      setSupportingError(`Puedes usar hasta ${MAX_GENERATION_REFERENCE_IMAGES} imágenes en total.`);
+      return;
     }
-    if (file.size > maxFileMb * 1024 * 1024) {
-      setStatus("error"); setMessage(`La imagen del protagonista puede pesar hasta ${maxFileMb} MB.`); return;
+
+    const accepted: ReferenceDraft[] = [];
+    for (const file of files.slice(0, remaining)) {
+      if (!ACCEPTED_REFERENCE_TYPES.has(file.type)) {
+        setSupportingError("Usa imágenes PNG, JPEG o WebP para los sujetos y elementos.");
+        continue;
+      }
+      if (file.size > maxFileMb * 1024 * 1024) {
+        setSupportingError(`Cada imagen puede pesar hasta ${maxFileMb} MB.`);
+        continue;
+      }
+      const duplicate = [...references, ...accepted].some(
+        (item) =>
+          item.file.name === file.name &&
+          item.file.size === file.size &&
+          item.file.lastModified === file.lastModified,
+      );
+      if (duplicate) {
+        setSupportingError("Una de esas imágenes ya está seleccionada.");
+        continue;
+      }
+      accepted.push({
+        key: crypto.randomUUID(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: "ready",
+      });
     }
-    const draft: ReferenceDraft = { key: crypto.randomUUID(), file, previewUrl: URL.createObjectURL(file), status: "ready" };
-    setReferences((current) => {
-      if (current[1]) URL.revokeObjectURL(current[1].previewUrl);
-      return current[0] ? [current[0], draft] : current;
-    });
+
+    if (accepted.length) {
+      setReferences((current) => [...current, ...accepted].slice(0, MAX_GENERATION_REFERENCE_IMAGES));
+      setMessage(
+        files.length > remaining
+          ? `Se añadieron ${remaining}. El máximo es ${MAX_GENERATION_REFERENCE_IMAGES} imágenes en total.`
+          : "Material adicional listo. Crealy lo incorporará sin mezclar identidades.",
+      );
+    }
   }
 
   async function prepare(file: File) {
+    if (!ACCEPTED_REFERENCE_TYPES.has(file.type)) {
+      setStatus("error");
+      setMessage("Usa una imagen PNG, JPEG o WebP como referencia base.");
+      return;
+    }
+    if (file.size > maxFileMb * 1024 * 1024) {
+      setStatus("error");
+      setMessage(`La referencia base puede pesar hasta ${maxFileMb} MB.`);
+      return;
+    }
     setStatus("analyzing"); setMessage("");
     emitChange({ similarity, focus, goal, blueprint: undefined, ready: false });
     const key = crypto.randomUUID();
     const previewUrl = URL.createObjectURL(file);
-    setReferences((current) => [{ key, file, previewUrl, status: "uploading" }, ...current.slice(1)]);
+    setReferences((current) => {
+      if (current[0]) URL.revokeObjectURL(current[0].previewUrl);
+      return [
+        { key, file, previewUrl, status: "uploading" },
+        ...current.slice(1, MAX_GENERATION_REFERENCE_IMAGES),
+      ];
+    });
     try {
       const upload = await uploadPrivateImage(file, "reference");
       setReferences((current) => current.map((item, index) => index === 0 ? { ...item, uploadId: upload.uploadId, status: "uploaded" } : item));
@@ -97,7 +149,7 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
     </div>
     {status === "ready" ? <div role="status" aria-live="polite" className="mx-5 mb-5 flex items-center gap-2 rounded-xl bg-brand/10 px-4 py-3 text-sm font-semibold text-foreground ring-1 ring-brand/25 sm:mx-6 sm:mb-6"><Check className="size-4 text-brand" />{message || "Crealy entendió la composición, la jerarquía y la energía visual."}</div> : null}
     {status === "error" ? <p role="alert" className="mx-5 mb-5 rounded-xl bg-red-950/40 px-4 py-3 text-sm text-red-100 sm:mx-6 sm:mb-6">{message}</p> : null}
-    {status === "ready" ? <div className="border-t border-white/8 p-5 sm:p-6"><div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-foreground">Protagonista o producto <span className="font-normal text-muted">(opcional)</span></p><p className="mt-1 text-xs leading-5 text-muted">Añade tu propia persona, producto u objeto. Crealy preservará sus rasgos principales.</p></div>{protagonist ? <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-background ring-1 ring-white/10"><Image src={protagonist.previewUrl} alt="Protagonista seleccionado" fill unoptimized className="object-cover" /></div> : null}</div><input ref={protagonistInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) addProtagonist(file); event.target.value = ""; }} /><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => protagonistInputRef.current?.click()} disabled={disabled || busy} className="flex min-h-11 items-center gap-2 rounded-xl bg-background px-4 text-sm font-semibold text-foreground ring-1 ring-white/10 transition-colors hover:ring-brand/45"><ImagePlus className="size-4 text-brand" />{protagonist ? "Cambiar imagen" : "Añadir protagonista"}</button>{protagonist ? <button type="button" onClick={() => { URL.revokeObjectURL(protagonist.previewUrl); setReferences((current) => current.slice(0, 1)); }} disabled={disabled || busy} className="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"><X className="size-4" />Quitar</button> : null}</div></div> : null}
+    {status === "ready" ? <div className="border-t border-white/8 p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-foreground">Sujetos, productos o elementos <span className="font-normal text-muted">(opcional)</span></p><p className="mt-1 max-w-2xl text-xs leading-5 text-muted">La primera imagen define la fórmula visual. Añade hasta 3 imágenes propias para incorporarlas al nuevo diseño. Máximo {MAX_GENERATION_REFERENCE_IMAGES} imágenes en total.</p></div><span className="shrink-0 rounded-lg bg-background px-2.5 py-1 text-xs font-semibold text-muted ring-1 ring-white/10">{references.length}/{MAX_GENERATION_REFERENCE_IMAGES}</span></div><p className="mt-3 text-xs leading-5 text-white/55">Para mayor fidelidad, usa una persona u objeto por imagen, con buena luz y sin elementos que tapen sus rasgos.</p><input ref={supportingInputRef} type="file" multiple accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { addSupportingReferences(Array.from(event.target.files ?? [])); event.target.value = ""; }} /><div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">{supportingReferences.map((reference, index) => <div key={reference.key} className="group relative aspect-square overflow-hidden rounded-xl bg-background ring-1 ring-white/10"><Image src={reference.previewUrl} alt={`Material adicional ${index + 1}`} fill unoptimized className="object-cover" /><span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/75 px-1.5 py-1 text-[0.625rem] font-semibold text-white">S{index + 1}</span><button type="button" onClick={() => { URL.revokeObjectURL(reference.previewUrl); setReferences((current) => current.filter((item) => item.key !== reference.key)); setSupportingError(""); }} disabled={disabled || busy} aria-label={`Quitar material adicional ${index + 1}`} className="absolute right-0 top-0 grid size-11 place-items-center text-white"><span className="grid size-7 place-items-center rounded-lg bg-black/80"><X className="size-4" /></span></button></div>)}{references.length < MAX_GENERATION_REFERENCE_IMAGES ? <button type="button" onClick={() => supportingInputRef.current?.click()} disabled={disabled || busy} className="group grid aspect-square min-h-24 place-items-center rounded-xl border border-dashed border-white/15 bg-background text-center transition-colors hover:border-brand/45 disabled:opacity-50"><span><ImagePlus className="mx-auto size-5 text-brand" /><span className="mt-1.5 block text-xs font-semibold text-foreground">Añadir</span></span></button> : null}</div>{supportingError ? <p role="alert" className="mt-3 text-xs leading-5 text-red-300">{supportingError}</p> : null}</div> : null}
     <div className="grid border-t border-white/8 sm:grid-cols-2">
       <fieldset className="p-5 sm:p-6"><legend className="px-0 text-sm font-semibold text-foreground">Qué quieres conservar</legend><div className="mt-3 grid grid-cols-2 gap-2">{([{ id: "composition", label: "Composición" }, { id: "subject", label: "Protagonista" }, { id: "text", label: "Impacto del texto" }, { id: "atmosphere", label: "Color y atmósfera" }] as const).map((item) => <button key={item.id} type="button" aria-pressed={focus === item.id} onClick={() => { setFocus(item.id); emitChange({ focus: item.id }); }} className={cn("min-h-11 rounded-xl px-3 text-left text-xs font-semibold ring-1", focus === item.id ? "bg-brand/10 text-foreground ring-brand/60" : "bg-background text-muted ring-white/10")}>{item.label}</button>)}</div></fieldset>
       <fieldset className="border-t border-white/8 p-5 sm:border-l sm:border-t-0 sm:p-6"><legend className="px-0 text-sm font-semibold text-foreground">Qué quieres mejorar</legend><div className="mt-3 grid grid-cols-2 gap-2">{([{ id: "performance", label: "Más clics" }, { id: "clean", label: "Más limpio" }, { id: "premium", label: "Más premium" }, { id: "bold", label: "Más impacto" }] as const).map((item) => <button key={item.id} type="button" aria-pressed={goal === item.id} onClick={() => { setGoal(item.id); emitChange({ goal: item.id }); }} className={cn("min-h-11 rounded-xl px-3 text-left text-xs font-semibold ring-1", goal === item.id ? "bg-brand/10 text-foreground ring-brand/60" : "bg-background text-muted ring-white/10")}>{item.label}</button>)}</div></fieldset>

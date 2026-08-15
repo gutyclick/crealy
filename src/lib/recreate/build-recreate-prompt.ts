@@ -18,6 +18,8 @@ const goalInstructions = {
 export function buildRecreatePrompt(input: GenerationInput) {
   const blueprint = input.recreateBlueprint;
   if (input.creationMode !== "recreate" || !blueprint) return null;
+  const referenceCount = input.referenceUploadIds?.length ?? 0;
+  const supportingCount = Math.max(0, referenceCount - 1);
   return [
     "MODO RECREATE — CREA UNA PIEZA NUEVA Y ORIGINAL.",
     "La primera imagen adjunta es una referencia de fórmula visual, no contenido para copiar ni una fuente de identidad.",
@@ -37,8 +39,12 @@ export function buildRecreatePrompt(input: GenerationInput) {
     `Prioridad a conservar: ${focusInstructions[input.recreateFocus ?? "composition"]}`,
     `Mejora buscada: ${goalInstructions[input.recreateGoal ?? "performance"]}`,
     "REGLAS DE ORIGINALIDAD: nunca copies texto, nombres, logos, branding, una persona, un personaje protegido ni objetos distintivos de la referencia. No hagas una réplica píxel a píxel. Conserva solamente principios abstractos de composición, contraste, ritmo, jerarquía y emoción.",
-    input.referenceUploadIds && input.referenceUploadIds.length > 1
-      ? "Las imágenes adjuntas después de la primera pertenecen al usuario: úsalas como material del nuevo diseño y conserva fielmente la identidad de las personas salvo que el usuario pida modificarla."
+    supportingCount > 0
+      ? `MAPA DE REFERENCIAS: la imagen 1 solo define la fórmula visual. Las imágenes 2 a ${referenceCount} son ${supportingCount} sujetos, productos u objetos aportados por el usuario y deben aparecer en el resultado.`
+      : "MAPA DE REFERENCIAS: la imagen 1 solo define la fórmula visual. No copies ni reproduzcas a las personas u objetos identificables que aparezcan en ella.",
+    supportingCount > 0
+      ? "FIDELIDAD DE SUJETOS: conserva identidad, edad aparente, facciones, tono de piel y rasgos distintivos de cada material adicional. Representa cada sujeto u objeto una sola vez; no mezcles rostros, no fusiones elementos, no los dupliques ni sustituyas uno por otro, salvo petición expresa del usuario."
       : null,
+    "CONTROL FINAL: debe leerse como una pieza terminada, original y coherente con el brief; conserva la lógica abstracta de la referencia base, pero cambia el contenido identificable y respeta exactamente el formato de salida.",
   ].filter(Boolean).join("\n");
 }

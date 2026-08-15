@@ -23,7 +23,7 @@ test("builds an original-by-design Recreate prompt", () => {
     variant: "thumbnail-standard",
     description: "Un video sobre mis primeros mil suscriptores",
     primaryText: "POR FIN",
-    referenceUploadIds: ["reference", "protagonist"],
+    referenceUploadIds: ["reference", "subject-1", "subject-2", "product"],
     recreateBlueprint: {
       category: "thumbnail",
       composition: "Sujeto a la derecha y texto a la izquierda",
@@ -41,9 +41,21 @@ test("builds an original-by-design Recreate prompt", () => {
   const prompt = buildRecreatePrompt(input) ?? "";
   assert.match(prompt, /obra inequívocamente original/);
   assert.match(prompt, /nunca copies texto, nombres, logos/);
-  assert.match(prompt, /después de la primera pertenecen al usuario/);
+  assert.match(prompt, /imágenes 2 a 4 son 3 sujetos, productos u objetos/);
+  assert.match(prompt, /Representa cada sujeto u objeto una sola vez/);
+  assert.match(prompt, /no mezcles rostros/);
   assert.match(prompt, /Prioridad a conservar:.*titular nuevo/);
   assert.match(prompt, /Mejora buscada:.*detener el scroll/);
+});
+
+test("Recreate exposes four total reference slots", () => {
+  const source = readFileSync(
+    "src/components/recreate/recreate-panel.tsx",
+    "utf8",
+  );
+  assert.match(source, /MAX_GENERATION_REFERENCE_IMAGES/);
+  assert.match(source, /Añade hasta 3 imágenes propias/);
+  assert.match(source, /multiple/);
 });
 
 test("Recreate becomes usable before deep analysis finishes", () => {
