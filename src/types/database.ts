@@ -813,6 +813,59 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_feedback: {
+        Row: {
+          automatic_evaluation_snapshot: Json
+          comment: string | null
+          configuration_snapshot: Json
+          correction_request: string | null
+          correction_requested: boolean
+          created_at: string
+          generation_id: string
+          id: string
+          reasons: string[]
+          updated_at: string
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          automatic_evaluation_snapshot?: Json
+          comment?: string | null
+          configuration_snapshot: Json
+          correction_request?: string | null
+          correction_requested?: boolean
+          created_at?: string
+          generation_id: string
+          id?: string
+          reasons?: string[]
+          updated_at?: string
+          user_id: string
+          verdict: string
+        }
+        Update: {
+          automatic_evaluation_snapshot?: Json
+          comment?: string | null
+          configuration_snapshot?: Json
+          correction_request?: string | null
+          correction_requested?: boolean
+          created_at?: string
+          generation_id?: string
+          id?: string
+          reasons?: string[]
+          updated_at?: string
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generation_feedback_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "generations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generation_references: {
         Row: {
           created_at: string

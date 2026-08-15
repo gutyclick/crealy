@@ -514,6 +514,19 @@ a {
   }
 }
 
+@keyframes feedback-details-enter {
+  from {
+    opacity: 0.45;
+    clip-path: inset(0 0 18% 0 round 0.75rem);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 round 0.75rem);
+    filter: blur(0);
+  }
+}
+
 @keyframes nav-new-signal {
   0%, 72%, 100% {
     box-shadow: 0 4px 12px rgba(221, 245, 39, 0.12);
@@ -564,6 +577,10 @@ a {
 
   .creation-toast {
     animation: creation-toast-enter 420ms var(--ease-out) both;
+  }
+
+  .feedback-details-enter {
+    animation: feedback-details-enter 320ms var(--ease-out) both;
   }
 
   .nav-new-badge {
@@ -634,6 +651,7 @@ a {
   .price-swap,
   .creation-heading-swap,
   .creation-toast,
+  .feedback-details-enter,
   .dashboard-hero-copy,
   .dashboard-quick-item,
   .reveal-rise,

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 import {
   adminClient,
@@ -18,13 +19,61 @@ test.describe("flujo móvil autenticado", () => {
 
   let admin: ReturnType<typeof adminClient>;
   const mobileUser = uniqueTestUser("mobile");
+  let mobileGenerationId = "";
+  let mobileStoragePath = "";
 
   test.beforeAll(async () => {
     admin = adminClient();
     await createConfirmedUser(admin, mobileUser);
+    const { data: project, error: projectError } = await admin
+      .from("projects")
+      .insert({
+        user_id: mobileUser.id!,
+        title: "Resultado móvil E2E",
+        content_type: "thumbnail",
+      })
+      .select("id")
+      .single();
+    if (projectError) throw projectError;
+    mobileStoragePath = `${mobileUser.id}/e2e/mobile-feedback.webp`;
+    const { error: uploadError } = await admin.storage
+      .from("generations")
+      .upload(
+        mobileStoragePath,
+        readFileSync("public/images/examples/productivity.webp"),
+        { contentType: "image/webp", upsert: true },
+      );
+    if (uploadError) throw uploadError;
+    const { data: generation, error: generationError } = await admin
+      .from("generations")
+      .insert({
+        project_id: project!.id,
+        user_id: mobileUser.id!,
+        client_request_id: crypto.randomUUID(),
+        status: "completed",
+        user_prompt: "Miniatura móvil para evaluar la experiencia",
+        content_type: "thumbnail",
+        requested_format: "thumbnail-standard",
+        style: "automatic",
+        quality: "standard",
+        color_preference: "auto",
+        storage_path: mobileStoragePath,
+        mime_type: "image/webp",
+        width: 1280,
+        height: 720,
+        completed_at: new Date().toISOString(),
+        generation_metadata: { evaluationScore: 88 },
+      })
+      .select("id")
+      .single();
+    if (generationError) throw generationError;
+    mobileGenerationId = generation!.id;
   });
 
   test.afterAll(async () => {
+    if (mobileStoragePath) {
+      await admin.storage.from("generations").remove([mobileStoragePath]);
+    }
     if (mobileUser.id) await admin.auth.admin.deleteUser(mobileUser.id);
   });
 
@@ -68,5 +117,36 @@ test.describe("flujo móvil autenticado", () => {
     await expect(page.getByRole("dialog", { name: "Más en Crealy" })).toBeVisible();
     await page.getByRole("button", { name: "Cerrar" }).click();
     await expect(page.getByRole("dialog", { name: "Más en Crealy" })).toBeHidden();
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(`/generations/${mobileGenerationId}`);
+    await page.getByRole("button", { name: "No me sirve" }).click();
+    await expect(
+      page.getByRole("button", { name: "Me sirve", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "No me sirve", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("¿Qué deberíamos corregir?")).toBeVisible();
+    await expect(
+      page.getByLabel("Solicitar una corrección concreta"),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Enviar comentarios", { exact: true }),
+    ).toHaveCount(0);
+    if (process.env.E2E_CAPTURE_SCREENSHOTS === "true") {
+      await page.waitForTimeout(400);
+      await page.screenshot({
+        path: ".codex/artifacts/generation-feedback-mobile.png",
+        fullPage: false,
+      });
+    }
+    const feedbackDimensions = await page.evaluate(() => ({
+      viewport: window.innerWidth,
+      document: document.documentElement.scrollWidth,
+    }));
+    expect(feedbackDimensions.document).toBeLessThanOrEqual(
+      feedbackDimensions.viewport + 1,
+    );
   });
 });

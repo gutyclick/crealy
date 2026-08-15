@@ -169,6 +169,133 @@ test.describe("flujos privados con Supabase de testing", () => {
     ).toBeVisible();
   });
 
+  test("liga la opinión y una corrección a la generación evaluada", async ({
+    page,
+  }) => {
+    const { data: project, error: projectError } = await admin
+      .from("projects")
+      .insert({
+        user_id: isolated.id!,
+        title: "Resultado con opinión E2E",
+        content_type: "thumbnail",
+      })
+      .select("id")
+      .single();
+    expect(projectError).toBeNull();
+    const { data: generation, error: generationError } = await admin
+      .from("generations")
+      .insert({
+        project_id: project!.id,
+        user_id: isolated.id!,
+        client_request_id: crypto.randomUUID(),
+        status: "completed",
+        user_prompt: "Miniatura sobre hábitos de productividad",
+        content_type: "thumbnail",
+        requested_format: "thumbnail-standard",
+        output_size: "1280x720",
+        style: "auto",
+        quality: "fast",
+        color_preference: "auto",
+        storage_path: `${isolated.id}/e2e/feedback.png`,
+        mime_type: "image/png",
+        width: 1280,
+        height: 720,
+        completed_at: new Date().toISOString(),
+        generation_metadata: {
+          creationMode: "create",
+          thumbnailPreset: "impactful",
+          evaluationScore: 82,
+          evaluationProblems: ["El texto pierde fuerza a tamaño pequeño."],
+        },
+      })
+      .select("id")
+      .single();
+    expect(generationError).toBeNull();
+
+    await login(page, isolated);
+    await page.goto(`/generations/${generation!.id}`);
+    await expect(
+      page.getByRole("heading", { name: "¿Este resultado te sirve?" }),
+    ).toBeVisible();
+    const feedbackEndpoint = `**/api/generations/${generation!.id}/feedback`;
+    await page.route(feedbackEndpoint, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          feedback: {
+            verdict: "not_useful",
+            reasons: [],
+            comment: null,
+            correctionRequested: false,
+            correctionRequest: null,
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+      });
+    });
+    await page.getByRole("button", { name: "No me sirve" }).click();
+    await page.getByRole("button", { name: "Texto", exact: true }).click();
+    await expect(
+      page.getByText("Valoración guardada. Tienes detalles sin guardar."),
+    ).toBeVisible();
+    await page.unroute(feedbackEndpoint);
+    await page
+      .getByRole("textbox", { name: "Comentario Opcional" })
+      .fill("La idea funciona, pero el texto no se lee con claridad.");
+    await page.getByLabel("Solicitar una corrección concreta").check();
+    await page
+      .getByLabel("Indica exactamente qué debe cambiar")
+      .fill("Mantén la composición y reemplaza el titular por uno más corto.");
+    if (process.env.E2E_CAPTURE_SCREENSHOTS === "true") {
+      await page.waitForTimeout(400);
+      await page.screenshot({
+        path: ".codex/artifacts/generation-feedback-desktop.png",
+        fullPage: false,
+      });
+    }
+    await page
+      .getByRole("button", { name: "Guardar y solicitar corrección" })
+      .click();
+    await expect(
+      page.getByText("Opinión guardada y corrección solicitada."),
+    ).toBeVisible();
+
+    const { data: saved, error: savedError } = await admin
+      .from("generation_feedback")
+      .select(
+        "verdict, reasons, correction_requested, configuration_snapshot, automatic_evaluation_snapshot",
+      )
+      .eq("generation_id", generation!.id)
+      .single();
+    expect(savedError).toBeNull();
+    expect(saved?.verdict).toBe("not_useful");
+    expect(saved?.reasons).toEqual(["text"]);
+    expect(saved?.correction_requested).toBe(true);
+    expect(saved?.configuration_snapshot).toMatchObject({
+      contentType: "thumbnail",
+      creationMode: "create",
+      thumbnailPreset: "impactful",
+    });
+    expect(saved?.automatic_evaluation_snapshot).toMatchObject({
+      evaluationScore: 82,
+    });
+
+    const primaryClient = userClient();
+    const { error: signInError } = await primaryClient.auth.signInWithPassword(
+      primary,
+    );
+    expect(signInError).toBeNull();
+    const { data: leakedFeedback, error: rlsError } = await primaryClient
+      .from("generation_feedback")
+      .select("id")
+      .eq("generation_id", generation!.id);
+    expect(rlsError).toBeNull();
+    expect(leakedFeedback).toEqual([]);
+    await primaryClient.auth.signOut();
+  });
+
   test("reserva créditos y los devuelve de forma atómica", async () => {
     const referenceId = crypto.randomUUID();
     const { error: grantError } = await admin.rpc("grant_credits_internal", {

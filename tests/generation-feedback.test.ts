@@ -1,0 +1,92 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+import {
+  parseGenerationFeedbackInput,
+  pickAutomaticEvaluation,
+} from "../src/lib/generation/generation-feedback";
+
+test("generation feedback accepts structured reasons and a concrete correction", () => {
+  assert.deepEqual(
+    parseGenerationFeedbackInput({
+      verdict: "not_useful",
+      reasons: ["identity", "text", "identity"],
+      comment: "La jerarquía no coincide con mi intención.",
+      correctionRequested: true,
+      correctionRequest: "Conserva mi rostro y cambia únicamente el titular.",
+    }),
+    {
+      verdict: "not_useful",
+      reasons: ["identity", "text"],
+      comment: "La jerarquía no coincide con mi intención.",
+      correctionRequested: true,
+      correctionRequest: "Conserva mi rostro y cambia únicamente el titular.",
+    },
+  );
+});
+
+test("generation feedback rejects unknown reasons and misleading corrections", () => {
+  assert.equal(
+    parseGenerationFeedbackInput({
+      verdict: "useful",
+      reasons: ["ctr"],
+      correctionRequested: false,
+    }),
+    null,
+  );
+  assert.equal(
+    parseGenerationFeedbackInput({
+      verdict: "useful",
+      reasons: [],
+      correctionRequested: true,
+      correctionRequest: "Cambia el texto por favor.",
+    }),
+    null,
+  );
+  assert.equal(
+    parseGenerationFeedbackInput({
+      verdict: "not_useful",
+      reasons: ["quality"],
+      correctionRequested: true,
+      correctionRequest: "Muy corto",
+    }),
+    null,
+  );
+});
+
+test("automatic evaluation snapshots exclude unrelated generation metadata", () => {
+  assert.deepEqual(
+    pickAutomaticEvaluation({
+      evaluationScore: 87,
+      criticalErrors: [],
+      recreateIdentityScore: 92,
+      privateInternalNote: "do-not-copy",
+      thumbnailPreset: "impactful",
+    }),
+    {
+      evaluationScore: 87,
+      criticalErrors: [],
+      recreateIdentityScore: 92,
+    },
+  );
+});
+
+test("generation feedback migration keeps analytics authoritative and private", () => {
+  const migration = readFileSync(
+    new URL(
+      "../supabase/migrations/20260815020000_add_generation_feedback.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.match(migration, /configuration_snapshot jsonb not null/);
+  assert.match(migration, /automatic_evaluation_snapshot jsonb not null/);
+  assert.match(migration, /enable row level security/);
+  assert.match(
+    migration,
+    /revoke all on table public\.generation_feedback from public, anon, authenticated/,
+  );
+  assert.doesNotMatch(migration, /grant insert .* authenticated/);
+});
+

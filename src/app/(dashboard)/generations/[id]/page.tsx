@@ -6,12 +6,21 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { JobProgress } from "@/components/jobs/job-progress";
 import { getContentTypeConfig, getFormatConfig } from "@/config/generation";
+import {
+  normalizeContentType,
+  normalizeGenerationVariant,
+} from "@/config/generation-products";
 import { requireUser } from "@/lib/auth/require-user";
 import { createClient } from "@/lib/supabase/server";
 import type { ContentType, GenerationFormat } from "@/types/generation";
 import { getPrivateStorage } from "@/lib/storage/provider";
 import { ThumbnailFollowupActions } from "@/components/generation/thumbnail-followup-actions";
+import { GenerationFeedback } from "@/components/generation/generation-feedback";
 import type { ThumbnailPreset, ThumbnailTextMode } from "@/types/generation";
+import type {
+  GenerationFeedbackReason,
+  GenerationFeedbackValue,
+} from "@/types/generation-feedback";
 
 export const metadata: Metadata = {
   title: "Detalle de creación",
@@ -59,13 +68,16 @@ export default async function GenerationDetailPage({
   }
 
   const project = data.projects as unknown as { title: string } | null;
-  const contentType = getContentTypeConfig(data.content_type as ContentType);
-  const format = getFormatConfig(data.requested_format as GenerationFormat);
+  const normalizedContentType = normalizeContentType(data.content_type);
+  const normalizedFormat = normalizeGenerationVariant(data.requested_format);
+  if (!normalizedContentType || !normalizedFormat) notFound();
+  const contentType = getContentTypeConfig(normalizedContentType as ContentType);
+  const format = getFormatConfig(normalizedFormat as GenerationFormat);
   const generationMetadata =
     data.generation_metadata && typeof data.generation_metadata === "object"
       ? data.generation_metadata as Record<string, unknown>
       : {};
-  const { data: referenceRows } = data.content_type === "thumbnail"
+  const { data: referenceRows } = normalizedContentType === "thumbnail"
     ? await supabase
         .from("generation_references")
         .select("upload_id")
@@ -73,6 +85,26 @@ export default async function GenerationDetailPage({
         .eq("user_id", user.id)
         .order("position")
     : { data: [] };
+  const { data: feedbackRow } = data.status === "completed"
+    ? await supabase
+        .from("generation_feedback")
+        .select(
+          "verdict, reasons, comment, correction_requested, correction_request, updated_at",
+        )
+        .eq("generation_id", data.id)
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : { data: null };
+  const initialFeedback: GenerationFeedbackValue | null = feedbackRow
+    ? {
+        verdict: feedbackRow.verdict as GenerationFeedbackValue["verdict"],
+        reasons: feedbackRow.reasons as GenerationFeedbackReason[],
+        comment: feedbackRow.comment,
+        correctionRequested: feedbackRow.correction_requested,
+        correctionRequest: feedbackRow.correction_request,
+        updatedAt: feedbackRow.updated_at,
+      }
+    : null;
 
   return (
     <main className="py-8 sm:py-12">
@@ -110,6 +142,12 @@ export default async function GenerationDetailPage({
                 </div>
               )}
             </div>
+            {data.status === "completed" ? (
+              <GenerationFeedback
+                generationId={data.id}
+                initialFeedback={initialFeedback}
+              />
+            ) : null}
           </section>
 
           <aside className="rounded-2xl border border-white/10 bg-surface p-6">
@@ -130,12 +168,12 @@ export default async function GenerationDetailPage({
                   <dd className="mt-1 text-foreground">{data.primary_text}</dd>
                 </div>
               ) : null}
-              <div className={data.content_type === "thumbnail" ? "py-3" : "grid grid-cols-2 gap-4 py-3"}>
+              <div className={normalizedContentType === "thumbnail" ? "py-3" : "grid grid-cols-2 gap-4 py-3"}>
                 <div>
                   <dt className="text-muted">Estilo</dt>
                   <dd className="mt-1 capitalize text-foreground">{data.style}</dd>
                 </div>
-                {data.content_type !== "thumbnail" ? (
+                {normalizedContentType !== "thumbnail" ? (
                   <div>
                     <dt className="text-muted">Calidad</dt>
                     <dd className="mt-1 capitalize text-foreground">{data.quality}</dd>
@@ -152,7 +190,7 @@ export default async function GenerationDetailPage({
                   <Download aria-hidden="true" className="size-4" />
                   Descargar PNG
                 </a>
-                {data.content_type === "thumbnail" ? (
+                {normalizedContentType === "thumbnail" ? (
                   <>
                     <ThumbnailFollowupActions
                       generationId={data.id}

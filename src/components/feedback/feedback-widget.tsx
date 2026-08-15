@@ -9,6 +9,9 @@ export function FeedbackWidget() {
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle",
   );
+  const hasResultFeedback = /^\/generations\/[^/]+$/.test(pathname);
+
+  if (hasResultFeedback) return null;
 
   return (
     <details className="group fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 lg:bottom-4">
