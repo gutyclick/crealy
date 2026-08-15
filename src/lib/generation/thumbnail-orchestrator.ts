@@ -6,6 +6,7 @@ import { THUMBNAIL_ARCHETYPES, THUMBNAIL_AVOID, THUMBNAIL_DISTINCTIVENESS_RULES,
 import { getEditingServerEnv } from "@/lib/env/server";
 import { getOpenAIClient } from "@/lib/openai/client";
 import type { GenerationInput, ThumbnailConcept, ThumbnailCreativePlan, ThumbnailEvaluation, ThumbnailNiche } from "@/types/generation";
+import { parseResponseUsage, type ProviderUsageObserver } from "@/lib/analytics/provider-cost";
 
 const conceptSchema = {
   type: "object", additionalProperties: false,
@@ -239,10 +240,16 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
   return { ...planWithoutPrompt, finalPrompt: buildFinalPrompt(input, planWithoutPrompt) };
 }
 
-export async function planThumbnail(input: GenerationInput): Promise<ThumbnailCreativePlan> {
+export async function planThumbnail(
+  input: GenerationInput,
+  observe?: ProviderUsageObserver,
+): Promise<ThumbnailCreativePlan> {
   const { responsesModel } = getEditingServerEnv();
   const preset = THUMBNAIL_PRESETS.find((item) => item.id === input.thumbnailPreset) ?? THUMBNAIL_PRESETS[0];
-  const response = await getOpenAIClient().responses.create({
+  const startedAt = Date.now();
+  let response;
+  try {
+    response = await getOpenAIClient().responses.create({
     model: responsesModel, store: false, max_output_tokens: 2_800,
     input: [{ role: "user", content: [{ type: "input_text", text: [
       "Actúa como director creativo de miniaturas de YouTube. Devuelve el plan en español.",
@@ -262,7 +269,12 @@ export async function planThumbnail(input: GenerationInput): Promise<ThumbnailCr
       ...THUMBNAIL_PRESET_CRAFT[preset.id],
     ].filter(Boolean).join("\n") }] }],
     text: { format: { type: "json_schema", name: "thumbnail_creative_plan", strict: true, schema: planSchema } },
-  });
+    });
+    await observe?.({ operation: "thumbnail_plan", model: responsesModel, providerRequestId: null, usage: parseResponseUsage(response.usage), durationMs: Date.now() - startedAt, succeeded: true, errorCode: null });
+  } catch (error) {
+    await observe?.({ operation: "thumbnail_plan", model: responsesModel, providerRequestId: null, usage: null, durationMs: Date.now() - startedAt, succeeded: false, errorCode: error instanceof Error ? error.message.slice(0, 120) : "provider_error" });
+    throw error;
+  }
   if (response.status !== "completed" || !response.output_text) throw new Error("thumbnail_plan_incomplete");
   const parsed = JSON.parse(response.output_text) as { detectedNiche: ThumbnailNiche; nicheConfidence: number; brief: ThumbnailCreativePlan["brief"]; concepts: ThumbnailConcept[]; selectedConceptIndex: number };
   const selectedConcept = [...parsed.concepts].sort((a, b) => b.score - a.score)[0]
@@ -283,10 +295,13 @@ export async function planThumbnail(input: GenerationInput): Promise<ThumbnailCr
   return { ...planWithoutPrompt, finalPrompt: buildFinalPrompt(input, planWithoutPrompt) };
 }
 
-export async function evaluateThumbnail({ buffer, mimeType, input, plan }: { buffer: Buffer; mimeType: string; input: GenerationInput; plan: ThumbnailCreativePlan }): Promise<ThumbnailEvaluation> {
+export async function evaluateThumbnail({ buffer, mimeType, input, plan, observe, operation = "thumbnail_evaluation" }: { buffer: Buffer; mimeType: string; input: GenerationInput; plan: ThumbnailCreativePlan; observe?: ProviderUsageObserver; operation?: string }): Promise<ThumbnailEvaluation> {
   const { responsesModel } = getEditingServerEnv();
   const expectedText = exactThumbnailText(input, plan.brief.recommendedText);
-  const response = await getOpenAIClient().responses.create({
+  const startedAt = Date.now();
+  let response;
+  try {
+    response = await getOpenAIClient().responses.create({
     model: responsesModel, store: false, max_output_tokens: 1_200,
     input: [{ role: "user", content: [
       { type: "input_text", text: [
@@ -300,7 +315,12 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan }: { buf
       { type: "input_image", image_url: `data:${mimeType};base64,${buffer.toString("base64")}`, detail: "high" },
     ] }],
     text: { format: { type: "json_schema", name: "thumbnail_evaluation", strict: true, schema: evaluationSchema } },
-  });
+    });
+    await observe?.({ operation, model: responsesModel, providerRequestId: null, usage: parseResponseUsage(response.usage), durationMs: Date.now() - startedAt, succeeded: true, errorCode: null });
+  } catch (error) {
+    await observe?.({ operation, model: responsesModel, providerRequestId: null, usage: null, durationMs: Date.now() - startedAt, succeeded: false, errorCode: error instanceof Error ? error.message.slice(0, 120) : "provider_error" });
+    throw error;
+  }
   if (response.status !== "completed" || !response.output_text) throw new Error("thumbnail_evaluation_incomplete");
   return JSON.parse(response.output_text) as ThumbnailEvaluation;
 }

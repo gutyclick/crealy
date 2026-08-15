@@ -281,6 +281,32 @@ test.describe("flujos privados con Supabase de testing", () => {
     expect(saved?.automatic_evaluation_snapshot).toMatchObject({
       evaluationScore: 82,
     });
+    const { data: qualityEvents, error: qualityEventsError } = await admin
+      .from("generation_events")
+      .select("event_type, properties")
+      .eq("generation_id", generation!.id)
+      .in("event_type", ["rejected", "correction_requested"]);
+    expect(qualityEventsError).toBeNull();
+    expect(qualityEvents?.map((event) => event.event_type).sort()).toEqual([
+      "correction_requested",
+      "rejected",
+    ]);
+    expect(qualityEvents?.find((event) => event.event_type === "rejected")?.properties)
+      .toMatchObject({ reasons: ["text"] });
+
+    const { data: analytics, error: analyticsError } = await admin.rpc(
+      "product_analytics_internal",
+      {
+        p_from: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        p_to: new Date(Date.now() + 60 * 1000).toISOString(),
+      },
+    );
+    expect(analyticsError).toBeNull();
+    const analyticsSummary = (
+      analytics as { summary?: Record<string, number> } | null
+    )?.summary;
+    expect(analyticsSummary?.ratedResults).toBeGreaterThanOrEqual(1);
+    expect(analyticsSummary?.correctionsRequested).toBeGreaterThanOrEqual(1);
 
     const primaryClient = userClient();
     const { error: signInError } = await primaryClient.auth.signInWithPassword(

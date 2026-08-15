@@ -164,6 +164,45 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_revenue_events: {
+        Row: {
+          created_at: string
+          credits_granted: number
+          currency: string
+          gross_amount_minor: number
+          gross_revenue_per_credit_usd: number | null
+          id: string
+          paid_at: string
+          plan_key: string
+          stripe_invoice_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_granted: number
+          currency: string
+          gross_amount_minor: number
+          gross_revenue_per_credit_usd?: number | null
+          id?: string
+          paid_at: string
+          plan_key: string
+          stripe_invoice_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_granted?: number
+          currency?: string
+          gross_amount_minor?: number
+          gross_revenue_per_credit_usd?: number | null
+          id?: string
+          paid_at?: string
+          plan_key?: string
+          stripe_invoice_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       checkout_consents: {
         Row: {
           accepted: boolean
@@ -812,6 +851,57 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      generation_events: {
+        Row: {
+          duration_ms: number | null
+          event_type: string
+          generation_id: string
+          id: string
+          idempotency_key: string
+          job_id: string | null
+          occurred_at: string
+          properties: Json
+          user_id: string
+        }
+        Insert: {
+          duration_ms?: number | null
+          event_type: string
+          generation_id: string
+          id?: string
+          idempotency_key: string
+          job_id?: string | null
+          occurred_at?: string
+          properties?: Json
+          user_id: string
+        }
+        Update: {
+          duration_ms?: number | null
+          event_type?: string
+          generation_id?: string
+          id?: string
+          idempotency_key?: string
+          job_id?: string | null
+          occurred_at?: string
+          properties?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generation_events_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "generations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generation_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generation_feedback: {
         Row: {
@@ -1474,6 +1564,105 @@ export type Database = {
           },
         ]
       }
+      provider_cost_events: {
+        Row: {
+          actual_cost_usd: number | null
+          attempt_no: number
+          cached_input_tokens: number
+          cost_source: string
+          created_at: string
+          duration_ms: number
+          error_code: string | null
+          estimated_cost_usd: number | null
+          generation_id: string
+          id: string
+          idempotency_key: string
+          input_image_tokens: number
+          input_text_tokens: number
+          job_id: string
+          metadata: Json
+          model: string
+          operation: string
+          output_image_tokens: number
+          output_text_tokens: number
+          pricing_version: string
+          provider: string
+          provider_request_id: string | null
+          succeeded: boolean
+          total_tokens: number
+          user_id: string
+        }
+        Insert: {
+          actual_cost_usd?: number | null
+          attempt_no: number
+          cached_input_tokens?: number
+          cost_source: string
+          created_at?: string
+          duration_ms: number
+          error_code?: string | null
+          estimated_cost_usd?: number | null
+          generation_id: string
+          id?: string
+          idempotency_key: string
+          input_image_tokens?: number
+          input_text_tokens?: number
+          job_id: string
+          metadata?: Json
+          model: string
+          operation: string
+          output_image_tokens?: number
+          output_text_tokens?: number
+          pricing_version: string
+          provider: string
+          provider_request_id?: string | null
+          succeeded: boolean
+          total_tokens?: number
+          user_id: string
+        }
+        Update: {
+          actual_cost_usd?: number | null
+          attempt_no?: number
+          cached_input_tokens?: number
+          cost_source?: string
+          created_at?: string
+          duration_ms?: number
+          error_code?: string | null
+          estimated_cost_usd?: number | null
+          generation_id?: string
+          id?: string
+          idempotency_key?: string
+          input_image_tokens?: number
+          input_text_tokens?: number
+          job_id?: string
+          metadata?: Json
+          model?: string
+          operation?: string
+          output_image_tokens?: number
+          output_text_tokens?: number
+          pricing_version?: string
+          provider?: string
+          provider_request_id?: string | null
+          succeeded?: boolean
+          total_tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_cost_events_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "generations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_cost_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_usage: {
         Row: {
           created_at: string
@@ -1869,6 +2058,54 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      product_analytics_internal: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      record_generation_abandonments_internal: {
+        Args: { p_after_hours?: number; p_limit?: number }
+        Returns: number
+      }
+      record_generation_event_internal: {
+        Args: {
+          p_duration_ms?: number | null
+          p_event_type: string
+          p_generation_id: string
+          p_idempotency_key: string
+          p_job_id: string | null
+          p_properties?: Json
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      record_provider_cost_internal: {
+        Args: {
+          p_actual_cost_usd: number | null
+          p_attempt_no: number
+          p_cached_input_tokens: number
+          p_cost_source: string
+          p_duration_ms: number
+          p_error_code: string | null
+          p_estimated_cost_usd: number | null
+          p_generation_id: string
+          p_idempotency_key: string
+          p_input_image_tokens: number
+          p_input_text_tokens: number
+          p_job_id: string
+          p_metadata?: Json
+          p_model: string
+          p_operation: string
+          p_output_image_tokens: number
+          p_output_text_tokens: number
+          p_pricing_version: string
+          p_provider: string
+          p_provider_request_id: string | null
+          p_succeeded: boolean
+          p_total_tokens: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       archive_edit_session: {
         Args: { p_archived: boolean; p_session_id: string }
         Returns: undefined

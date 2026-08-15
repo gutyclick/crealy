@@ -22,6 +22,8 @@ import type { QueuedGenerationResponse } from "@/types/jobs";
 import { getBrandStyleAccess, requireOwnedStyle } from "@/lib/brand-styles/service";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { getRecreateElementLimit } from "@/config/recreate";
+import { getPlanEconomicsSnapshot } from "@/lib/analytics/plan-economics";
+import { recordGenerationEvent } from "@/lib/analytics/generation-telemetry";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -280,19 +282,20 @@ export async function POST(request: Request) {
   }
 
   const input = validation.data;
+  let billingState;
+  try {
+    billingState = await getUserBillingState(user.id);
+  } catch {
+    return errorResponse(
+      {
+        code: "internal_error",
+        error: "No pudimos comprobar tu plan. Inténtalo de nuevo.",
+      },
+      503,
+    );
+  }
   if (input.creationMode === "recreate") {
-    let plan;
-    try {
-      plan = (await getUserBillingState(user.id)).effectivePlan.key;
-    } catch {
-      return errorResponse(
-        {
-          code: "internal_error",
-          error: "No pudimos comprobar el límite de tu plan. Inténtalo de nuevo.",
-        },
-        503,
-      );
-    }
+    const plan = billingState.effectivePlan.key;
     const elementLimit = getRecreateElementLimit(plan);
     const elementCount = Math.max(
       0,
@@ -335,6 +338,11 @@ export async function POST(request: Request) {
     quality: input.quality,
     creationMode: input.creationMode,
   });
+  const economics = await getPlanEconomicsSnapshot(
+    user.id,
+    billingState.effectivePlan.key,
+    creditCost,
+  );
   const admin = createAdminClient();
   const estimatedCost =
     input.quality === "high"
@@ -421,6 +429,7 @@ export async function POST(request: Request) {
           recreateReferenceRoles: input.recreateReferenceRoles ?? null,
           recreateElementAnalyses: input.recreateElementAnalyses ?? null,
           recreatePreservation: input.recreatePreservation ?? null,
+          ...economics,
         },
         brand_style_id: input.brandStyleId ?? null,
         style_consistency: input.styleConsistency ?? null,
@@ -454,6 +463,28 @@ export async function POST(request: Request) {
       .eq("id", input.parentGenerationId)
       .eq("user_id", user.id);
   }
+  await recordGenerationEvent({
+    generationId: queued.generation_id,
+    userId: user.id,
+    jobId: queued.job_id,
+    type: "created",
+    idempotencyKey: "lifecycle:created",
+    properties: {
+      contentType: input.contentType,
+      format: input.variant,
+      quality: input.quality,
+      creationMode: input.creationMode ?? "create",
+      creditCost,
+      ...economics,
+    },
+  }).catch((eventError) => {
+    logger.warn("generation.telemetry_failed", {
+      jobId: queued.job_id,
+      userId: user.id,
+      resourceId: queued.generation_id,
+      errorCode: eventError instanceof Error ? eventError.message.slice(0, 80) : "event_failed",
+    });
+  });
   const { data: jobReady, error: jobReadyError } = await admin.rpc("mark_job_ready_internal", {
     p_job_id: queued.job_id,
     p_user_id: user.id,

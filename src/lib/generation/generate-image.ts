@@ -18,6 +18,10 @@ import type {
   GenerationInput,
   GenerationReferenceImage,
 } from "@/types/generation";
+import {
+  parseImageUsage,
+  type ProviderUsageObserver,
+} from "@/lib/analytics/provider-cost";
 
 const MAX_PROVIDER_IMAGE_BYTES = 40 * 1024 * 1024;
 const MAX_STORED_IMAGE_BYTES = 20 * 1024 * 1024;
@@ -36,6 +40,7 @@ export async function generateImage(
   input: GenerationInput,
   enhancedPrompt: string,
   referenceImages: GenerationReferenceImage[] = [],
+  telemetry?: { operation: string; observe: ProviderUsageObserver },
 ) {
   const { imageModel } = getGenerationServerEnv();
   const resolvedDefinition = getGenerationVariant(input.variant);
@@ -50,12 +55,14 @@ export async function generateImage(
   let resolved = resolveImageSize(baseResolutionInput);
   let fallbackUsed = false;
 
+  let providerCallIndex = 0;
   async function requestImage(size: string) {
     const client = getOpenAIClient();
     const quality = input.quality === "high" ? ("high" as const) : ("medium" as const);
     const startedAt = Date.now();
+    const callIndex = ++providerCallIndex;
     try {
-      return referenceImages.length > 0
+      const response = await (referenceImages.length > 0
       ? client.images.edit({
           model: imageModel,
           image: await Promise.all(
@@ -79,7 +86,30 @@ export async function generateImage(
           background: "opaque",
           moderation: "auto",
           n: 1,
-        }).withResponse();
+        }).withResponse());
+      await telemetry?.observe({
+        operation: `${telemetry.operation}${callIndex > 1 ? `_provider_fallback_${callIndex}` : ""}`,
+        model: imageModel,
+        providerRequestId: response.request_id ?? null,
+        usage: parseImageUsage(response.data.usage),
+        durationMs: Date.now() - startedAt,
+        succeeded: true,
+        errorCode: null,
+        metadata: { size, quality, referenceCount: referenceImages.length },
+      });
+      return response;
+    } catch (error) {
+      await telemetry?.observe({
+        operation: `${telemetry.operation}${callIndex > 1 ? `_provider_fallback_${callIndex}` : ""}`,
+        model: imageModel,
+        providerRequestId: null,
+        usage: null,
+        durationMs: Date.now() - startedAt,
+        succeeded: false,
+        errorCode: error instanceof Error ? error.message.slice(0, 120) : "provider_error",
+        metadata: { size, quality, referenceCount: referenceImages.length },
+      });
+      throw error;
     } finally {
       recordOpenAiLatency(Date.now() - startedAt, referenceImages.length > 0 ? "image_edit" : "image_generate");
     }

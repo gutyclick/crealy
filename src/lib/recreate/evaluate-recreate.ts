@@ -8,6 +8,7 @@ import type {
   RecreateEvaluation,
   RecreateEvaluationCriticalError,
 } from "@/types/recreate";
+import { parseResponseUsage, type ProviderUsageObserver } from "@/lib/analytics/provider-cost";
 
 const CRITICAL_ERRORS = [
   "missing_subject",
@@ -67,15 +68,22 @@ export async function evaluateRecreate({
   mimeType,
   input,
   references,
+  observe,
+  operation = "recreate_evaluation",
 }: {
   buffer: Buffer;
   mimeType: string;
   input: GenerationInput;
   references: GenerationReferenceImage[];
+  observe?: ProviderUsageObserver;
+  operation?: string;
 }): Promise<RecreateEvaluation> {
   const { responsesModel } = getEditingServerEnv();
   const supportingCount = Math.max(0, references.length - 1);
-  const response = await getOpenAIClient().responses.create({
+  const startedAt = Date.now();
+  let response;
+  try {
+    response = await getOpenAIClient().responses.create({
     model: responsesModel,
     store: false,
     max_output_tokens: 1_400,
@@ -121,7 +129,12 @@ export async function evaluateRecreate({
         schema: evaluationSchema,
       },
     },
-  });
+    });
+    await observe?.({ operation, model: responsesModel, providerRequestId: null, usage: parseResponseUsage(response.usage), durationMs: Date.now() - startedAt, succeeded: true, errorCode: null });
+  } catch (error) {
+    await observe?.({ operation, model: responsesModel, providerRequestId: null, usage: null, durationMs: Date.now() - startedAt, succeeded: false, errorCode: error instanceof Error ? error.message.slice(0, 120) : "provider_error" });
+    throw error;
+  }
   if (response.status !== "completed" || !response.output_text) {
     throw new Error("recreate_evaluation_incomplete");
   }

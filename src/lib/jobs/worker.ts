@@ -44,6 +44,26 @@ import {
   evaluateThumbnail,
   planThumbnail,
 } from "@/lib/generation/thumbnail-orchestrator";
+import {
+  recordGenerationEvent,
+  recordProviderCost,
+} from "@/lib/analytics/generation-telemetry";
+import type { ProviderCallObservation } from "@/lib/analytics/provider-cost";
+
+async function safeGenerationEvent(
+  input: Parameters<typeof recordGenerationEvent>[0],
+) {
+  try {
+    await recordGenerationEvent(input);
+  } catch (error) {
+    logger.warn("generation.telemetry_failed", {
+      jobId: input.jobId ?? undefined,
+      userId: input.userId,
+      resourceId: input.generationId,
+      errorCode: error instanceof Error ? error.message.slice(0, 80) : "event_failed",
+    });
+  }
+}
 
 async function retentionDaysForUser(userId: string) {
   const admin = createAdminClient();
@@ -184,7 +204,70 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   if (error || !generation) throw new Error("generation_not_found");
   if (!generation.credit_reservation_id) throw new Error("credit_reservation_missing");
 
+  await safeGenerationEvent({
+    generationId: generation.id,
+    userId: generation.user_id,
+    jobId: job.id,
+    type: "started",
+    idempotencyKey: `attempt:${job.attempt_count}:started`,
+    properties: { attempt: job.attempt_count },
+  });
+  const { data: previousFailure } = await admin
+    .from("jobs")
+    .select("id")
+    .eq("user_id", generation.user_id)
+    .eq("job_type", "generation")
+    .eq("input_hash", job.input_hash)
+    .eq("status", "failed")
+    .neq("id", job.id)
+    .lt("created_at", job.created_at)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (previousFailure) {
+    await safeGenerationEvent({
+      generationId: generation.id,
+      userId: generation.user_id,
+      jobId: job.id,
+      type: "repeated_after_failure",
+      idempotencyKey: "quality:repeated-after-failure",
+      properties: { previousJobId: previousFailure.id },
+    });
+  }
+
   const config = getGenerationServerEnv();
+  let providerCallSequence = 0;
+  const observeProviderCall = async (observation: ProviderCallObservation) => {
+    providerCallSequence += 1;
+    try {
+      await recordProviderCost({
+        jobId: job.id,
+        generationId: generation.id,
+        userId: generation.user_id,
+        attemptNo: Math.max(1, job.attempt_count),
+        idempotencyKey: `attempt:${job.attempt_count}:call:${providerCallSequence}:${observation.operation}`,
+        operation: observation.operation,
+        model: observation.model,
+        providerRequestId: observation.providerRequestId,
+        usage: observation.usage,
+        estimatedCostUsd:
+          !observation.usage && observation.operation.startsWith("image_generation")
+            ? job.estimated_cost_usd
+            : null,
+        durationMs: observation.durationMs,
+        succeeded: observation.succeeded,
+        errorCode: observation.errorCode,
+        metadata: observation.metadata,
+      });
+    } catch (telemetryError) {
+      logger.warn("provider.cost_record_failed", {
+        jobId: job.id,
+        userId: generation.user_id,
+        resourceId: generation.id,
+        errorCode: telemetryError instanceof Error ? telemetryError.message.slice(0, 80) : "cost_record_failed",
+      });
+    }
+  };
   const storagePath = generationAssetPath({
     userId: generation.user_id,
     projectId: generation.project_id,
@@ -199,6 +282,15 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       startedAt,
     )
   ) {
+    await safeGenerationEvent({
+      generationId: generation.id,
+      userId: generation.user_id,
+      jobId: job.id,
+      type: "completed",
+      idempotencyKey: "lifecycle:completed",
+      durationMs: Date.now() - startedAt,
+      properties: { recoveredExistingOutput: true, providerCalls: 0 },
+    });
     await queueLowCreditWarning(generation.user_id);
     return;
   }
@@ -301,7 +393,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   let thumbnailPlan = null;
   if (input.contentType === "thumbnail" && input.creationMode !== "recreate") {
     try {
-      thumbnailPlan = await planThumbnail(input);
+      thumbnailPlan = await planThumbnail(input, observeProviderCall);
     } catch (planError) {
       thumbnailPlan = buildFallbackThumbnailPlan(input);
       logger.warn("generation.thumbnail_plan_fallback", {
@@ -345,10 +437,14 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .in("status", ["pending", "processing"]);
   if (processingError) throw processingError;
 
-  let generated = await generateImage(input, enhancedPrompt, references);
+  let generated = await generateImage(input, enhancedPrompt, references, {
+    operation: "image_generation_initial",
+    observe: observeProviderCall,
+  });
   let thumbnailEvaluation = null;
   let recreateEvaluation = null;
   let wasAutomaticallyRegenerated = false;
+  let thumbnailUsedCorrectedResult = false;
   let wasRecreateAutomaticallyRegenerated = false;
   let recreateUsedCorrectedResult = false;
   if (thumbnailPlan) {
@@ -358,27 +454,61 @@ async function processGeneration(job: JobRecord, startedAt: number) {
         mimeType: generated.mimeType,
         input,
         plan: thumbnailPlan,
+        observe: observeProviderCall,
+        operation: "thumbnail_evaluation_initial",
       });
       thumbnailEvaluation = firstEvaluation;
+      await safeGenerationEvent({
+        generationId: generation.id, userId: generation.user_id, jobId: job.id,
+        type: "evaluation_completed", idempotencyKey: `attempt:${job.attempt_count}:thumbnail-evaluation-initial`,
+        properties: { kind: "thumbnail", phase: "initial", approved: firstEvaluation.approved, score: firstEvaluation.score, criticalErrors: firstEvaluation.criticalErrors },
+      });
       if (!firstEvaluation.approved) {
         wasAutomaticallyRegenerated = true;
+        await safeGenerationEvent({
+          generationId: generation.id, userId: generation.user_id, jobId: job.id,
+          type: "automatic_correction_requested", idempotencyKey: `attempt:${job.attempt_count}:thumbnail-correction-requested`,
+          properties: { kind: "thumbnail", criticalErrors: firstEvaluation.criticalErrors, score: firstEvaluation.score },
+        });
         const corrected = await generateImage(
           input,
           buildCorrectiveThumbnailPrompt(thumbnailPlan, firstEvaluation),
           references,
+          { operation: "image_generation_thumbnail_correction", observe: observeProviderCall },
         );
         const correctedEvaluation = await evaluateThumbnail({
           buffer: corrected.imageBuffer,
           mimeType: corrected.mimeType,
           input,
           plan: thumbnailPlan,
+          observe: observeProviderCall,
+          operation: "thumbnail_evaluation_correction",
         });
-        if (correctedEvaluation.score >= firstEvaluation.score) {
+        const selectedCorrectedResult = correctedEvaluation.score >= firstEvaluation.score;
+        await safeGenerationEvent({
+          generationId: generation.id, userId: generation.user_id, jobId: job.id,
+          type: "automatic_correction_completed", idempotencyKey: `attempt:${job.attempt_count}:thumbnail-correction-completed`,
+          properties: { kind: "thumbnail", approved: correctedEvaluation.approved, score: correctedEvaluation.score, criticalErrors: correctedEvaluation.criticalErrors, selected: selectedCorrectedResult },
+        });
+        if (selectedCorrectedResult) {
           generated = corrected;
           thumbnailEvaluation = correctedEvaluation;
+          thumbnailUsedCorrectedResult = true;
         }
       }
     } catch (evaluationError) {
+      if (wasAutomaticallyRegenerated) {
+        await safeGenerationEvent({
+          generationId: generation.id, userId: generation.user_id, jobId: job.id,
+          type: "automatic_correction_failed", idempotencyKey: `attempt:${job.attempt_count}:thumbnail-correction-failed`,
+          properties: { kind: "thumbnail", errorCode: evaluationError instanceof Error ? evaluationError.message.slice(0, 80) : "unknown" },
+        });
+      }
+      await safeGenerationEvent({
+        generationId: generation.id, userId: generation.user_id, jobId: job.id,
+        type: "evaluation_failed", idempotencyKey: `attempt:${job.attempt_count}:thumbnail-evaluation-failed`,
+        properties: { kind: "thumbnail", errorCode: evaluationError instanceof Error ? evaluationError.message.slice(0, 80) : "unknown" },
+      });
       logger.warn("generation.thumbnail_evaluation_failed", {
         jobId: job.id,
         resourceId: generation.id,
@@ -393,28 +523,61 @@ async function processGeneration(job: JobRecord, startedAt: number) {
         mimeType: generated.mimeType,
         input,
         references: recreateReferences,
+        observe: observeProviderCall,
+        operation: "recreate_evaluation_initial",
       });
       recreateEvaluation = firstEvaluation;
+      await safeGenerationEvent({
+        generationId: generation.id, userId: generation.user_id, jobId: job.id,
+        type: "evaluation_completed", idempotencyKey: `attempt:${job.attempt_count}:recreate-evaluation-initial`,
+        properties: { kind: "recreate", phase: "initial", approved: firstEvaluation.approved, score: firstEvaluation.score, criticalErrors: firstEvaluation.criticalErrors },
+      });
       if (shouldCorrectRecreate(firstEvaluation)) {
         wasRecreateAutomaticallyRegenerated = true;
+        await safeGenerationEvent({
+          generationId: generation.id, userId: generation.user_id, jobId: job.id,
+          type: "automatic_correction_requested", idempotencyKey: `attempt:${job.attempt_count}:recreate-correction-requested`,
+          properties: { kind: "recreate", criticalErrors: firstEvaluation.criticalErrors, score: firstEvaluation.score },
+        });
         const corrected = await generateImage(
           input,
           buildCorrectiveRecreatePrompt(enhancedPrompt, firstEvaluation),
           references,
+          { operation: "image_generation_recreate_correction", observe: observeProviderCall },
         );
         const correctedEvaluation = await evaluateRecreate({
           buffer: corrected.imageBuffer,
           mimeType: corrected.mimeType,
           input,
           references: recreateReferences,
+          observe: observeProviderCall,
+          operation: "recreate_evaluation_correction",
         });
-        if (correctedEvaluation.score >= firstEvaluation.score) {
+        const selectedCorrectedResult = correctedEvaluation.score >= firstEvaluation.score;
+        await safeGenerationEvent({
+          generationId: generation.id, userId: generation.user_id, jobId: job.id,
+          type: "automatic_correction_completed", idempotencyKey: `attempt:${job.attempt_count}:recreate-correction-completed`,
+          properties: { kind: "recreate", approved: correctedEvaluation.approved, score: correctedEvaluation.score, criticalErrors: correctedEvaluation.criticalErrors, selected: selectedCorrectedResult },
+        });
+        if (selectedCorrectedResult) {
           generated = corrected;
           recreateEvaluation = correctedEvaluation;
           recreateUsedCorrectedResult = true;
         }
       }
     } catch (evaluationError) {
+      if (wasRecreateAutomaticallyRegenerated) {
+        await safeGenerationEvent({
+          generationId: generation.id, userId: generation.user_id, jobId: job.id,
+          type: "automatic_correction_failed", idempotencyKey: `attempt:${job.attempt_count}:recreate-correction-failed`,
+          properties: { kind: "recreate", errorCode: evaluationError instanceof Error ? evaluationError.message.slice(0, 80) : "unknown" },
+        });
+      }
+      await safeGenerationEvent({
+        generationId: generation.id, userId: generation.user_id, jobId: job.id,
+        type: "evaluation_failed", idempotencyKey: `attempt:${job.attempt_count}:recreate-evaluation-failed`,
+        properties: { kind: "recreate", errorCode: evaluationError instanceof Error ? evaluationError.message.slice(0, 80) : "unknown" },
+      });
       logger.warn("generation.recreate_evaluation_failed", {
         jobId: job.id,
         resourceId: generation.id,
@@ -540,7 +703,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
               criticalErrors: thumbnailEvaluation?.criticalErrors ?? [],
               evaluationProblems: thumbnailEvaluation?.problems ?? [],
               wasAutomaticallyRegenerated,
-              shownResult: wasAutomaticallyRegenerated && thumbnailEvaluation
+              shownResult: thumbnailUsedCorrectedResult
                 ? "best_after_correction"
                 : "initial",
             }
@@ -569,6 +732,19 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .eq("id", generation.id)
     .eq("user_id", generation.user_id);
   if (metadataError) throw metadataError;
+  await safeGenerationEvent({
+    generationId: generation.id,
+    userId: generation.user_id,
+    jobId: job.id,
+    type: "completed",
+    idempotencyKey: "lifecycle:completed",
+    durationMs: Date.now() - startedAt,
+    properties: {
+      providerCalls: providerCallSequence,
+      automaticCorrection: wasAutomaticallyRegenerated || wasRecreateAutomaticallyRegenerated,
+      selectedCorrectedResult: thumbnailUsedCorrectedResult || recreateUsedCorrectedResult,
+    },
+  });
   await queueTransactionalEmail({
     userId: generation.user_id,
     type: "generation_ready",
@@ -992,6 +1168,17 @@ export async function processQueuedJob(jobId: string) {
         durationMs,
         errorCode: decision.errorCode,
       });
+      if (job.job_type === "generation" && job.user_id) {
+        await safeGenerationEvent({
+          generationId: job.resource_id,
+          userId: job.user_id,
+          jobId: job.id,
+          type: "retry_scheduled",
+          idempotencyKey: `attempt:${job.attempt_count}:retry-scheduled`,
+          durationMs,
+          properties: { errorCode: decision.errorCode, nextAttempt: job.attempt_count + 1 },
+        });
+      }
       return { status: "retry_scheduled" as const };
     }
     await admin.rpc("fail_job_internal", {
@@ -1007,13 +1194,24 @@ export async function processQueuedJob(jobId: string) {
       durationMs,
       errorCode: decision.errorCode,
     });
+    if (job.job_type === "generation" && job.user_id) {
+      await safeGenerationEvent({
+        generationId: job.resource_id,
+        userId: job.user_id,
+        jobId: job.id,
+        type: "failed",
+        idempotencyKey: "lifecycle:failed",
+        durationMs,
+        properties: { errorCode: decision.errorCode, attempts: job.attempt_count },
+      });
+    }
     return { status: "failed" as const };
   }
 }
 
 export async function maintainQueue() {
   const admin = createAdminClient();
-  const [published, recovered, expiredRateLimits, expiredUploads] = await Promise.all([
+  const [published, recovered, expiredRateLimits, expiredUploads, abandonments] = await Promise.all([
     admin.rpc("publish_job_outbox_internal", { p_limit: 100 }),
     admin.rpc("recover_stuck_jobs_internal", { p_limit: 100 }),
     admin
@@ -1021,6 +1219,10 @@ export async function maintainQueue() {
       .delete({ count: "exact" })
       .lt("expires_at", new Date().toISOString()),
     admin.rpc("list_expired_uploads_internal", { p_limit: 100 }),
+    admin.rpc("record_generation_abandonments_internal", {
+      p_after_hours: 72,
+      p_limit: 500,
+    }),
   ]);
 
   let cleanedUploads = 0;
@@ -1109,5 +1311,6 @@ export async function maintainQueue() {
     expirationNoticesQueued: expiringSoon?.length ?? 0,
     expiredAssets: expiredAssetIds.length,
     cleanedAssets,
+    abandonments: abandonments.data ?? 0,
   };
 }

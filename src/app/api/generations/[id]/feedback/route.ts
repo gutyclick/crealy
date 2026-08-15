@@ -9,6 +9,7 @@ import { enforceRateLimit } from "@/lib/operations/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
+import { recordGenerationEvent } from "@/lib/analytics/generation-telemetry";
 
 export const runtime = "nodejs";
 
@@ -141,6 +142,36 @@ export async function PUT(
 
   if (saveError || !saved) {
     return NextResponse.json({ error: "No pudimos guardar tu opinión." }, { status: 503 });
+  }
+
+  const { data: generationJob } = await admin
+    .from("jobs")
+    .select("id")
+    .eq("job_type", "generation")
+    .eq("resource_id", generation.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  await recordGenerationEvent({
+    generationId: generation.id,
+    userId: user.id,
+    jobId: generationJob?.id ?? null,
+    type: input.verdict === "useful" ? "approved" : "rejected",
+    idempotencyKey: `feedback:${saved.updated_at}:${input.verdict}`,
+    properties: {
+      reasons: input.reasons,
+      hasComment: Boolean(input.comment),
+      correctionRequested: input.correctionRequested,
+    },
+  }).catch(() => null);
+  if (input.correctionRequested) {
+    await recordGenerationEvent({
+      generationId: generation.id,
+      userId: user.id,
+      jobId: generationJob?.id ?? null,
+      type: "correction_requested",
+      idempotencyKey: `feedback:${saved.updated_at}:correction`,
+      properties: { reasons: input.reasons },
+    }).catch(() => null);
   }
 
   return NextResponse.json({

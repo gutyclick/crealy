@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPrivateStorage } from "@/lib/storage/provider";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { recordGenerationEvent } from "@/lib/analytics/generation-telemetry";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,23 @@ export async function GET(_request: Request, { params }: RouteContext) {
     .update({ generation_metadata: { ...metadata, downloaded: true, selectedByUser: true } })
     .eq("id", id)
     .eq("user_id", user.id);
+
+  const admin = createAdminClient();
+  const { data: job } = await admin
+    .from("jobs")
+    .select("id")
+    .eq("job_type", "generation")
+    .eq("resource_id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  await recordGenerationEvent({
+    generationId: id,
+    userId: user.id,
+    jobId: job?.id ?? null,
+    type: "downloaded",
+    idempotencyKey: "result:first-download",
+    properties: { source: "generation_detail" },
+  }).catch(() => null);
 
   return new Response(new Uint8Array(file), {
     headers: {

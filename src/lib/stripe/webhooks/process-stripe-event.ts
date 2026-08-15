@@ -103,6 +103,26 @@ export async function syncPaidInvoice(
   );
   if (error) throw new Error("credit_grant_failed");
 
+  const currency = invoice.currency.toLowerCase();
+  const grossAmountMinor = Math.max(0, invoice.amount_paid);
+  const { error: revenueError } = await admin
+    .from("billing_revenue_events")
+    .upsert(
+      {
+        user_id: synced.userId,
+        stripe_invoice_id: invoice.id,
+        plan_key: synced.planKey,
+        currency,
+        gross_amount_minor: grossAmountMinor,
+        credits_granted: amount,
+        gross_revenue_per_credit_usd:
+          currency === "usd" ? grossAmountMinor / 100 / amount : null,
+        paid_at: new Date((invoice.status_transitions.paid_at ?? eventCreated) * 1000).toISOString(),
+      },
+      { onConflict: "stripe_invoice_id" },
+    );
+  if (revenueError) throw new Error("billing_revenue_record_failed");
+
   await admin
     .from("subscriptions")
     .update({ last_invoice_paid_at: new Date().toISOString() })
