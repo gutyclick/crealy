@@ -3,18 +3,22 @@
 ## Embudo privado
 
 Medir, sin prompts ni contenido: registro iniciado/completado, correo
-confirmado, onboarding completado, primera generación iniciada/completada,
-checkout iniciado, herramienta abierta/completada y soporte creado.
+confirmado, objetivo elegido, ejemplo visto, configuración recomendada cargada,
+onboarding completado, primera generación iniciada/completada, primera descarga,
+invitación a Firma Visual, checkout iniciado y soporte creado.
 
-La definición única de activación es: usuario con al menos una generación o
-edición completada. Como señal secundaria, medir dos creaciones en siete días.
+La definición única de activación es: usuario que descarga su primer resultado.
+La retención inicial es el porcentaje de esos usuarios que vuelve a usar Crealy
+en los siete días siguientes. El denominador de esta cohorte solo incluye
+usuarios cuya ventana de siete días ya terminó.
 
 ## Salud
 
-- Jobs: espera p95, tasa de éxito y reintentos.
+- Jobs: p50/p95, fallos y trabajos estancados por espera, preparación,
+  generación, evaluación, corrección y procesamiento/almacenamiento.
 - Proveedores: errores seguros por OpenAI, Stripe, R2, Resend y Supabase.
 - Coste: imágenes por usuario/día, créditos reservados/liberados y bytes activos.
-- Producto: activación en 24 horas y tiempo hasta primera pieza.
+- Producto: tasa y tiempo hasta primera descarga, y retorno durante siete días.
 
 ## Presupuesto inicial
 

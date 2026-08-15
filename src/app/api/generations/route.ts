@@ -24,6 +24,7 @@ import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { getRecreateElementLimit } from "@/config/recreate";
 import { getPlanEconomicsSnapshot } from "@/lib/analytics/plan-economics";
 import { recordGenerationEvent } from "@/lib/analytics/generation-telemetry";
+import { recordActivationEvent } from "@/lib/analytics/activation";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -485,6 +486,16 @@ export async function POST(request: Request) {
       errorCode: eventError instanceof Error ? eventError.message.slice(0, 80) : "event_failed",
     });
   });
+  await recordActivationEvent({
+    userId: user.id,
+    type: "generation_started",
+    idempotencyKey: `generation:started:${queued.generation_id}`,
+    properties: {
+      generationId: queued.generation_id,
+      contentType: input.contentType,
+      creationMode: input.creationMode ?? "create",
+    },
+  }).catch(() => null);
   const { data: jobReady, error: jobReadyError } = await admin.rpc("mark_job_ready_internal", {
     p_job_id: queued.job_id,
     p_user_id: user.id,

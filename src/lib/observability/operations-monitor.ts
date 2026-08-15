@@ -30,7 +30,7 @@ export async function inspectOperationalHealth() {
   const stuckBefore = new Date(now - numericEnv("ALERT_STUCK_JOB_MINUTES", 15) * 60_000).toISOString();
   const reservationBefore = new Date(now - numericEnv("ALERT_OPEN_RESERVATION_MINUTES", 30) * 60_000).toISOString();
 
-  const [metricsResult, stuckResult, reservationsResult, usageResult, actualCostResult, reservedCostResult, productResult] = await Promise.all([
+  const [metricsResult, stuckResult, reservationsResult, usageResult, actualCostResult, reservedCostResult, productResult, queueResult, activationResult] = await Promise.all([
     admin.from("operational_metrics").select("metric_name, dimension, metric_value").eq("metric_date", today.toISOString().slice(0, 10)),
     admin.from("jobs").select("id", { count: "exact", head: true }).in("status", ["queued", "claimed", "processing", "retry_scheduled"]).lt("updated_at", stuckBefore),
     admin.from("credit_reservations").select("id", { count: "exact", head: true }).eq("status", "reserved").lt("created_at", reservationBefore),
@@ -41,9 +41,18 @@ export async function inspectOperationalHealth() {
       p_from: new Date(now - 30 * 86_400_000).toISOString(),
       p_to: new Date(now).toISOString(),
     }),
+    admin.rpc("queue_stage_analytics_internal", {
+      p_from: new Date(now - 7 * 86_400_000).toISOString(),
+      p_to: new Date(now).toISOString(),
+      p_stuck_minutes: numericEnv("ALERT_STUCK_JOB_MINUTES", 15),
+    }),
+    admin.rpc("activation_analytics_internal", {
+      p_from: new Date(now - 30 * 86_400_000).toISOString(),
+      p_to: new Date(now).toISOString(),
+    }),
   ]);
 
-  const queryError = [metricsResult.error, stuckResult.error, reservationsResult.error, usageResult.error, actualCostResult.error, reservedCostResult.error, productResult.error].find(Boolean);
+  const queryError = [metricsResult.error, stuckResult.error, reservationsResult.error, usageResult.error, actualCostResult.error, reservedCostResult.error, productResult.error, queueResult.error, activationResult.error].find(Boolean);
   if (queryError) throw queryError;
 
   const metric = (name: string, dimension: string) => Number(metricsResult.data?.find((row) => row.metric_name === name && row.dimension === dimension)?.metric_value || 0);
@@ -67,6 +76,15 @@ export async function inspectOperationalHealth() {
   const downloadRate = Number(productSummary.downloadRate || 0);
   const grossMarginUsd = Number(productSummary.grossMarginUsd || 0);
   const completedResults = Number(productSummary.completedResults || 0);
+  const queue = queueResult.data && typeof queueResult.data === "object" && !Array.isArray(queueResult.data)
+    ? queueResult.data as Record<string, unknown>
+    : {};
+  const queueStages = Array.isArray(queue.byStage)
+    ? queue.byStage.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    : [];
+  const activation = activationResult.data && typeof activationResult.data === "object" && !Array.isArray(activationResult.data)
+    ? activationResult.data as Record<string, unknown>
+    : {};
   const alerts: Alert[] = [];
 
   const failureThreshold = numericEnv("ALERT_GENERATION_FAILURE_RATE", 0.15);
@@ -75,6 +93,10 @@ export async function inspectOperationalHealth() {
   if ((reservationsResult.count || 0) > 0) alerts.push({ key: "open_credit_reservations", value: reservationsResult.count || 0, threshold: 0, unit: "reservations" });
   if (dailyBudget && dailySpend / dailyBudget >= numericEnv("ALERT_DAILY_BUDGET_RATIO", 0.8)) alerts.push({ key: "daily_openai_budget", value: dailySpend, threshold: dailyBudget, unit: "usd" });
   if (completedResults >= numericEnv("ALERT_MARGIN_MIN_SAMPLE", 10) && grossMarginUsd < 0) alerts.push({ key: "negative_generation_margin_30d", value: grossMarginUsd, threshold: 0, unit: "usd" });
+  for (const stage of queueStages) {
+    const stuckCount = Number(stage.stuckCount || 0);
+    if (stuckCount > 0) alerts.push({ key: `stuck_stage_${String(stage.stage)}`, value: stuckCount, threshold: 0, unit: "spans" });
+  }
   alerts.forEach(emitAlert);
 
   Sentry.metrics.gauge("crealy.generation.failure_rate", failureRate);
@@ -84,6 +106,13 @@ export async function inspectOperationalHealth() {
   Sentry.metrics.gauge("crealy.product.approval_rate_30d", approvalRate);
   Sentry.metrics.gauge("crealy.product.download_rate_30d", downloadRate);
   Sentry.metrics.gauge("crealy.product.gross_margin_usd_30d", grossMarginUsd);
+  for (const stage of queueStages) {
+    const stageName = String(stage.stage).replace(/[^a-z0-9_]/gi, "_");
+    Sentry.metrics.gauge(`crealy.queue.${stageName}.p50_ms`, Number(stage.p50Ms || 0));
+    Sentry.metrics.gauge(`crealy.queue.${stageName}.p95_ms`, Number(stage.p95Ms || 0));
+  }
+  Sentry.metrics.gauge("crealy.activation.first_download_rate_30d", Number(activation.firstDownloadActivationRate || 0));
+  Sentry.metrics.gauge("crealy.activation.return_rate_7d", Number(activation.sevenDayReturnRate || 0));
 
   return { healthy: alerts.length === 0, alertCount: alerts.length, checkedAt: new Date().toISOString() };
 }

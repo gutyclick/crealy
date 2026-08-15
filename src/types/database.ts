@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_events: {
+        Row: {
+          event_type: string
+          id: string
+          idempotency_key: string
+          occurred_at: string
+          properties: Json
+          user_id: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          idempotency_key: string
+          occurred_at?: string
+          properties?: Json
+          user_id: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          idempotency_key?: string
+          occurred_at?: string
+          properties?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       assets: {
         Row: {
           bucket: string
@@ -1239,6 +1266,69 @@ export type Database = {
           },
         ]
       }
+      job_stage_spans: {
+        Row: {
+          attempt_no: number
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          generation_id: string
+          id: string
+          job_id: string
+          metadata: Json
+          stage: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_no: number
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          generation_id: string
+          id?: string
+          job_id: string
+          metadata?: Json
+          stage: string
+          started_at: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_no?: number
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          generation_id?: string
+          id?: string
+          job_id?: string
+          metadata?: Json
+          stage?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_stage_spans_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "generations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_stage_spans_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_outbox: {
         Row: {
           attempts: number
@@ -2000,6 +2090,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_days: {
+        Row: {
+          activity_date: string
+          first_seen_at: string
+          last_seen_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_date: string
+          first_seen_at?: string
+          last_seen_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_date?: string
+          first_seen_at?: string
+          last_seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_uploads: {
         Row: {
           asset_id: string | null
@@ -2058,6 +2169,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activation_analytics_internal: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      fail_open_job_stages_internal: {
+        Args: { p_attempt_no: number; p_error_code: string; p_job_id: string }
+        Returns: number
+      }
+      finish_job_stage_internal: {
+        Args: {
+          p_attempt_no: number
+          p_job_id: string
+          p_metadata?: Json
+          p_stage: string
+          p_status: string
+        }
+        Returns: undefined
+      }
       product_analytics_internal: {
         Args: { p_from?: string; p_to?: string }
         Returns: Json
@@ -2076,6 +2205,23 @@ export type Database = {
           p_properties?: Json
           p_user_id: string
         }
+        Returns: undefined
+      }
+      queue_stage_analytics_internal: {
+        Args: { p_from?: string; p_stuck_minutes?: number; p_to?: string }
+        Returns: Json
+      }
+      record_activation_event_internal: {
+        Args: {
+          p_event_type: string
+          p_idempotency_key: string
+          p_properties?: Json
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      record_user_activity_internal: {
+        Args: { p_user_id: string }
         Returns: undefined
       }
       record_provider_cost_internal: {
@@ -2102,6 +2248,18 @@ export type Database = {
           p_provider_request_id: string | null
           p_succeeded: boolean
           p_total_tokens: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      start_job_stage_internal: {
+        Args: {
+          p_attempt_no: number
+          p_generation_id: string
+          p_job_id: string
+          p_metadata?: Json
+          p_stage: string
+          p_started_at: string
           p_user_id: string
         }
         Returns: undefined

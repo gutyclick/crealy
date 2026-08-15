@@ -1,4 +1,4 @@
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -21,6 +21,7 @@ import type {
   GenerationFeedbackReason,
   GenerationFeedbackValue,
 } from "@/types/generation-feedback";
+import { DownloadFirstWin } from "@/components/generation/download-first-win";
 
 export const metadata: Metadata = {
   title: "Detalle de creación",
@@ -183,13 +184,7 @@ export default async function GenerationDetailPage({
             </dl>
             {imageUrl ? (
               <div className="mt-7 grid gap-2">
-                <a
-                  href={`/api/generations/${data.id}/download`}
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-5 text-sm font-semibold text-foreground hover:bg-white/[0.05]"
-                >
-                  <Download aria-hidden="true" className="size-4" />
-                  Descargar PNG
-                </a>
+                <DownloadFirstWin generationId={data.id} />
                 {normalizedContentType === "thumbnail" ? (
                   <>
                     <ThumbnailFollowupActions

@@ -71,6 +71,7 @@ import type {
 import type { QueuedGenerationResponse } from "@/types/jobs";
 import type { BrandStyle, StyleConsistency } from "@/types/brand-style";
 import type { BrandStyleEntitlement } from "@/config/brand-styles";
+import type { OnboardingObjective } from "@/config/onboarding";
 
 const contentIcons = {
   "monitor-play": MonitorPlay,
@@ -113,6 +114,7 @@ export function GenerationForm({
   brandStyles,
   brandStyleEntitlement,
   initialBrandStyleId,
+  initialOnboardingObjective,
 }: {
   available: boolean;
   availableCredits: number | null;
@@ -121,6 +123,7 @@ export function GenerationForm({
   brandStyles: BrandStyle[];
   brandStyleEntitlement: BrandStyleEntitlement;
   initialBrandStyleId?: string;
+  initialOnboardingObjective?: OnboardingObjective;
 }) {
   const currentAvailableCredits = useCreditBalance(availableCredits);
   const initialProduct = getGenerationProduct(
@@ -138,11 +141,17 @@ export function GenerationForm({
   const [quality, setQuality] = useState<GenerationQuality>(() =>
     getDefaultQuality(getGenerationVariant(initialProduct.defaultVariant)!),
   );
-  const [description, setDescription] = useState("");
-  const [primaryText, setPrimaryText] = useState("");
-  const [videoTitle, setVideoTitle] = useState("");
+  const [description, setDescription] = useState(
+    initialOnboardingObjective?.descriptionSeed ?? "",
+  );
+  const [primaryText, setPrimaryText] = useState(
+    initialOnboardingObjective?.primaryText ?? "",
+  );
+  const [videoTitle, setVideoTitle] = useState(
+    initialOnboardingObjective?.videoTitle ?? "",
+  );
   const [thumbnailPreset, setThumbnailPreset] =
-    useState<ThumbnailPreset>("impactful");
+    useState<ThumbnailPreset>(initialOnboardingObjective?.thumbnailPreset ?? "impactful");
   const [thumbnailTextMode, setThumbnailTextMode] =
     useState<ThumbnailTextMode>("automatic");
   const [brandStyleId, setBrandStyleId] = useState(() =>
@@ -152,7 +161,9 @@ export function GenerationForm({
   );
   const [styleConsistency, setStyleConsistency] =
     useState<StyleConsistency>("balanced");
-  const [style, setStyle] = useState<GenerationStyle>("automatic");
+  const [style, setStyle] = useState<GenerationStyle>(
+    initialOnboardingObjective?.recommendedStyle ?? "automatic",
+  );
   const [colorPreference, setColorPreference] =
     useState<ColorPreference>("auto");
   const [customColors, setCustomColors] = useState(["#DDF527", "#10110D"]);
@@ -419,6 +430,14 @@ export function GenerationForm({
               Preparando {product.fullLabel.toLowerCase()}
             </span>
           </div>
+          {initialOnboardingObjective ? (
+            <div className="mt-5 flex items-start gap-3 rounded-xl bg-brand/[0.07] px-4 py-3 text-sm ring-1 ring-brand/20">
+              <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
+              <p className="leading-6 text-foreground/85">
+                Preparamos un punto de partida para <strong className="font-semibold text-foreground">{initialOnboardingObjective.label.toLowerCase()}</strong>. Puedes cambiar cualquier detalle antes de generar.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <nav

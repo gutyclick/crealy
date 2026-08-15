@@ -12,6 +12,7 @@ import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { normalizeContentType } from "@/config/generation-products";
 import { createClient } from "@/lib/supabase/server";
 import { getBrandStyleAccess, listBrandStyles } from "@/lib/brand-styles/service";
+import { getOnboardingObjective } from "@/config/onboarding";
 
 /*
 THESIS: Crear debe sentirse como dirigir una pieza visual, no operar un panel técnico.
@@ -38,13 +39,16 @@ const CONTENT_TYPES = new Set<ContentType>([
 export default async function CreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; style?: string }>;
+  searchParams: Promise<{ type?: string; style?: string; onboarding?: string }>;
 }) {
   const params = await searchParams;
+  const onboardingObjective = getOnboardingObjective(params.onboarding);
   const requestedType = params.type;
   const normalizedType = requestedType ? normalizeContentType(requestedType) : null;
   const initialContentType =
-    normalizedType && CONTENT_TYPES.has(normalizedType) ? normalizedType : undefined;
+    normalizedType && CONTENT_TYPES.has(normalizedType)
+      ? normalizedType
+      : onboardingObjective?.contentType;
   const user = await requireUser();
   const styleAccess = await getBrandStyleAccess(user.id);
   const brandStyles = styleAccess.entitlement.enabled ? await listBrandStyles(user.id) : [];
@@ -81,6 +85,7 @@ export default async function CreatePage({
           brandStyles={brandStyles}
           brandStyleEntitlement={styleAccess.entitlement}
           initialBrandStyleId={typeof params.style === "string" ? params.style : undefined}
+          initialOnboardingObjective={onboardingObjective ?? undefined}
         />
       </Container>
     </main>

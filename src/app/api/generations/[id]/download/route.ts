@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPrivateStorage } from "@/lib/storage/provider";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordGenerationEvent } from "@/lib/analytics/generation-telemetry";
+import { recordActivationEvent } from "@/lib/analytics/activation";
 
 export const runtime = "nodejs";
 
@@ -81,6 +82,12 @@ export async function GET(_request: Request, { params }: RouteContext) {
     type: "downloaded",
     idempotencyKey: "result:first-download",
     properties: { source: "generation_detail" },
+  }).catch(() => null);
+  await recordActivationEvent({
+    userId: user.id,
+    type: "first_result_downloaded",
+    idempotencyKey: "activation:first-result-downloaded",
+    properties: { generationId: id, contentType: generation.content_type },
   }).catch(() => null);
 
   return new Response(new Uint8Array(file), {

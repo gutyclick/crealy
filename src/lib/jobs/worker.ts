@@ -49,6 +49,13 @@ import {
   recordProviderCost,
 } from "@/lib/analytics/generation-telemetry";
 import type { ProviderCallObservation } from "@/lib/analytics/provider-cost";
+import {
+  failOpenJobStages,
+  finishJobStage,
+  recordWaitingStage,
+  runJobStage,
+  startJobStage,
+} from "@/lib/analytics/job-stage-telemetry";
 
 async function safeGenerationEvent(
   input: Parameters<typeof recordGenerationEvent>[0],
@@ -295,6 +302,9 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     return;
   }
 
+  await startJobStage(job, "preparation", {
+    metadata: { contentType: generation.content_type },
+  });
   const normalizedContentType = normalizeContentType(generation.content_type);
   const normalizedVariant = normalizeGenerationVariant(
     generation.variant || generation.requested_format,
@@ -436,11 +446,14 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .eq("user_id", generation.user_id)
     .in("status", ["pending", "processing"]);
   if (processingError) throw processingError;
+  await finishJobStage(job, "preparation");
 
-  let generated = await generateImage(input, enhancedPrompt, references, {
-    operation: "image_generation_initial",
-    observe: observeProviderCall,
-  });
+  let generated = await runJobStage(job, "generation", () =>
+    generateImage(input, enhancedPrompt, references, {
+      operation: "image_generation_initial",
+      observe: observeProviderCall,
+    }),
+  );
   let thumbnailEvaluation = null;
   let recreateEvaluation = null;
   let wasAutomaticallyRegenerated = false;
@@ -449,14 +462,17 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   let recreateUsedCorrectedResult = false;
   if (thumbnailPlan) {
     try {
-      const firstEvaluation = await evaluateThumbnail({
-        buffer: generated.imageBuffer,
-        mimeType: generated.mimeType,
-        input,
-        plan: thumbnailPlan,
-        observe: observeProviderCall,
-        operation: "thumbnail_evaluation_initial",
-      });
+      const firstEvaluation = await runJobStage(job, "evaluation", () =>
+        evaluateThumbnail({
+          buffer: generated.imageBuffer,
+          mimeType: generated.mimeType,
+          input,
+          plan: thumbnailPlan,
+          observe: observeProviderCall,
+          operation: "thumbnail_evaluation_initial",
+        }),
+        { kind: "thumbnail" },
+      );
       thumbnailEvaluation = firstEvaluation;
       await safeGenerationEvent({
         generationId: generation.id, userId: generation.user_id, jobId: job.id,
@@ -470,20 +486,28 @@ async function processGeneration(job: JobRecord, startedAt: number) {
           type: "automatic_correction_requested", idempotencyKey: `attempt:${job.attempt_count}:thumbnail-correction-requested`,
           properties: { kind: "thumbnail", criticalErrors: firstEvaluation.criticalErrors, score: firstEvaluation.score },
         });
-        const corrected = await generateImage(
-          input,
-          buildCorrectiveThumbnailPrompt(thumbnailPlan, firstEvaluation),
-          references,
-          { operation: "image_generation_thumbnail_correction", observe: observeProviderCall },
+        const { corrected, correctedEvaluation } = await runJobStage(
+          job,
+          "correction",
+          async () => {
+            const corrected = await generateImage(
+              input,
+              buildCorrectiveThumbnailPrompt(thumbnailPlan, firstEvaluation),
+              references,
+              { operation: "image_generation_thumbnail_correction", observe: observeProviderCall },
+            );
+            const correctedEvaluation = await evaluateThumbnail({
+              buffer: corrected.imageBuffer,
+              mimeType: corrected.mimeType,
+              input,
+              plan: thumbnailPlan,
+              observe: observeProviderCall,
+              operation: "thumbnail_evaluation_correction",
+            });
+            return { corrected, correctedEvaluation };
+          },
+          { kind: "thumbnail" },
         );
-        const correctedEvaluation = await evaluateThumbnail({
-          buffer: corrected.imageBuffer,
-          mimeType: corrected.mimeType,
-          input,
-          plan: thumbnailPlan,
-          observe: observeProviderCall,
-          operation: "thumbnail_evaluation_correction",
-        });
         const selectedCorrectedResult = correctedEvaluation.score >= firstEvaluation.score;
         await safeGenerationEvent({
           generationId: generation.id, userId: generation.user_id, jobId: job.id,
@@ -518,14 +542,17 @@ async function processGeneration(job: JobRecord, startedAt: number) {
   }
   if (input.creationMode === "recreate" && recreateReferences.length) {
     try {
-      const firstEvaluation = await evaluateRecreate({
-        buffer: generated.imageBuffer,
-        mimeType: generated.mimeType,
-        input,
-        references: recreateReferences,
-        observe: observeProviderCall,
-        operation: "recreate_evaluation_initial",
-      });
+      const firstEvaluation = await runJobStage(job, "evaluation", () =>
+        evaluateRecreate({
+          buffer: generated.imageBuffer,
+          mimeType: generated.mimeType,
+          input,
+          references: recreateReferences,
+          observe: observeProviderCall,
+          operation: "recreate_evaluation_initial",
+        }),
+        { kind: "recreate" },
+      );
       recreateEvaluation = firstEvaluation;
       await safeGenerationEvent({
         generationId: generation.id, userId: generation.user_id, jobId: job.id,
@@ -539,20 +566,28 @@ async function processGeneration(job: JobRecord, startedAt: number) {
           type: "automatic_correction_requested", idempotencyKey: `attempt:${job.attempt_count}:recreate-correction-requested`,
           properties: { kind: "recreate", criticalErrors: firstEvaluation.criticalErrors, score: firstEvaluation.score },
         });
-        const corrected = await generateImage(
-          input,
-          buildCorrectiveRecreatePrompt(enhancedPrompt, firstEvaluation),
-          references,
-          { operation: "image_generation_recreate_correction", observe: observeProviderCall },
+        const { corrected, correctedEvaluation } = await runJobStage(
+          job,
+          "correction",
+          async () => {
+            const corrected = await generateImage(
+              input,
+              buildCorrectiveRecreatePrompt(enhancedPrompt, firstEvaluation),
+              references,
+              { operation: "image_generation_recreate_correction", observe: observeProviderCall },
+            );
+            const correctedEvaluation = await evaluateRecreate({
+              buffer: corrected.imageBuffer,
+              mimeType: corrected.mimeType,
+              input,
+              references: recreateReferences,
+              observe: observeProviderCall,
+              operation: "recreate_evaluation_correction",
+            });
+            return { corrected, correctedEvaluation };
+          },
+          { kind: "recreate" },
         );
-        const correctedEvaluation = await evaluateRecreate({
-          buffer: corrected.imageBuffer,
-          mimeType: corrected.mimeType,
-          input,
-          references: recreateReferences,
-          observe: observeProviderCall,
-          operation: "recreate_evaluation_correction",
-        });
         const selectedCorrectedResult = correctedEvaluation.score >= firstEvaluation.score;
         await safeGenerationEvent({
           generationId: generation.id, userId: generation.user_id, jobId: job.id,
@@ -588,6 +623,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       });
     }
   }
+  await startJobStage(job, "processing_storage");
   await getPrivateStorage()
     .put(storagePath, generated.imageBuffer, generated.mimeType)
     .catch(() => {
@@ -732,6 +768,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     .eq("id", generation.id)
     .eq("user_id", generation.user_id);
   if (metadataError) throw metadataError;
+  await finishJobStage(job, "processing_storage");
   await safeGenerationEvent({
     generationId: generation.id,
     userId: generation.user_id,
@@ -1127,6 +1164,7 @@ export async function processQueuedJob(jobId: string) {
   if (markError || !marked) return { status: "lost_claim" as const };
 
   const startedAt = Date.now();
+  await recordWaitingStage(job);
   logger.info("job.started", {
     correlationId: job.correlation_id,
     jobId: job.id,
@@ -1153,6 +1191,7 @@ export async function processQueuedJob(jobId: string) {
   } catch (caught) {
     const decision = classifyJobError(caught, job.attempt_count);
     const durationMs = Date.now() - startedAt;
+    await failOpenJobStages(job, decision.errorCode);
     if (decision.retryable && job.attempt_count < job.max_attempts) {
       await admin.rpc("retry_job_internal", {
         p_job_id: job.id,

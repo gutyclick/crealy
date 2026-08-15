@@ -2,72 +2,85 @@ import { NextResponse } from "next/server";
 
 import { getLaunchConfig } from "@/lib/launch/server";
 import { createClient } from "@/lib/supabase/server";
+import { getOnboardingObjective, onboardingCreateRoute } from "@/config/onboarding";
+import { recordActivationEvent } from "@/lib/analytics/activation";
 
-const allowedUseCases = new Set([
-  "youtube_thumbnail",
-  "banners_covers",
-  "social_posts",
-  "promotional_creatives",
-  "explore_formats",
+const onboardingEvents = new Set([
+  "goal_selected",
+  "example_viewed",
+  "recommended_configuration_loaded",
 ]);
-const allowedRoles = new Set([
-  "content_creator",
-  "youtuber",
-  "streamer",
-  "community_manager",
-  "entrepreneur",
-  "agency",
-  "business",
-  "other",
-]);
-const actionRoutes: Record<string, string> = {
-  youtube_thumbnail: "/create?type=youtube-thumbnail",
-  cover: "/create?type=social-cover",
-  tools: "/tools",
-  dashboard: "/dashboard",
-};
+
+async function authenticatedUser() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return { supabase, user };
+}
+
+export async function PATCH(request: Request) {
+  const { user } = await authenticatedUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const body = (await request.json().catch(() => null)) as {
+    event?: unknown;
+    objectiveId?: unknown;
+  } | null;
+  const event = typeof body?.event === "string" ? body.event : "";
+  const objective = getOnboardingObjective(
+    typeof body?.objectiveId === "string" ? body.objectiveId : null,
+  );
+  if (!onboardingEvents.has(event) || !objective) {
+    return NextResponse.json({ error: "invalid_event" }, { status: 400 });
+  }
+  await recordActivationEvent({
+    userId: user.id,
+    type: event as "goal_selected" | "example_viewed" | "recommended_configuration_loaded",
+    idempotencyKey: `onboarding:${event}:${objective.id}`,
+    properties: { objectiveId: objective.id, contentType: objective.contentType },
+  }).catch(() => null);
+  return NextResponse.json({ recorded: true });
+}
 
 export async function POST(request: Request) {
   if (!getLaunchConfig().onboardingEnabled) {
     return NextResponse.json({ redirectTo: "/dashboard" });
   }
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await authenticatedUser();
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const body = (await request.json().catch(() => null)) as {
-    primaryUseCases?: unknown;
-    userRole?: unknown;
-    firstAction?: unknown;
+    objectiveId?: unknown;
+    skip?: unknown;
   } | null;
-  const primaryUseCases = Array.isArray(body?.primaryUseCases)
-    ? [...new Set(body.primaryUseCases)]
-        .filter((item): item is string => typeof item === "string")
-        .filter((item) => allowedUseCases.has(item))
-        .slice(0, 5)
-    : [];
-  const userRole =
-    typeof body?.userRole === "string" && allowedRoles.has(body.userRole)
-      ? body.userRole
-      : null;
-  const firstAction =
-    typeof body?.firstAction === "string" && actionRoutes[body.firstAction]
-      ? body.firstAction
-      : "dashboard";
+  const skip = body?.skip === true;
+  const objective = getOnboardingObjective(
+    typeof body?.objectiveId === "string" ? body.objectiveId : null,
+  );
+  if (!skip && !objective) {
+    return NextResponse.json({ error: "invalid_objective" }, { status: 400 });
+  }
 
   const { error } = await supabase.from("user_preferences").upsert({
     user_id: user.id,
-    primary_use_cases: primaryUseCases,
-    user_role: userRole,
+    primary_use_cases: objective ? [objective.preferenceKey] : [],
+    user_role: null,
     onboarding_completed_at: new Date().toISOString(),
   });
   if (error) {
     return NextResponse.json({ error: "save_failed" }, { status: 503 });
   }
 
-  return NextResponse.json({ redirectTo: actionRoutes[firstAction] });
+  if (objective) {
+    await recordActivationEvent({
+      userId: user.id,
+      type: "onboarding_completed",
+      idempotencyKey: "onboarding:completed",
+      properties: { objectiveId: objective.id, contentType: objective.contentType },
+    }).catch(() => null);
+  }
+
+  return NextResponse.json({
+    redirectTo: objective ? onboardingCreateRoute(objective) : "/dashboard",
+  });
 }

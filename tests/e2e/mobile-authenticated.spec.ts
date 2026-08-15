@@ -81,6 +81,32 @@ test.describe("flujo móvil autenticado", () => {
     page,
   }) => {
     await login(page, mobileUser);
+    await page.goto("/onboarding");
+    await expect(
+      page.getByRole("heading", { name: "¿Qué quieres conseguir primero?" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Ver mi punto de partida" }).click();
+    await expect(page.getByAltText("Ejemplo de miniatura de productividad")).toBeVisible();
+    const onboardingDimensions = await page.evaluate(() => ({
+      viewport: window.innerWidth,
+      document: document.documentElement.scrollWidth,
+    }));
+    expect(onboardingDimensions.document).toBeLessThanOrEqual(
+      onboardingDimensions.viewport + 1,
+    );
+    if (process.env.E2E_CAPTURE_SCREENSHOTS === "true") {
+      await page.screenshot({
+        path: ".codex/artifacts/onboarding-mobile.png",
+        fullPage: true,
+      });
+    }
+    await page.getByRole("button", { name: "Usar esta dirección" }).click();
+    await page
+      .getByRole("button", { name: "Abrir mi primera creación" })
+      .click();
+    await expect(page).toHaveURL(/\/create\?type=thumbnail&onboarding=youtube-growth/);
+
+    await page.goto("/dashboard");
     await expect(
       page.getByRole("navigation", { name: "Navegación principal móvil" }),
     ).toBeVisible();

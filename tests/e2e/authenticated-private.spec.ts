@@ -149,6 +149,53 @@ test.describe("flujos privados con Supabase de testing", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test("convierte el onboarding en una primera creación precargada", async ({
+    page,
+  }) => {
+    await login(page, isolated);
+    await page.goto("/onboarding");
+    await page.getByText("Explicar una idea", { exact: true }).click();
+    await page.getByRole("button", { name: "Ver mi punto de partida" }).click();
+    await expect(
+      page.getByAltText("Ejemplo de publicación educativa sobre tecnología"),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Usar esta dirección" }).click();
+    await expect(
+      page.getByRole("heading", {
+        name: "Tu primera creación ya tiene dirección.",
+      }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Abrir mi primera creación" })
+      .click();
+    await expect(page).toHaveURL(
+      /\/create\?type=social-post&onboarding=teach-something/,
+    );
+    await expect(
+      page.getByText(/Preparamos un punto de partida para explicar una idea/i),
+    ).toBeVisible();
+
+    const { data: activationEvents, error } = await admin
+      .from("activation_events")
+      .select("event_type")
+      .eq("user_id", isolated.id!)
+      .in("event_type", [
+        "goal_selected",
+        "example_viewed",
+        "recommended_configuration_loaded",
+        "onboarding_completed",
+      ]);
+    expect(error).toBeNull();
+    expect(new Set(activationEvents?.map((event) => event.event_type))).toEqual(
+      new Set([
+        "goal_selected",
+        "example_viewed",
+        "recommended_configuration_loaded",
+        "onboarding_completed",
+      ]),
+    );
+  });
+
   test("abre Create y Recreate como superficies independientes", async ({
     page,
   }) => {
@@ -211,6 +258,62 @@ test.describe("flujos privados con Supabase de testing", () => {
       .select("id")
       .single();
     expect(generationError).toBeNull();
+
+    const { data: measuredJob, error: measuredJobError } = await admin
+      .from("jobs")
+      .insert({
+        user_id: isolated.id!,
+        job_type: "generation",
+        status: "completed",
+        idempotency_key: `e2e-stage:${crypto.randomUUID()}`,
+        resource_id: generation!.id,
+        payload: {},
+        input_hash: "a".repeat(64),
+        attempt_count: 1,
+        completed_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    expect(measuredJobError).toBeNull();
+    const stageStartedAt = new Date(Date.now() - 1_000).toISOString();
+    const { error: stageStartError } = await admin.rpc(
+      "start_job_stage_internal",
+      {
+        p_job_id: measuredJob!.id,
+        p_generation_id: generation!.id,
+        p_user_id: isolated.id!,
+        p_attempt_no: 1,
+        p_stage: "waiting",
+        p_started_at: stageStartedAt,
+        p_metadata: { source: "e2e" },
+      },
+    );
+    expect(stageStartError).toBeNull();
+    const { error: stageFinishError } = await admin.rpc(
+      "finish_job_stage_internal",
+      {
+        p_job_id: measuredJob!.id,
+        p_attempt_no: 1,
+        p_stage: "waiting",
+        p_status: "completed",
+        p_metadata: {},
+      },
+    );
+    expect(stageFinishError).toBeNull();
+    const { data: queueAnalytics, error: queueAnalyticsError } = await admin.rpc(
+      "queue_stage_analytics_internal",
+      {
+        p_from: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        p_to: new Date(Date.now() + 60 * 1000).toISOString(),
+        p_stuck_minutes: 15,
+      },
+    );
+    expect(queueAnalyticsError).toBeNull();
+    const waitingStage = (
+      queueAnalytics as { byStage?: Array<Record<string, number | string>> } | null
+    )?.byStage?.find((stage) => stage.stage === "waiting");
+    expect(Number(waitingStage?.sampleCount)).toBeGreaterThanOrEqual(1);
+    expect(Number(waitingStage?.p50Ms)).toBeGreaterThan(0);
 
     await login(page, isolated);
     await page.goto(`/generations/${generation!.id}`);

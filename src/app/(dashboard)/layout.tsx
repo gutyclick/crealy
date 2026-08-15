@@ -12,6 +12,7 @@ import type { JobStatus } from "@/types/jobs";
 import type { PlanKey } from "@/types/billing";
 import { MobileAppNavigation } from "@/components/dashboard/mobile-app-navigation";
 import { MfaSecurityReminder } from "@/components/auth/mfa-security-reminder";
+import { ActivityPing } from "@/components/dashboard/activity-ping";
 
 export const metadata: Metadata = {
   robots: {
@@ -89,6 +90,7 @@ export default async function DashboardLayout({
         }))}
         plan={plan}
       />
+      <ActivityPing />
       {showMfaReminder ? <MfaSecurityReminder /> : null}
       {children}
       <MobileAppNavigation plan={plan} />

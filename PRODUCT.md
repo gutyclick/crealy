@@ -81,8 +81,9 @@ La interfaz debe funcionar con teclado, mantener foco visible y contraste sufici
 - La etapa operativa es producción pública, con registro abierto y sin
   invitación obligatoria. Los controles de invitación se conservan solo como
   mecanismo de contingencia ante abuso o incidentes.
-- El onboarding tiene tres pasos opcionales y personaliza accesos sin consumir
-  créditos ni decidir permisos, seguridad o facturación.
+- El onboarding tiene tres pasos opcionales: el usuario elige un objetivo, ve
+  un ejemplo relevante y abre una creación recomendada y editable. No consume
+  créditos ni decide permisos, seguridad o facturación.
 - Los correos de producto se envían con Resend mediante jobs idempotentes; los
   correos de seguridad y autenticación permanecen en Supabase Auth.
 - Soporte y feedback nunca adjuntan automáticamente prompts o imágenes. Las
@@ -92,4 +93,6 @@ La interfaz debe funcionar con teclado, mantener foco visible y contraste sufici
   y consentimiento; sus eventos no incluyen contenido del usuario.
 - Las páginas legales son borradores no indexables hasta completar entidad,
   jurisdicción, fechas y revisión profesional.
-- La definición de activación es una generación o edición completada.
+- La definición primaria de activación es la primera descarga de un resultado.
+  La retención inicial mide si el usuario vuelve a crear o usar el producto
+  durante los siete días siguientes.
