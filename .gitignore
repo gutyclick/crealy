@@ -37,5 +37,6 @@ yarn-error.log*
 .DS_Store
 *.pem
 supabase/.temp/
+tests/supabase/.temp/
 
 .vercel

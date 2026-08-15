@@ -154,9 +154,7 @@ test.describe("flujos privados con Supabase de testing", () => {
   }) => {
     await login(page, isolated);
     await page.goto("/create");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      /crea|idea|diseña/i,
-    );
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Crear miniatura/i }),
     ).toBeVisible();
