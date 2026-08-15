@@ -58,8 +58,8 @@ const evaluationSchema = {
 function exactThumbnailText(input: GenerationInput, recommended: string) {
   if (input.thumbnailTextMode === "none") return "";
   if (input.thumbnailTextMode === "custom") return input.primaryText?.trim() ?? "";
-  const normalized = recommended.trim().replace(/[Â¿?Â¡!]/g, "").toLocaleUpperCase("es");
-  const genericHooks = ["QUÃ‰ PASÃ“", "NO LO CREERÃ�S", "INCREÃ�BLE", "IMPACTANTE", "TIENES QUE VERLO"];
+  const normalized = recommended.trim().replace(/[¿?¡!]/g, "").toLocaleUpperCase("es");
+  const genericHooks = ["QUÉ PASÓ", "NO LO CREERÁS", "INCREÍBLE", "IMPACTANTE", "TIENES QUE VERLO"];
   const contextual = genericHooks.some((hook) => normalized === hook)
     ? deriveAutomaticThumbnailText(input)
     : recommended;
@@ -75,7 +75,7 @@ const AUTOMATIC_TEXT_STOP_WORDS = new Set([
 
 function textTokens(value: string) {
   return value
-    .replace(/[Â¿?Â¡!.,:;()[\]{}"']/g, " ")
+    .replace(/[¿?¡!.,:;()[\]{}"']/g, " ")
     .split(/\s+/)
     .map((token) => token.trim())
     .filter(Boolean);
@@ -102,24 +102,24 @@ export function deriveAutomaticThumbnailText(input: GenerationInput) {
 }
 
 const COMPOSITIONS = [
-  "primer plano lateral con una revelaciÃ³n en profundidad al lado opuesto",
-  "diagonal de tensiÃ³n entre protagonista y evidencia visual",
+  "primer plano lateral con una revelación en profundidad al lado opuesto",
+  "diagonal de tensión entre protagonista y evidencia visual",
   "objeto enorme en primer plano con protagonista reaccionando desde segundo plano",
-  "encuadre cenital con una anomalÃ­a central y espacio tipogrÃ¡fico lateral",
-  "sujeto recortado desde el borde con el resultado dominando el centro Ã³ptico",
+  "encuadre cenital con una anomalía central y espacio tipográfico lateral",
+  "sujeto recortado desde el borde con el resultado dominando el centro óptico",
   "perspectiva sobre el hombro hacia el elemento que resuelve la historia",
 ] as const;
 const LIGHTING = [
   "luz lateral dura y fondo profundo",
   "contraluz recortado con sombras densas",
-  "luz de estudio limpia con contraste cromÃ¡tico",
-  "fuente motivada dentro de la escena y atmÃ³sfera contenida",
+  "luz de estudio limpia con contraste cromático",
+  "fuente motivada dentro de la escena y atmósfera contenida",
 ] as const;
 const TYPE_TREATMENTS = [
-  "bloque tipogrÃ¡fico compacto alineado con la mirada del sujeto",
-  "texto de gran escala parcialmente detrÃ¡s del protagonista sin perder legibilidad",
+  "bloque tipográfico compacto alineado con la mirada del sujeto",
+  "texto de gran escala parcialmente detrás del protagonista sin perder legibilidad",
   "titular corto dentro de una forma editorial de alto contraste",
-  "tipografÃ­a inclinada siguiendo la tensiÃ³n de la composiciÃ³n",
+  "tipografía inclinada siguiendo la tensión de la composición",
 ] as const;
 
 export function thumbnailCreativeSignature(input: GenerationInput) {
@@ -127,10 +127,10 @@ export function thumbnailCreativeSignature(input: GenerationInput) {
     .update(`${input.clientRequestId}|${input.description}|${input.videoTitle || ""}|${input.thumbnailPreset || "impactful"}`)
     .digest();
   return [
-    `ComposiciÃ³n distintiva: ${COMPOSITIONS[digest[0] % COMPOSITIONS.length]}.`,
-    `IluminaciÃ³n: ${LIGHTING[digest[1] % LIGHTING.length]}.`,
+    `Composición distintiva: ${COMPOSITIONS[digest[0] % COMPOSITIONS.length]}.`,
+    `Iluminación: ${LIGHTING[digest[1] % LIGHTING.length]}.`,
     `Tratamiento del texto: ${TYPE_TREATMENTS[digest[2] % TYPE_TREATMENTS.length]}.`,
-    `Firma creativa: ${digest.subarray(0, 5).toString("hex")}. No reutilices una plantilla genÃ©rica.`,
+    `Firma creativa: ${digest.subarray(0, 5).toString("hex")}. No reutilices una plantilla genérica.`,
   ];
 }
 

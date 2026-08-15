@@ -26,6 +26,14 @@ const generationQueueMigration = readFileSync(
   "utf8",
 ).toLowerCase();
 
+const expandedRecreateReferences = readFileSync(
+  new URL(
+    "../supabase/migrations/20260815010000_expand_recreate_element_references.sql",
+    import.meta.url,
+  ),
+  "utf8",
+).toLowerCase();
+
 test("job creation is atomic with credit reservation and outbox", () => {
   assert.match(sql, /create_generation_job_internal/);
   assert.match(sql, /create_edit_job_internal/);
@@ -47,9 +55,11 @@ test("financial completion and definitive failure are database atomic", () => {
   assert.match(sql, /release_reserved_credits_internal/);
 });
 
-test("generation reference positions use the database 1 through 4 contract", () => {
+test("generation references start at one and Recreate can persist five images", () => {
   assert.match(referencePositionFix, /reference_position integer := 1;/);
   assert.match(referencePositionFix, /pg_get_functiondef/);
+  assert.match(expandedRecreateReferences, /position between 1 and 5/);
+  assert.match(expandedRecreateReferences, /> 5/);
 });
 
 test("generation queue accepts several jobs while preserving a per-user cap", () => {

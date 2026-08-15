@@ -9,6 +9,21 @@ export type RecreateReferenceRole =
   | "product"
   | "background"
   | "supporting";
+export type RecreateElementKind =
+  | "person"
+  | "product"
+  | "object"
+  | "background"
+  | "mixed";
+export type RecreateElementAnalysis = {
+  kind: RecreateElementKind;
+  recommendedRole: RecreateReferenceRole;
+  faceCount: number;
+  primarySubject: string;
+  identityAnchors: string[];
+  placementGuidance: string;
+  warnings: string[];
+};
 export type RecreatePreservationKey =
   | "composition"
   | "pose"

@@ -198,6 +198,7 @@ export type GenerationInput = {
   recreateFocus?: import("@/types/recreate").RecreateFocus;
   recreateGoal?: import("@/types/recreate").RecreateGoal;
   recreateReferenceRoles?: import("@/types/recreate").RecreateReferenceRole[];
+  recreateElementAnalyses?: import("@/types/recreate").RecreateElementAnalysis[];
   recreatePreservation?: import("@/types/recreate").RecreatePreservation;
 };
 

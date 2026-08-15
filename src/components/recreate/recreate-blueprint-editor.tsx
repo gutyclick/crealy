@@ -26,9 +26,9 @@ export function RecreateBlueprintEditor({
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3 text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2.5">
           <SlidersHorizontal aria-hidden="true" className="size-4 text-brand" />
-          Revisar lectura visual
+          Ver y ajustar la estructura detectada
           <span className="hidden font-normal text-muted sm:inline">
-            — opcional
+            · opcional
           </span>
         </span>
         <ChevronDown
@@ -38,8 +38,8 @@ export function RecreateBlueprintEditor({
       </summary>
       <div className="border-t border-white/8 px-5 pb-6 pt-5 sm:px-6">
         <p className="max-w-2xl text-xs leading-5 text-muted">
-          Esta es la fórmula que Crealy detectó. Corrige únicamente lo que no
-          represente bien la referencia; no necesitas completar todos los campos.
+          Esta lectura guía la composición final. Ajusta solo aquello que Crealy
+          no haya interpretado correctamente en la referencia.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {EDITABLE_FIELDS.map((field) => (

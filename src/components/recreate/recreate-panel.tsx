@@ -1,12 +1,23 @@
 "use client";
 
 import Image from "next/image";
-import { Check, ImagePlus, Link2, LoaderCircle, Sparkles, Upload, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Box,
+  Check,
+  Crown,
+  ImagePlus,
+  Link2,
+  LoaderCircle,
+  ScanFace,
+  Sparkles,
+  Upload,
+  X,
+} from "lucide-react";
 import { useRef, useState } from "react";
 
 import type { ReferenceDraft } from "@/components/generation/reference-image-picker";
 import { RecreateBlueprintEditor } from "@/components/recreate/recreate-blueprint-editor";
-import { MAX_GENERATION_REFERENCE_IMAGES } from "@/config/generation";
 import {
   DEFAULT_RECREATE_PRESERVATION,
   RECREATE_PRESERVATION_OPTIONS,
@@ -26,6 +37,7 @@ import type {
   RecreateReferenceRole,
   RecreateSimilarity,
 } from "@/types/recreate";
+import type { PlanKey } from "@/types/billing";
 
 export type RecreateState = {
   similarity: RecreateSimilarity;
@@ -45,24 +57,26 @@ function legacyFocusForPreservation(key: RecreatePreservationKey): RecreateFocus
   return "composition";
 }
 
-export function RecreatePanel({ category, references, setReferences, disabled, maxFileMb, onChange }: {
+export function RecreatePanel({ category, references, setReferences, disabled, maxFileMb, maxElements, planKey, onChange }: {
   category: RecreateCategory;
   references: ReferenceDraft[];
   setReferences: React.Dispatch<React.SetStateAction<ReferenceDraft[]>>;
   disabled: boolean;
   maxFileMb: number;
+  maxElements: number;
+  planKey: PlanKey;
   onChange: (state: RecreateState) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const supportingInputRef = useRef<HTMLInputElement>(null);
   const blueprintEditedRef = useRef(false);
   const [url, setUrl] = useState("");
-  const [similarity, setSimilarity] = useState<RecreateSimilarity>("similar");
+  const [similarity, setSimilarity] = useState<RecreateSimilarity>("very_similar");
   const [goal, setGoal] = useState<RecreateGoal>("performance");
   const [preservation, setPreservation] = useState<RecreatePreservation>({ ...DEFAULT_RECREATE_PRESERVATION });
   const [blueprint, setBlueprint] = useState<RecreateBlueprint>();
   const stateRef = useRef<RecreateState>({
-    similarity: "similar",
+    similarity: "very_similar",
     focus: "composition",
     goal: "performance",
     preservation: { ...DEFAULT_RECREATE_PRESERVATION },
@@ -73,6 +87,7 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
   const [supportingError, setSupportingError] = useState("");
   const source = references[0];
   const supportingReferences = references.slice(1);
+  const maxReferences = maxElements + 1;
   const busy = status === "loading" || status === "analyzing";
 
   function emitChange(patch: Partial<RecreateState>) {
@@ -92,11 +107,72 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
     ));
   }
 
+  async function analyzeSupportingReference(reference: ReferenceDraft) {
+    setReferences((current) =>
+      current.map((item) =>
+        item.key === reference.key ? { ...item, status: "uploading" } : item,
+      ),
+    );
+    try {
+      const upload = reference.uploadId
+        ? { uploadId: reference.uploadId }
+        : await uploadPrivateImage(reference.file, "reference");
+      setReferences((current) =>
+        current.map((item) =>
+          item.key === reference.key
+            ? { ...item, uploadId: upload.uploadId, status: "analyzing" }
+            : item,
+        ),
+      );
+      const response = await fetch("/api/recreate/elements/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uploadId: upload.uploadId }),
+      });
+      const payload = await readApiResponse<
+        | { analysis: NonNullable<ReferenceDraft["recreateAnalysis"]> }
+        | { error: string }
+      >(response, "No pudimos reconocer el elemento.");
+      if (!response.ok || "error" in payload) {
+        throw new Error(
+          "error" in payload
+            ? payload.error
+            : "No pudimos reconocer el elemento.",
+        );
+      }
+      setReferences((current) =>
+        current.map((item) =>
+          item.key === reference.key
+            ? {
+                ...item,
+                uploadId: upload.uploadId,
+                status: "uploaded",
+                recreateRole: payload.analysis.recommendedRole,
+                recreateAnalysis: payload.analysis,
+              }
+            : item,
+        ),
+      );
+      setSupportingError("");
+    } catch (error) {
+      setReferences((current) =>
+        current.map((item) =>
+          item.key === reference.key ? { ...item, status: "error" } : item,
+        ),
+      );
+      setSupportingError(
+        error instanceof Error
+          ? error.message
+          : "No pudimos reconocer el elemento.",
+      );
+    }
+  }
+
   function addSupportingReferences(files: File[]) {
     setSupportingError("");
-    const remaining = MAX_GENERATION_REFERENCE_IMAGES - references.length;
+    const remaining = maxElements - supportingReferences.length;
     if (remaining <= 0) {
-      setSupportingError(`Puedes usar hasta ${MAX_GENERATION_REFERENCE_IMAGES} imágenes en total.`);
+      setSupportingError(`Tu plan permite hasta ${maxElements} elementos.`);
       return;
     }
 
@@ -119,21 +195,21 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
         setSupportingError("Una de esas imágenes ya está seleccionada.");
         continue;
       }
-      const supportingPosition = supportingReferences.length + accepted.length;
       accepted.push({
         key: crypto.randomUUID(),
         file,
         previewUrl: URL.createObjectURL(file),
-        recreateRole: supportingPosition === 0 ? "protagonist" : "supporting",
+        recreateRole: "supporting",
         status: "ready",
       });
     }
 
     if (accepted.length) {
-      setReferences((current) => [...current, ...accepted].slice(0, MAX_GENERATION_REFERENCE_IMAGES));
+      setReferences((current) => [...current, ...accepted].slice(0, maxReferences));
       setMessage(files.length > remaining
-        ? `Se añadieron ${remaining}. El máximo es ${MAX_GENERATION_REFERENCE_IMAGES} imágenes en total.`
-        : "Material adicional listo. Define el papel de cada imagen para ganar precisión.");
+        ? `Se añadieron ${remaining}. Tu plan permite ${maxElements} elementos.`
+        : "Estamos reconociendo cada elemento para ubicarlo con precisión.");
+      accepted.forEach((reference) => void analyzeSupportingReference(reference));
     }
   }
 
@@ -157,7 +233,7 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
     const previewUrl = URL.createObjectURL(file);
     setReferences((current) => {
       if (current[0]) URL.revokeObjectURL(current[0].previewUrl);
-      return [{ key, file, previewUrl, status: "uploading" }, ...current.slice(1, MAX_GENERATION_REFERENCE_IMAGES)];
+      return [{ key, file, previewUrl, status: "uploading" }, ...current.slice(1, maxReferences)];
     });
     try {
       const upload = await uploadPrivateImage(file, "reference");
@@ -222,26 +298,31 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
   }
 
   return (
-    <section className="mt-7 overflow-hidden rounded-2xl border border-brand/20 bg-brand/[0.035]">
-      <div className="border-b border-white/8 p-5 sm:p-6">
+    <section className="mt-8 overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-white/10">
+      <div className="border-b border-white/8 p-5 sm:p-7">
         <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand text-brand-ink">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand text-brand-ink shadow-[0_10px_30px_rgba(221,245,39,.12)]">
             <Sparkles aria-hidden="true" className="size-5" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">Recrea un diseño que ya funciona</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
-              Añade una pieza de referencia. Crealy extraerá su fórmula visual y la reconstruirá con tu contenido.
+            <h2 className="text-xl font-semibold tracking-[-0.025em] text-foreground">
+              Usa como guía un diseño que ya funciona
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+              Crealy conservará su estructura, jerarquía y ritmo visual para adaptarlos a tu idea y a tus propios elementos.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_15rem]">
+      <div className="grid gap-5 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_17rem]">
         <div>
           <label htmlFor="recreate-url" className="text-sm font-semibold text-foreground">
-            Pega un enlace o sube una imagen
+            Diseño de referencia
           </label>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            Pega una miniatura de YouTube o sube una imagen. Esta pieza define la composición; no se copiarán sus personas, marcas ni texto.
+          </p>
           <div className="mt-3 flex gap-2">
             <div className="relative min-w-0 flex-1">
               <Link2 aria-hidden="true" className="absolute left-3 top-3.5 size-4 text-muted" />
@@ -261,7 +342,7 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
               />
             </div>
             <button type="button" onClick={loadUrl} disabled={disabled || busy} className="min-h-12 rounded-xl bg-white px-4 text-sm font-bold text-black disabled:opacity-50">
-              Analizar
+              Usar enlace
             </button>
           </div>
           <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-[.16em] text-muted">
@@ -279,7 +360,7 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
             }}
           />
           <button type="button" onClick={() => inputRef.current?.click()} disabled={disabled || busy} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-background text-sm font-semibold text-foreground transition-colors hover:border-brand/45 disabled:opacity-50">
-            <Upload aria-hidden="true" className="size-4 text-brand" />Subir imagen
+            <Upload aria-hidden="true" className="size-4 text-brand" />Subir referencia
           </button>
         </div>
         <div className="relative aspect-video overflow-hidden rounded-xl bg-background ring-1 ring-white/10">
@@ -287,14 +368,14 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
             <Image src={source.previewUrl} alt="Vista previa de la referencia base" fill unoptimized className="object-cover" />
           ) : (
             <div className="grid h-full place-items-center text-center text-xs text-muted">
-              <span><ImagePlus aria-hidden="true" className="mx-auto mb-2 size-6" />Tu referencia aparecerá aquí</span>
+              <span><ImagePlus aria-hidden="true" className="mx-auto mb-2 size-6" />Vista previa de la referencia</span>
             </div>
           )}
           {busy ? (
             <div role="status" aria-live="polite" className="absolute inset-0 grid place-items-center bg-black/70 text-xs font-semibold text-white">
               <span className="flex items-center gap-2">
                 <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-brand" />
-                {status === "loading" ? "Obteniendo imagen" : "Entendiendo la fórmula"}
+                {status === "loading" ? "Obteniendo imagen" : "Leyendo la composición"}
               </span>
             </div>
           ) : null}
@@ -304,43 +385,39 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
       {status === "ready" ? (
         <div role="status" aria-live="polite" className="mx-5 mb-5 flex items-center gap-2 rounded-xl bg-brand/10 px-4 py-3 text-sm font-semibold text-foreground ring-1 ring-brand/25 sm:mx-6 sm:mb-6">
           <Check aria-hidden="true" className="size-4 shrink-0 text-brand" />
-          {message || "Crealy entendió la composición, la jerarquía y la energía visual."}
+          {message || "Referencia lista: composición, jerarquía y energía visual identificadas."}
         </div>
       ) : null}
       {status === "error" ? (
         <p role="alert" className="mx-5 mb-5 rounded-xl bg-red-950/40 px-4 py-3 text-sm text-red-100 sm:mx-6 sm:mb-6">{message}</p>
       ) : null}
 
-      {status === "ready" && blueprint ? (
-        <RecreateBlueprintEditor
-          blueprint={blueprint}
-          disabled={disabled || busy}
-          onChange={(nextBlueprint) => {
-            blueprintEditedRef.current = true;
-            setBlueprint(nextBlueprint);
-            emitChange({ blueprint: nextBlueprint });
-          }}
-        />
-      ) : null}
-
       {status === "ready" ? (
-        <div className="border-t border-white/8 p-5 sm:p-6">
+        <div className="border-t border-white/8 bg-background/35 p-5 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-foreground">
-                Sujetos, productos o elementos <span className="font-normal text-muted">(opcional)</span>
-              </p>
-              <p className="mt-1 max-w-2xl text-xs leading-5 text-muted">
-                La primera imagen define la fórmula. Añade hasta 3 imágenes propias y dinos qué papel cumple cada una.
+              <h3 className="text-base font-semibold tracking-[-0.015em] text-foreground">
+                Añade lo que debe aparecer en tu diseño
+              </h3>
+              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+                Sube personas, personajes, productos u objetos. Crealy reconocerá rostros y rasgos visibles para integrarlos en la posición correcta de la referencia.
               </p>
             </div>
-            <span className="shrink-0 rounded-lg bg-background px-2.5 py-1 text-xs font-semibold text-muted ring-1 ring-white/10">
-              {references.length}/{MAX_GENERATION_REFERENCE_IMAGES}
+            <span className="shrink-0 rounded-lg bg-surface px-2.5 py-1.5 text-xs font-semibold text-muted ring-1 ring-white/10">
+              {supportingReferences.length}/{maxElements}
             </span>
           </div>
-          <p className="mt-3 text-xs leading-5 text-white/55">
-            Para mayor fidelidad, usa una persona u objeto por imagen, con buena luz y sin elementos que oculten sus rasgos.
-          </p>
+          <div className="mt-4 flex items-start gap-3 rounded-xl bg-surface px-4 py-3 ring-1 ring-white/8">
+            <ScanFace aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
+            <p className="text-xs leading-5 text-muted">
+              Usa una imagen clara por elemento. Si es una persona, procura que el rostro sea visible; si es un objeto, evita fondos que oculten su silueta.
+              {planKey === "free" ? (
+                <span className="mt-1 flex items-center gap-1.5 text-foreground">
+                  <Crown aria-hidden="true" className="size-3.5 text-brand" /> Starter, Creator y Pro admiten hasta 4 elementos.
+                </span>
+              ) : null}
+            </p>
+          </div>
           <input
             ref={supportingInputRef}
             type="file"
@@ -352,12 +429,17 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
               event.target.value = "";
             }}
           />
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {supportingReferences.map((reference, index) => (
-              <div key={reference.key} className="min-w-0">
-                <div className="group relative aspect-square overflow-hidden rounded-xl bg-background ring-1 ring-white/10">
+              <div key={reference.key} className="min-w-0 rounded-xl bg-surface p-2.5 ring-1 ring-white/10">
+                <div className="group relative aspect-square overflow-hidden rounded-lg bg-background">
                   <Image src={reference.previewUrl} alt={`Material adicional ${index + 1}`} fill unoptimized className="object-cover" />
-                  <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/75 px-1.5 py-1 text-[0.625rem] font-semibold text-white">S{index + 1}</span>
+                  <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/80 px-1.5 py-1 text-[0.625rem] font-semibold text-white">E{index + 1}</span>
+                  {reference.status === "uploading" || reference.status === "analyzing" ? (
+                    <span role="status" className="absolute inset-0 grid place-items-center bg-black/70 text-center text-xs font-semibold text-white">
+                      <span><LoaderCircle aria-hidden="true" className="mx-auto mb-2 size-5 animate-spin text-brand" />{reference.status === "uploading" ? "Subiendo" : "Reconociendo"}</span>
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => {
@@ -372,6 +454,26 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
                     <span className="grid size-7 place-items-center rounded-lg bg-black/80"><X aria-hidden="true" className="size-4" /></span>
                   </button>
                 </div>
+                <div className="mt-2.5 min-h-10">
+                  {reference.recreateAnalysis ? (
+                    <div>
+                      <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                        {reference.recreateAnalysis.faceCount > 0 ? <ScanFace aria-hidden="true" className="size-3.5 text-brand" /> : <Box aria-hidden="true" className="size-3.5 text-brand" />}
+                        {reference.recreateAnalysis.faceCount > 0
+                          ? `${reference.recreateAnalysis.faceCount} ${reference.recreateAnalysis.faceCount === 1 ? "rostro detectado" : "rostros detectados"}`
+                          : "Elemento reconocido"}
+                        {reference.recreateAnalysis.warnings.length ? <AlertTriangle aria-label="La imagen tiene una advertencia" className="ml-auto size-3.5 text-amber-300" /> : null}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-muted" title={reference.recreateAnalysis.primarySubject}>{reference.recreateAnalysis.primarySubject}</p>
+                    </div>
+                  ) : reference.status === "error" ? (
+                    <button type="button" onClick={() => void analyzeSupportingReference(reference)} className="flex min-h-10 items-center gap-1.5 text-left text-xs font-semibold text-red-200">
+                      <AlertTriangle aria-hidden="true" className="size-3.5" /> Reintentar análisis
+                    </button>
+                  ) : (
+                    <p className="text-xs text-muted">Preparando elemento…</p>
+                  )}
+                </div>
                 <label className="mt-2 block">
                   <span className="sr-only">Papel del material adicional {index + 1}</span>
                   <select
@@ -385,9 +487,9 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
                 </label>
               </div>
             ))}
-            {references.length < MAX_GENERATION_REFERENCE_IMAGES ? (
-              <button type="button" onClick={() => supportingInputRef.current?.click()} disabled={disabled || busy} className="group grid aspect-square min-h-24 place-items-center rounded-xl border border-dashed border-white/15 bg-background text-center transition-colors hover:border-brand/45 disabled:opacity-50">
-                <span><ImagePlus aria-hidden="true" className="mx-auto size-5 text-brand" /><span className="mt-1.5 block text-xs font-semibold text-foreground">Añadir</span></span>
+            {supportingReferences.length < maxElements ? (
+              <button type="button" onClick={() => supportingInputRef.current?.click()} disabled={disabled || busy} className="group grid aspect-square min-h-32 place-items-center rounded-xl border border-dashed border-white/15 bg-surface text-center transition-colors hover:border-brand/45 hover:bg-brand/[0.025] disabled:opacity-50">
+                <span><ImagePlus aria-hidden="true" className="mx-auto size-5 text-brand" /><span className="mt-2 block text-xs font-semibold text-foreground">Añadir elemento</span><span className="mt-1 block text-xs text-muted">Persona u objeto</span></span>
               </button>
             ) : null}
           </div>
@@ -395,10 +497,22 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
         </div>
       ) : null}
 
-      <div className="grid border-t border-white/8 sm:grid-cols-2">
-        <fieldset className="p-5 sm:p-6">
-          <legend className="px-0 text-sm font-semibold text-foreground">Conserva de la referencia</legend>
-          <p className="mt-1 text-xs leading-5 text-muted">Puedes combinar varios aspectos o desmarcarlos para reinterpretarlos.</p>
+      {status === "ready" && blueprint ? (
+        <RecreateBlueprintEditor
+          blueprint={blueprint}
+          disabled={disabled || busy}
+          onChange={(nextBlueprint) => {
+            blueprintEditedRef.current = true;
+            setBlueprint(nextBlueprint);
+            emitChange({ blueprint: nextBlueprint });
+          }}
+        />
+      ) : null}
+
+      <div className="grid border-t border-white/8 lg:grid-cols-[1.15fr_.85fr]">
+        <fieldset className="p-5 sm:p-7">
+          <legend className="px-0 text-base font-semibold tracking-[-0.015em] text-foreground">Qué debe mantenerse fiel</legend>
+          <p className="mt-1.5 text-sm leading-6 text-muted">Deja activos los rasgos estructurales que hacen reconocible la idea de la referencia.</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {RECREATE_PRESERVATION_OPTIONS.map((item) => {
               const selected = preservation[item.id];
@@ -408,31 +522,31 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
                   type="button"
                   aria-pressed={selected}
                   onClick={() => togglePreservation(item.id)}
-                  className={cn("min-h-14 rounded-xl px-3 py-2.5 text-left ring-1 transition-colors", selected ? "bg-brand/10 ring-brand/60" : "bg-background ring-white/10")}
+                  className={cn("min-h-16 rounded-xl px-3.5 py-3 text-left ring-1 transition-colors", selected ? "bg-brand/10 ring-brand/60" : "bg-background ring-white/10 hover:ring-white/20")}
                 >
-                  <span className="block text-xs font-semibold text-foreground">{item.label}</span>
+                  <span className="flex items-center justify-between gap-2 text-xs font-semibold text-foreground">{item.label}{selected ? <Check aria-hidden="true" className="size-3.5 text-brand" /> : null}</span>
                   <span className="mt-1 block text-xs leading-4 text-muted">{item.detail}</span>
                 </button>
               );
             })}
           </div>
         </fieldset>
-        <fieldset className="border-t border-white/8 p-5 sm:border-l sm:border-t-0 sm:p-6">
-          <legend className="px-0 text-sm font-semibold text-foreground">Qué quieres mejorar</legend>
-          <p className="mt-1 text-xs leading-5 text-muted">Define la dirección del nuevo resultado.</p>
+        <fieldset className="border-t border-white/8 p-5 sm:p-7 lg:border-l lg:border-t-0">
+          <legend className="px-0 text-base font-semibold tracking-[-0.015em] text-foreground">Cómo quieres potenciarla</legend>
+          <p className="mt-1.5 text-sm leading-6 text-muted">Elige una sola dirección para que el cambio tenga intención.</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {([
-              { id: "performance", label: "Más clics" },
-              { id: "clean", label: "Más limpio" },
-              { id: "premium", label: "Más premium" },
-              { id: "bold", label: "Más impacto" },
+              { id: "performance", label: "Más clara y atractiva" },
+              { id: "clean", label: "Más limpia" },
+              { id: "premium", label: "Más refinada" },
+              { id: "bold", label: "Más impactante" },
             ] as const).map((item) => (
               <button
                 key={item.id}
                 type="button"
                 aria-pressed={goal === item.id}
                 onClick={() => { setGoal(item.id); emitChange({ goal: item.id }); }}
-                className={cn("min-h-14 rounded-xl px-3 text-left text-xs font-semibold ring-1 transition-colors", goal === item.id ? "bg-brand/10 text-foreground ring-brand/60" : "bg-background text-muted ring-white/10")}
+                className={cn("min-h-16 rounded-xl px-3.5 text-left text-xs font-semibold ring-1 transition-colors", goal === item.id ? "bg-brand/10 text-foreground ring-brand/60" : "bg-background text-muted ring-white/10 hover:text-foreground hover:ring-white/20")}
               >
                 {item.label}
               </button>
@@ -441,20 +555,21 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
         </fieldset>
       </div>
 
-      <fieldset className="border-t border-white/8 p-5 sm:p-6">
-        <legend className="px-0 text-sm font-semibold text-foreground">Nivel de parecido</legend>
+      <fieldset className="border-t border-white/8 p-5 sm:p-7">
+        <legend className="px-0 text-base font-semibold tracking-[-0.015em] text-foreground">Fidelidad a la referencia</legend>
+        <p className="mt-1.5 text-sm leading-6 text-muted">Controla cuánto debe respetarse la estructura original. Crealy siempre reemplazará el contenido identificable.</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           {([
-            { id: "inspired", label: "Inspirado", detail: "Nueva composición" },
-            { id: "similar", label: "Equilibrado", detail: "Recomendado" },
-            { id: "very_similar", label: "Cercano", detail: "Misma lógica visual" },
+            { id: "inspired", label: "Inspirada", detail: "Toma la idea y cambia la estructura" },
+            { id: "similar", label: "Equilibrada", detail: "Conserva jerarquía y ritmo" },
+            { id: "very_similar", label: "Estructura fiel", detail: "Recomendada para Recreate" },
           ] as const).map((item) => (
             <button
               key={item.id}
               type="button"
               aria-pressed={similarity === item.id}
               onClick={() => { setSimilarity(item.id); emitChange({ similarity: item.id }); }}
-              className={cn("min-h-14 rounded-xl p-3 text-left ring-1 transition-colors", similarity === item.id ? "bg-brand/10 ring-brand/60" : "bg-background ring-white/10")}
+              className={cn("min-h-16 rounded-xl p-3.5 text-left ring-1 transition-colors", similarity === item.id ? "bg-brand/10 ring-brand/60" : "bg-background ring-white/10 hover:ring-white/20")}
             >
               <span className="block text-sm font-semibold text-foreground">{item.label}</span>
               <span className="mt-1 block text-xs text-muted">{item.detail}</span>

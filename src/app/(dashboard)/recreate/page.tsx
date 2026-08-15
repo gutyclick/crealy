@@ -7,8 +7,10 @@ import { requireUser } from "@/lib/auth/require-user";
 import { getBrandStyleAccess, listBrandStyles } from "@/lib/brand-styles/service";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 import { getEditingServerEnv, isGenerationAvailable } from "@/lib/env/server";
+import { getRecreateElementLimit } from "@/config/recreate";
 import { createClient } from "@/lib/supabase/server";
 import type { RecreateCategory } from "@/types/recreate";
+import type { PlanKey } from "@/types/billing";
 
 export const metadata: Metadata = {
   title: "Recreate",
@@ -38,8 +40,11 @@ export default async function RecreatePage({
     ? await listBrandStyles(user.id)
     : [];
   let availableCredits: number | null = null;
+  let planKey: PlanKey = "free";
   try {
-    availableCredits = (await getUserBillingState(user.id)).credits.available;
+    const billing = await getUserBillingState(user.id);
+    availableCredits = billing.credits.available;
+    planKey = billing.effectivePlan.key;
   } catch {
     const supabase = await createClient();
     const { data: account } = await supabase
@@ -63,6 +68,8 @@ export default async function RecreatePage({
           available={isGenerationAvailable()}
           availableCredits={availableCredits}
           maxReferenceFileMb={maxReferenceFileMb}
+          maxElements={getRecreateElementLimit(planKey)}
+          planKey={planKey}
           initialContentType={initialContentType}
           brandStyles={brandStyles}
           initialBrandStyleId={typeof params.style === "string" ? params.style : undefined}

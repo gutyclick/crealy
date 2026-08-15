@@ -57,7 +57,8 @@ function clampScore(value: number) {
 function roleSummary(input: GenerationInput) {
   return (input.recreateReferenceRoles ?? []).map((roleId, index) => {
     const role = RECREATE_REFERENCE_ROLES.find((item) => item.id === roleId);
-    return `Imagen ${index + 3}: ${role?.label ?? "Secundario"}`;
+    const analysis = input.recreateElementAnalyses?.[index];
+    return `Imagen ${index + 3}: ${role?.label ?? "Secundario"}${analysis ? `; ${analysis.primarySubject}; rostros esperados: ${analysis.faceCount}` : ""}`;
   });
 }
 
@@ -91,11 +92,12 @@ export async function evaluateRecreate({
               `Texto exacto solicitado: ${input.primaryText?.trim() || "sin texto visible"}`,
               `Materiales propios esperados: ${supportingCount}.`,
               ...roleSummary(input),
-              "Evalúa identidad solo contra las imágenes propias, nunca contra la persona de la referencia base.",
-              "Evalúa composición contra la fórmula abstracta de la referencia base, sin exigir una copia literal.",
+              "Evalúa identidad solo contra las imágenes propias, nunca contra la persona de la referencia base. Comprueba cada rostro de forma independiente y penaliza mezclas de facciones.",
+              "Evalúa composición con criterio estricto: deben coincidir zonas, posiciones relativas, escala, recortes, pose, dirección de lectura, espacio negativo y relaciones de profundidad de la referencia base, aunque el contenido sea nuevo.",
+              "No aceptes personas, personajes, productos u objetos protagonistas inventados que no estén en el brief o en los materiales propios.",
               "Marca missing_subject si falta un material propio solicitado; duplicated_subject si aparece repetido; identity_drift si una persona o producto perdió rasgos distintivos.",
               "Marca incorrect_text o unreadable_text si el texto exacto no coincide o no se lee. Si no se solicitó texto, cualquier palabra añadida cuenta como incorrect_text.",
-              "approved requiere 78+ y ningún error crítico. Devuelve correcciones específicas y ejecutables.",
+              "Marca composition_mismatch si la idea visual o la distribución ya no se reconocen con claridad. approved requiere 84+ y ningún error crítico. Devuelve correcciones específicas y ejecutables.",
             ].join("\n"),
           },
           {
@@ -135,6 +137,6 @@ export async function evaluateRecreate({
     compositionScore: clampScore(parsed.compositionScore),
     textScore: clampScore(parsed.textScore),
     criticalErrors,
-    approved: score >= 78 && criticalErrors.length === 0,
+    approved: score >= 84 && criticalErrors.length === 0,
   };
 }

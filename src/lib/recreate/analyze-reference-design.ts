@@ -63,8 +63,18 @@ export async function analyzeReferenceDesign(userId: string, uploadId: string, c
     model: process.env.OPENAI_RESPONSES_MODEL?.trim() || DEFAULT_RESPONSES_MODEL,
     store: false,
     input: [{ role: "user", content: [
-      { type: "input_text", text: `Analiza esta pieza de ${category} y extrae únicamente su fórmula visual abstracta. No transcribas nombres, marcas ni texto. Devuelve SOLO JSON válido en español con: composition, hierarchy, visualStyle, background, emotion, textDensity, subjectScale (strings); colorPalette, focalElements, replaceableElements (string[]). En replaceableElements incluye texto, personas, logos, marcas y objetos identificables.` },
-      { type: "input_image", image_url: `data:${upload.mime_type};base64,${buffer.toString("base64")}`, detail: "low" },
+      { type: "input_text", text: [
+        `Analiza esta pieza de ${category} como un plano de composición que será reconstruido con contenido nuevo.`,
+        "No transcribas nombres, marcas ni el texto literal.",
+        "En composition especifica con precisión: número de zonas, posición relativa en porcentajes aproximados, escala, recorte, pose o ángulo, dirección de mirada, solapamientos, espacio negativo y recorrido de lectura.",
+        "En hierarchy enumera el orden exacto de atención y la relación entre sujeto, texto, producto y fondo.",
+        "En background describe profundidad, perspectiva, textura y función; no inventes objetos que no tengan una función compositiva.",
+        "En textDensity describe cantidad de líneas, longitud aproximada, alineación y zona ocupada, sin copiar las palabras.",
+        "En subjectScale indica tamaño relativo, ubicación y recorte de cada espacio destinado a persona, personaje, producto u objeto.",
+        "Devuelve SOLO JSON válido en español con: composition, hierarchy, visualStyle, background, emotion, textDensity, subjectScale (strings); colorPalette, focalElements, replaceableElements (string[]).",
+        "En replaceableElements incluye texto, personas, personajes, logos, marcas y objetos identificables.",
+      ].join("\n") },
+      { type: "input_image", image_url: `data:${upload.mime_type};base64,${buffer.toString("base64")}`, detail: "high" },
     ] }],
   });
   return parseBlueprint(response.output_text, category);

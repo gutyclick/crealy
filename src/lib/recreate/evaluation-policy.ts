@@ -6,6 +6,7 @@ const CORRECTABLE_ERRORS = new Set<RecreateEvaluationCriticalError>([
   "identity_drift",
   "incorrect_text",
   "unreadable_text",
+  "composition_mismatch",
 ]);
 
 export function shouldCorrectRecreate(evaluation: RecreateEvaluation) {
@@ -30,7 +31,8 @@ export function buildCorrectiveRecreatePrompt(
     "",
     "Correcciones obligatorias:",
     ...evaluation.corrections.map((correction) => `- ${correction}`),
-    "Cada material propio debe aparecer exactamente una vez y mantener su identidad. El texto debe coincidir exactamente con el solicitado o no existir si no se pidió.",
+    "Cada material propio debe aparecer exactamente una vez y mantener su identidad. Recupera la distribución, escala, pose, zonas de texto y lectura de la referencia base. El texto debe coincidir exactamente con el solicitado o no existir si no se pidió.",
+    "No inventes personas, personajes, productos u objetos principales para completar espacios vacíos.",
     "Entrega una sola pieza final, sin explicación, mockup ni comparación.",
   ].join("\n");
 }

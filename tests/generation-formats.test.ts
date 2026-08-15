@@ -82,7 +82,7 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
     new URL("../src/lib/generation/thumbnail-orchestrator.ts", import.meta.url),
     "utf8",
   );
-  assert.doesNotMatch(orchestrator, /:\s*["']Â¿QUÃ‰ PASÃ“\?["']/);
+  assert.doesNotMatch(orchestrator, /:\s*["']¿QUÉ PASÓ\?["']/);
   assert.match(orchestrator, /deriveAutomaticThumbnailText\(input\)/);
   assert.match(orchestrator, /thumbnailCreativeSignature\(input\)/);
   assert.match(orchestrator, /Prohibido devolver ganchos intercambiables/);
@@ -275,6 +275,17 @@ test("Recreate validates one role per supporting reference and preservation cont
     creationMode: "recreate",
     referenceUploadIds,
     recreateReferenceRoles: ["protagonist"],
+    recreateElementAnalyses: [
+      {
+        kind: "person",
+        recommendedRole: "protagonist",
+        faceCount: 1,
+        primarySubject: "Una persona de frente",
+        identityAnchors: ["rostro visible", "camiseta negra"],
+        placementGuidance: "Usar como protagonista sin alterar sus rasgos.",
+        warnings: [],
+      },
+    ],
     recreatePreservation: {
       composition: true,
       pose: false,
@@ -303,6 +314,14 @@ test("Recreate validates one role per supporting reference and preservation cont
   });
   assert.equal(missingRole.success, false);
   if (!missingRole.success) assert.ok(missingRole.fields.recreateReferenceRoles);
+  const missingAnalysis = validateGenerationInput({
+    ...recreate,
+    recreateElementAnalyses: [],
+  });
+  assert.equal(missingAnalysis.success, false);
+  if (!missingAnalysis.success) {
+    assert.ok(missingAnalysis.fields.recreateElementAnalyses);
+  }
   const invalidPreservation = validateGenerationInput({
     ...recreate,
     recreatePreservation: {
@@ -314,6 +333,46 @@ test("Recreate validates one role per supporting reference and preservation cont
   if (!invalidPreservation.success) {
     assert.ok(invalidPreservation.fields.recreatePreservation);
   }
+});
+
+test("Recreate accepts one base reference plus four analyzed elements", () => {
+  const referenceUploadIds = [
+    "8c9f0c30-7932-4ec1-9eb1-369f4fac0321",
+    "4ed245f2-01dc-4294-a482-71b78e3cd08d",
+    "a1f5b3e0-a60d-4889-8b95-119f618422ea",
+    "07e86096-9c80-4d62-a2aa-35cf0265c5cd",
+    "ab86a394-ebf1-4413-a47f-4dff1ad7d437",
+  ];
+  const analyses = referenceUploadIds.slice(1).map((_, index) => ({
+    kind: index === 0 ? "person" : "object",
+    recommendedRole: index === 0 ? "protagonist" : "supporting",
+    faceCount: index === 0 ? 1 : 0,
+    primarySubject: `Elemento ${index + 1}`,
+    identityAnchors: ["rasgo visible"],
+    placementGuidance: "Mantener su función visual.",
+    warnings: [],
+  }));
+  const result = validateGenerationInput({
+    ...validInput,
+    creationMode: "recreate",
+    referenceUploadIds,
+    recreateReferenceRoles: ["protagonist", "supporting", "supporting", "supporting"],
+    recreateElementAnalyses: analyses,
+    recreateBlueprint: {
+      category: "thumbnail",
+      composition: "Sujeto a la derecha y texto a la izquierda.",
+      hierarchy: "Sujeto, texto y fondo.",
+      visualStyle: "Editorial.",
+      background: "Profundo.",
+      emotion: "Curiosidad.",
+      textDensity: "Baja.",
+      subjectScale: "Grande.",
+      colorPalette: [],
+      focalElements: [],
+      replaceableElements: [],
+    },
+  });
+  assert.equal(result.success, true);
 });
 
 test("covers use fixed platform variants and reject mismatches", () => {

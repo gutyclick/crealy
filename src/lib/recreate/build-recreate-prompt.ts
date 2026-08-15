@@ -37,7 +37,21 @@ export function buildRecreatePrompt(input: GenerationInput) {
       (index === 0 ? "protagonist" : "supporting");
     const role = RECREATE_REFERENCE_ROLES.find((item) => item.id === roleId) ??
       RECREATE_REFERENCE_ROLES.at(-1)!;
-    return `Imagen ${index + 2}: ${role.prompt}.`;
+    const analysis = input.recreateElementAnalyses?.[index];
+    const faceRule = analysis?.faceCount
+      ? ` Contiene ${analysis.faceCount} ${analysis.faceCount === 1 ? "rostro" : "rostros"} que deben conservar facciones y apariencia visible.`
+      : "";
+    const anchors = analysis?.identityAnchors.length
+      ? ` Rasgos que deben permanecer: ${analysis.identityAnchors.join(", ")}.`
+      : "";
+    return [
+      `Imagen ${index + 2}: ${role.prompt}.`,
+      analysis
+        ? `Elemento reconocido: ${analysis.primarySubject}. Tipo: ${analysis.kind}. ${analysis.placementGuidance}`
+        : "Analiza visualmente el elemento antes de integrarlo.",
+      faceRule,
+      anchors,
+    ].filter(Boolean).join(" ");
   });
   const selectedPreservation = input.recreatePreservation
     ? RECREATE_PRESERVATION_OPTIONS
@@ -45,8 +59,9 @@ export function buildRecreatePrompt(input: GenerationInput) {
         .map((item) => preservationInstructions[item.id])
     : [];
   return [
-    "MODO RECREATE — CREA UNA PIEZA NUEVA Y ORIGINAL.",
-    "La primera imagen adjunta es una referencia de fórmula visual, no contenido para copiar ni una fuente de identidad.",
+    "MODO RECREATE — RECONSTRUCCIÓN ESTRUCTURAL ESTRICTA CON CONTENIDO NUEVO.",
+    "La primera imagen adjunta es el plano visual obligatorio. Conserva su idea, distribución, jerarquía, escala relativa, dirección de lectura, zonas de texto, profundidad y tensión visual.",
+    "Antes de generar, identifica los espacios funcionales de la referencia base. Sustituye cada espacio solo por un elemento propio compatible: persona por persona, producto por producto, fondo por fondo y apoyo por apoyo.",
     `Objetivo nuevo del usuario: ${input.description}`,
     input.primaryText ? `Texto nuevo permitido: ${input.primaryText}` : "No reproduzcas el texto visible de la referencia.",
     `Categoría y formato de destino: ${input.contentType}, ${input.variant}.`,
@@ -66,14 +81,17 @@ export function buildRecreatePrompt(input: GenerationInput) {
         : "CONSERVACIÓN SOLICITADA: reinterpreta libremente composición, pose, iluminación, colores y tratamiento tipográfico."
       : `Prioridad a conservar: ${focusInstructions[input.recreateFocus ?? "composition"]}`,
     `Mejora buscada: ${goalInstructions[input.recreateGoal ?? "performance"]}`,
-    "REGLAS DE ORIGINALIDAD: nunca copies texto, nombres, logos, branding, una persona, un personaje protegido ni objetos distintivos de la referencia. No hagas una réplica píxel a píxel. Conserva solamente principios abstractos de composición, contraste, ritmo, jerarquía y emoción.",
+    "REGLAS DE ORIGINALIDAD: nunca copies texto, nombres, logos, branding, identidad de una persona ni personajes protegidos presentes únicamente en la referencia base. No hagas una réplica píxel a píxel; reconstruye la estructura con el contenido aportado por el usuario.",
     supportingCount > 0
-      ? `MAPA DE REFERENCIAS: la imagen 1 solo define la fórmula visual. Las imágenes 2 a ${referenceCount} son ${supportingCount} sujetos, productos u objetos aportados por el usuario y deben aparecer en el resultado.`
+      ? `MAPA DE REFERENCIAS: la imagen 1 define la estructura visual obligatoria. Las imágenes 2 a ${referenceCount} son ${supportingCount} elementos aportados por el usuario y todos deben aparecer exactamente una vez en el resultado.`
       : "MAPA DE REFERENCIAS: la imagen 1 solo define la fórmula visual. No copies ni reproduzcas a las personas u objetos identificables que aparezcan en ella.",
     ...roleLines,
     supportingCount > 0
-      ? "FIDELIDAD DE SUJETOS: conserva identidad, edad aparente, facciones, tono de piel y rasgos distintivos de cada material adicional. Representa cada sujeto u objeto una sola vez; no mezcles rostros, no fusiones elementos, no los dupliques ni sustituyas uno por otro, salvo petición expresa del usuario."
+      ? "FIDELIDAD DE ELEMENTOS: conserva facciones, expresión reconocible, peinado, vestuario y rasgos visibles de cada persona; conserva geometría, proporciones, color, material y detalles de cada objeto o producto. No mezcles rostros, no fusiones elementos, no los dupliques ni sustituyas uno por otro."
       : null,
-    "CONTROL FINAL: debe leerse como una pieza terminada, original y coherente con el brief; conserva la lógica abstracta de la referencia base, pero cambia el contenido identificable y respeta exactamente el formato de salida.",
+    supportingCount > 0
+      ? "PROHIBIDO INVENTAR ELEMENTOS: no añadas personas, personajes, productos, mascotas, accesorios ni objetos protagonistas que no estén en los materiales propios o en el brief. Si falta material para ocupar un espacio de la referencia, simplifica ese espacio en vez de rellenarlo al azar."
+      : "PROHIBIDO INVENTAR PROTAGONISTAS: no reproduzcas los sujetos de la referencia ni añadas personajes u objetos principales sin respaldo en el brief.",
+    "CONTROL FINAL: compara mentalmente el resultado con la referencia base. La estructura, proporciones y lectura deben reconocerse de inmediato; el contenido identificable debe provenir del usuario y el formato de salida debe respetarse exactamente.",
   ].filter(Boolean).join("\n");
 }

@@ -3,6 +3,15 @@ import type {
   RecreatePreservationKey,
   RecreateReferenceRole,
 } from "@/types/recreate";
+import type { PlanKey } from "@/types/billing";
+
+export const MAX_RECREATE_ELEMENTS = 4;
+export const FREE_RECREATE_ELEMENTS = 2;
+export const MAX_RECREATE_REFERENCE_IMAGES = MAX_RECREATE_ELEMENTS + 1;
+
+export function getRecreateElementLimit(plan: PlanKey) {
+  return plan === "free" ? FREE_RECREATE_ELEMENTS : MAX_RECREATE_ELEMENTS;
+}
 
 export const RECREATE_REFERENCE_ROLES = [
   {
@@ -45,8 +54,8 @@ export const RECREATE_PRESERVATION_OPTIONS = [
 
 export const DEFAULT_RECREATE_PRESERVATION: RecreatePreservation = {
   composition: true,
-  pose: false,
+  pose: true,
   lighting: true,
-  colors: false,
-  typography: false,
+  colors: true,
+  typography: true,
 };

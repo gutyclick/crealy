@@ -25,9 +25,10 @@ El producto se usará para preparar contenido visual destinado a redes sociales 
 ## Capabilities and Constraints
 
 - La Fase 4 incorpora generación real de una imagen por solicitud mediante OpenAI Image API.
-- La creación admite hasta cuatro imágenes privadas de referencia —personas,
-  productos, objetos o dirección visual— y prioriza preservar identidad y
-  rasgos distintivos salvo que el brief solicite cambios.
+- La creación convencional admite hasta cuatro imágenes privadas de referencia.
+  Recreate admite una referencia de composición más dos elementos propios en
+  Free o cuatro en cualquier plan de pago. Reconoce rostros y asigna a cada
+  persona, producto u objeto un papel explícito antes de generar.
 - La Fase 5 incorpora edición conversacional mediante OpenAI Responses API:
   permite partir de una generación o de un PNG/JPEG/WebP propio, pedir cambios
   localizados, comparar resultados y restaurar cualquier versión como nueva

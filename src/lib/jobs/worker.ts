@@ -263,6 +263,8 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     recreateGoal: (generationMetadata.recreateGoal as GenerationInput["recreateGoal"]) ?? undefined,
     recreateReferenceRoles:
       (generationMetadata.recreateReferenceRoles as GenerationInput["recreateReferenceRoles"]) ?? undefined,
+    recreateElementAnalyses:
+      (generationMetadata.recreateElementAnalyses as GenerationInput["recreateElementAnalyses"]) ?? undefined,
     recreatePreservation:
       (generationMetadata.recreatePreservation as GenerationInput["recreatePreservation"]) ?? undefined,
   };

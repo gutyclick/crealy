@@ -20,6 +20,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { GenerationErrorResponse } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
 import { getBrandStyleAccess, requireOwnedStyle } from "@/lib/brand-styles/service";
+import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
+import { getRecreateElementLimit } from "@/config/recreate";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -278,6 +280,37 @@ export async function POST(request: Request) {
   }
 
   const input = validation.data;
+  if (input.creationMode === "recreate") {
+    let plan;
+    try {
+      plan = (await getUserBillingState(user.id)).effectivePlan.key;
+    } catch {
+      return errorResponse(
+        {
+          code: "internal_error",
+          error: "No pudimos comprobar el límite de tu plan. Inténtalo de nuevo.",
+        },
+        503,
+      );
+    }
+    const elementLimit = getRecreateElementLimit(plan);
+    const elementCount = Math.max(
+      0,
+      (input.referenceUploadIds?.length ?? 0) - 1,
+    );
+    if (elementCount > elementLimit) {
+      return errorResponse(
+        {
+          code: "invalid_request",
+          error: `Tu plan permite hasta ${elementLimit} elementos en Recreate.`,
+          fields: {
+            referenceUploadIds: `Quita ${elementCount - elementLimit} ${elementCount - elementLimit === 1 ? "elemento" : "elementos"} para continuar.`,
+          },
+        },
+        403,
+      );
+    }
+  }
   if (input.brandStyleId) {
     try {
       const [brandStyle, access] = await Promise.all([requireOwnedStyle(user.id, input.brandStyleId), getBrandStyleAccess(user.id)]);
@@ -386,6 +419,7 @@ export async function POST(request: Request) {
           recreateFocus: input.recreateFocus ?? null,
           recreateGoal: input.recreateGoal ?? null,
           recreateReferenceRoles: input.recreateReferenceRoles ?? null,
+          recreateElementAnalyses: input.recreateElementAnalyses ?? null,
           recreatePreservation: input.recreatePreservation ?? null,
         },
         brand_style_id: input.brandStyleId ?? null,

@@ -46,6 +46,7 @@ import type {
   GenerationQuality,
 } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
+import type { PlanKey } from "@/types/billing";
 
 const RECREATE_TYPES = [
   "thumbnail",
@@ -80,6 +81,8 @@ export function RecreateForm({
   available,
   availableCredits,
   maxReferenceFileMb,
+  maxElements,
+  planKey,
   initialContentType = "thumbnail",
   brandStyles,
   initialBrandStyleId,
@@ -87,6 +90,8 @@ export function RecreateForm({
   available: boolean;
   availableCredits: number | null;
   maxReferenceFileMb: number;
+  maxElements: number;
+  planKey: PlanKey;
   initialContentType?: RecreateType;
   brandStyles: BrandStyle[];
   initialBrandStyleId?: string;
@@ -118,7 +123,7 @@ export function RecreateForm({
   );
   const [references, setReferences] = useState<ReferenceDraft[]>([]);
   const [recreate, setRecreate] = useState<RecreateState>({
-    similarity: "similar",
+    similarity: "very_similar",
     focus: "composition",
     goal: "performance",
     preservation: { ...DEFAULT_RECREATE_PRESERVATION },
@@ -158,7 +163,13 @@ export function RecreateForm({
   const ready =
     recreate.ready &&
     Boolean(recreate.blueprint) &&
-    Boolean(references[0]?.uploadId);
+    Boolean(references[0]?.uploadId) &&
+    references.slice(1).every(
+      (reference) =>
+        reference.status === "uploaded" &&
+        Boolean(reference.uploadId) &&
+        Boolean(reference.recreateAnalysis),
+    );
   const compatibleStyles = useMemo(
     () =>
       brandStyles.filter(
@@ -178,7 +189,7 @@ export function RecreateForm({
     setQuality(getDefaultQuality(getGenerationVariant(next.defaultVariant)!));
     setReferences([]);
     setRecreate({
-      similarity: "similar",
+      similarity: "very_similar",
       focus: "composition",
       goal: "performance",
       preservation: { ...DEFAULT_RECREATE_PRESERVATION },
@@ -266,6 +277,9 @@ export function RecreateForm({
           recreateReferenceRoles: references
             .slice(1)
             .map((reference) => reference.recreateRole ?? "supporting"),
+          recreateElementAnalyses: references
+            .slice(1)
+            .map((reference) => reference.recreateAnalysis!),
           recreatePreservation: recreate.preservation,
         }),
       });
@@ -321,17 +335,21 @@ export function RecreateForm({
   return (
     <form
       onSubmit={submit}
-      className="mx-auto grid max-w-6xl items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"
+      className="mx-auto grid max-w-7xl items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"
     >
       <div className="min-w-0 rounded-2xl bg-surface p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-8">
-        <header className="border-b border-white/10 pb-7">
-          <h1 className="text-balance text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl">
-            Recrea una fórmula. Hazla tuya.
+        <header className="border-b border-white/10 pb-7 sm:pb-8">
+          <h1 className="max-w-3xl text-balance text-3xl font-semibold leading-[1.03] tracking-[-0.04em] text-foreground sm:text-5xl">
+            Una referencia clara. Un resultado hecho para ti.
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-            Añade un diseño que ya funciona y cuéntanos tu nueva idea. Crealy
-            conservará su lógica visual sin copiar su contenido.
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-muted sm:text-base sm:leading-7">
+            Sube el diseño que quieres adaptar y tus propios personajes, personas u objetos. Crealy respetará la composición y reconstruirá la pieza con tu contenido.
           </p>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted">
+            <span className="flex items-center gap-2"><Check className="size-3.5 text-brand" aria-hidden="true" />Composición controlada</span>
+            <span className="flex items-center gap-2"><Check className="size-3.5 text-brand" aria-hidden="true" />Rostros reconocidos</span>
+            <span className="flex items-center gap-2"><Check className="size-3.5 text-brand" aria-hidden="true" />Elementos con un papel definido</span>
+          </div>
         </header>
 
         <nav aria-label="Pasos de Recreate" className="sticky top-[4.85rem] z-20 -mx-2 mt-5 flex gap-1 overflow-x-auto rounded-xl border border-white/10 bg-surface-elevated/96 p-1.5 shadow-[0_12px_35px_rgba(0,0,0,.3)] backdrop-blur-xl sm:hidden">
@@ -344,7 +362,7 @@ export function RecreateForm({
 
         <fieldset id="recreate-format" className="scroll-mt-40 mt-8">
           <legend className="text-sm font-semibold text-foreground">
-            ¿Qué quieres recrear?
+            Elige el tipo de pieza
           </legend>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {RECREATE_TYPES.map((id) => {
@@ -478,6 +496,8 @@ export function RecreateForm({
             setReferences={setReferences}
             disabled={result.status === "loading"}
             maxFileMb={maxReferenceFileMb}
+            maxElements={maxElements}
+            planKey={planKey}
             onChange={(next) =>
               setRecreate((current) => ({
                 ...current,
@@ -490,13 +510,13 @@ export function RecreateForm({
 
         <section id="recreate-idea" className="scroll-mt-40 mt-8 border-t border-white/10 pt-7">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Ahora, tu versión
+            Define el contenido de tu versión
           </h2>
           <label
             htmlFor="recreate-description"
             className="mt-5 block text-sm font-semibold text-foreground"
           >
-            ¿Qué quieres crear con esta referencia?
+            ¿De qué trata el nuevo diseño?
           </label>
           <textarea
             id="recreate-description"
@@ -506,7 +526,7 @@ export function RecreateForm({
             rows={5}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Ejemplo: una miniatura sobre cómo conseguí mis primeros 1.000 suscriptores"
+            placeholder="Ejemplo: una miniatura sobre cómo conseguí mis primeros 1.000 suscriptores, con un tono de logro y sorpresa"
             className="mt-3 w-full resize-y rounded-xl bg-background px-4 py-3 text-base leading-6 text-foreground outline-none ring-1 ring-white/10 focus:ring-brand/65"
           />
           {fieldErrors.description ? (
@@ -614,7 +634,7 @@ export function RecreateForm({
           </p>
         ) : !ready ? (
           <p role="status" className="mt-3 text-center text-xs text-muted">
-            Añade y analiza una referencia para habilitar Recreate.
+            Añade una referencia y espera a que Crealy reconozca tus elementos.
           </p>
         ) : null}
       </div>

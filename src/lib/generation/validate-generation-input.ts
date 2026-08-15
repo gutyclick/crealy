@@ -18,6 +18,7 @@ import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { THUMBNAIL_PRESETS, THUMBNAIL_TEXT_MODES } from "@/config/thumbnail-creation";
 import {
   DEFAULT_RECREATE_PRESERVATION,
+  MAX_RECREATE_REFERENCE_IMAGES,
   RECREATE_REFERENCE_ROLES,
 } from "@/config/recreate";
 import { validateColorPalette } from "@/lib/colors/validate-color-palette";
@@ -37,6 +38,8 @@ import type {
 import { isRecreateCategory } from "@/lib/recreate/reference";
 import type {
   RecreateBlueprint,
+  RecreateElementAnalysis,
+  RecreateElementKind,
   RecreateFocus,
   RecreateGoal,
   RecreatePreservation,
@@ -56,6 +59,13 @@ const THUMBNAIL_TEXT_MODE_IDS = new Set(THUMBNAIL_TEXT_MODES.map((item) => item.
 const RECREATE_REFERENCE_ROLE_IDS = new Set(
   RECREATE_REFERENCE_ROLES.map((item) => item.id),
 );
+const RECREATE_ELEMENT_KINDS = new Set<RecreateElementKind>([
+  "person",
+  "product",
+  "object",
+  "background",
+  "mixed",
+]);
 
 type ValidationResult =
   | { success: true; data: GenerationInput }
@@ -188,13 +198,17 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   }
 
   let referenceUploadIds: string[] | undefined;
+  const maxReferenceImages =
+    creationMode === "recreate"
+      ? MAX_RECREATE_REFERENCE_IMAGES
+      : MAX_GENERATION_REFERENCE_IMAGES;
   if (rawInput.referenceUploadIds !== undefined) {
     if (
       !Array.isArray(rawInput.referenceUploadIds) ||
-      rawInput.referenceUploadIds.length > MAX_GENERATION_REFERENCE_IMAGES ||
+      rawInput.referenceUploadIds.length > maxReferenceImages ||
       rawInput.referenceUploadIds.some((id) => typeof id !== "string" || !UUID_PATTERN.test(id))
     ) {
-      fields.referenceUploadIds = `Puedes usar hasta ${MAX_GENERATION_REFERENCE_IMAGES} imágenes de referencia válidas.`;
+      fields.referenceUploadIds = `Puedes usar hasta ${maxReferenceImages} imágenes de referencia válidas.`;
     } else if (new Set(rawInput.referenceUploadIds).size !== rawInput.referenceUploadIds.length) {
       fields.referenceUploadIds = "No repitas una imagen de referencia.";
     } else if (rawInput.referenceUploadIds.length) {
@@ -204,6 +218,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   if (creationMode === "recreate" && !referenceUploadIds?.length) fields.referenceUploadIds = "Añade una referencia para recrear.";
 
   let recreateReferenceRoles: RecreateReferenceRole[] | undefined;
+  let recreateElementAnalyses: RecreateElementAnalysis[] | undefined;
   let recreatePreservation: RecreatePreservation | undefined;
   if (creationMode === "recreate") {
     const supportingCount = Math.max(0, (referenceUploadIds?.length ?? 0) - 1);
@@ -226,6 +241,54 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     } else {
       recreateReferenceRoles =
         rawInput.recreateReferenceRoles as RecreateReferenceRole[];
+    }
+
+    const analyses = rawInput.recreateElementAnalyses;
+    if (supportingCount === 0 && analyses === undefined) {
+      recreateElementAnalyses = [];
+    } else if (
+      !Array.isArray(analyses) ||
+      analyses.length !== supportingCount ||
+      analyses.some((analysis) => {
+        if (!isRecord(analysis)) return true;
+        return (
+          typeof analysis.kind !== "string" ||
+          !RECREATE_ELEMENT_KINDS.has(analysis.kind as RecreateElementKind) ||
+          typeof analysis.recommendedRole !== "string" ||
+          !RECREATE_REFERENCE_ROLE_IDS.has(
+            analysis.recommendedRole as RecreateReferenceRole,
+          ) ||
+          typeof analysis.faceCount !== "number" ||
+          !Number.isInteger(analysis.faceCount) ||
+          analysis.faceCount < 0 ||
+          analysis.faceCount > 8 ||
+          typeof analysis.primarySubject !== "string" ||
+          typeof analysis.placementGuidance !== "string" ||
+          !Array.isArray(analysis.identityAnchors) ||
+          !Array.isArray(analysis.warnings)
+        );
+      })
+    ) {
+      fields.recreateElementAnalyses =
+        "Espera a que Crealy reconozca cada elemento antes de generar.";
+    } else {
+      recreateElementAnalyses = (analyses as RecreateElementAnalysis[]).map(
+        (analysis) => ({
+          kind: analysis.kind,
+          recommendedRole: analysis.recommendedRole,
+          faceCount: analysis.faceCount,
+          primarySubject: analysis.primarySubject.slice(0, 240),
+          identityAnchors: analysis.identityAnchors
+            .filter((value): value is string => typeof value === "string")
+            .slice(0, 8)
+            .map((value) => value.slice(0, 160)),
+          placementGuidance: analysis.placementGuidance.slice(0, 320),
+          warnings: analysis.warnings
+            .filter((value): value is string => typeof value === "string")
+            .slice(0, 5)
+            .map((value) => value.slice(0, 160)),
+        }),
+      );
     }
 
     const preservationCandidate = rawInput.recreatePreservation;
@@ -353,6 +416,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
             recreateFocus,
             recreateGoal,
             recreateReferenceRoles,
+            recreateElementAnalyses,
             recreatePreservation,
           }
         : {}),

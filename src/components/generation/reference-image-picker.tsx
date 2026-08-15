@@ -7,7 +7,10 @@ import { useRef, useState } from "react";
 
 import { MAX_GENERATION_REFERENCE_IMAGES } from "@/config/generation";
 import { cn } from "@/lib/utils";
-import type { RecreateReferenceRole } from "@/types/recreate";
+import type {
+  RecreateElementAnalysis,
+  RecreateReferenceRole,
+} from "@/types/recreate";
 
 export type ReferenceDraft = {
   key: string;
@@ -15,7 +18,8 @@ export type ReferenceDraft = {
   previewUrl: string;
   uploadId?: string;
   recreateRole?: RecreateReferenceRole;
-  status: "ready" | "uploading" | "uploaded" | "error";
+  recreateAnalysis?: RecreateElementAnalysis;
+  status: "ready" | "uploading" | "analyzing" | "uploaded" | "error";
 };
 
 const ACCEPTED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
