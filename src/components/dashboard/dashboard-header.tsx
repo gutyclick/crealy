@@ -21,6 +21,11 @@ import {
 } from "@/components/dashboard/creation-notification-center";
 import { Container } from "@/components/layout/container";
 import { Logo } from "@/components/ui/logo";
+import {
+  CREDIT_BALANCE_REFRESH_EVENT,
+  publishCreditBalance,
+  useCreditBalance,
+} from "@/lib/credits/client-credit-balance";
 import type { PlanKey } from "@/types/billing";
 
 type DashboardHeaderProps = {
@@ -48,6 +53,7 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const initial = displayName.charAt(0).toUpperCase() || "C";
   const [openMenu, setOpenMenu] = useState<"account" | null>(null);
+  const currentCredits = useCreditBalance(credits);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const accountButtonRef = useRef<HTMLButtonElement>(null);
   const firstAccountLinkRef = useRef<HTMLAnchorElement>(null);
@@ -77,6 +83,43 @@ export function DashboardHeader({
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [openMenu]);
+
+  useEffect(() => {
+    let active = true;
+    let requestSequence = 0;
+
+    async function reconcileCredits() {
+      const sequence = ++requestSequence;
+      try {
+        const response = await fetch("/api/billing/status", {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { credits?: unknown };
+        if (
+          active &&
+          sequence === requestSequence &&
+          typeof payload.credits === "number"
+        ) {
+          publishCreditBalance(payload.credits);
+        }
+      } catch {
+        // Keep the last known balance until the next automatic reconciliation.
+      }
+    }
+
+    function refreshBalance() {
+      void reconcileCredits();
+    }
+
+    window.addEventListener(CREDIT_BALANCE_REFRESH_EVENT, refreshBalance);
+    window.addEventListener("focus", refreshBalance);
+    return () => {
+      active = false;
+      window.removeEventListener(CREDIT_BALANCE_REFRESH_EVENT, refreshBalance);
+      window.removeEventListener("focus", refreshBalance);
+    };
+  }, []);
 
   const closeMenus = () => setOpenMenu(null);
 
@@ -119,9 +162,9 @@ export function DashboardHeader({
                   {displayName}
                 </span>
                 <span className="block truncate text-xs text-muted">
-                  {credits === null
+                  {currentCredits === null
                     ? "Saldo no disponible"
-                    : `${credits} créditos`}
+                    : `${currentCredits} créditos`}
                 </span>
               </span>
               <ChevronDown
@@ -153,7 +196,7 @@ export function DashboardHeader({
                     Créditos disponibles
                   </span>
                   <strong className="text-sm text-brand">
-                    {credits ?? "—"}
+                    {currentCredits ?? "—"}
                   </strong>
                 </Link>
 

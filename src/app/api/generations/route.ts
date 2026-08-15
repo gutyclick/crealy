@@ -427,7 +427,21 @@ export async function POST(request: Request) {
     logger.error("job.ready_failed", { jobId: queued.job_id, userId: user.id, resourceId: queued.generation_id, errorCode: jobReadyError?.code || "not_marked_ready" });
     return reservationError("job_not_ready", input.clientRequestId);
   }
-  const dispatch = await dispatchQueuedJob(queued.job_id);
+  const [dispatch, creditAccountResult] = await Promise.all([
+    dispatchQueuedJob(queued.job_id),
+    admin
+      .from("credit_accounts")
+      .select("available_balance")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
+  if (creditAccountResult.error) {
+    logger.warn("credits.balance_response_failed", {
+      jobId: queued.job_id,
+      userId: user.id,
+      errorCode: creditAccountResult.error.code,
+    });
+  }
   logger.info("job.accepted", {
     jobId: queued.job_id,
     userId: user.id,
@@ -443,6 +457,7 @@ export async function POST(request: Request) {
       projectId: queued.project_id,
       status:
         queued.job_status === "processing" ? "processing" : "queued",
+      availableCredits: creditAccountResult.data?.available_balance ?? null,
     },
     { status: 202, headers: { Location: `/api/jobs/${queued.job_id}` } },
   );

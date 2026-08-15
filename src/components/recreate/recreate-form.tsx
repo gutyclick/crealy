@@ -28,6 +28,11 @@ import {
   getVariantForPlatform,
 } from "@/config/generation-products";
 import { getGenerationCreditCost } from "@/lib/credits/get-generation-credit-cost";
+import {
+  publishCreditBalance,
+  requestCreditBalanceRefresh,
+  useCreditBalance,
+} from "@/lib/credits/client-credit-balance";
 import { trackConversion } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
@@ -85,6 +90,7 @@ export function RecreateForm({
   brandStyles: BrandStyle[];
   initialBrandStyleId?: string;
 }) {
+  const currentAvailableCredits = useCreditBalance(availableCredits);
   const initialProduct = getGenerationProduct(initialContentType);
   const [contentType, setContentType] =
     useState<RecreateType>(initialContentType);
@@ -146,7 +152,7 @@ export function RecreateForm({
     creationMode: "recreate",
   });
   const hasEnoughCredits =
-    availableCredits === null || availableCredits >= creditCost;
+    currentAvailableCredits === null || currentAvailableCredits >= creditCost;
   const ready =
     recreate.ready &&
     Boolean(recreate.blueprint) &&
@@ -270,6 +276,7 @@ export function RecreateForm({
         variant,
         credit_cost: creditCost,
       });
+      publishCreditBalance(payload.availableCredits);
       window.dispatchEvent(
         new CustomEvent(CREATION_QUEUED_EVENT, {
           detail: {
@@ -286,6 +293,7 @@ export function RecreateForm({
       setPrimaryText("");
       setResult({ status: "idle" });
     } catch (error) {
+      requestCreditBalanceRefresh();
       setResult({
         status: "error",
         message:
@@ -581,10 +589,10 @@ export function RecreateForm({
             La generación está temporalmente en mantenimiento. Tu referencia y
             tu idea permanecen en pantalla.
           </p>
-        ) : !hasEnoughCredits && availableCredits !== null ? (
+        ) : !hasEnoughCredits && currentAvailableCredits !== null ? (
           <p role="status" className="mt-3 text-center text-sm text-amber-100">
-            Necesitas {creditCost - availableCredits}{" "}
-            {creditCost - availableCredits === 1
+            Necesitas {creditCost - currentAvailableCredits}{" "}
+            {creditCost - currentAvailableCredits === 1
               ? "crédito más"
               : "créditos más"}
             .{" "}

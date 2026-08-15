@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { requestCreditBalanceRefresh } from "@/lib/credits/client-credit-balance";
 import type { JobStatus, PublicJob } from "@/types/jobs";
 
 export const CREATION_QUEUED_EVENT = "crealy:creation-queued";
@@ -140,6 +141,10 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
         const update = updates.find((candidate) => candidate?.id === item.jobId);
         return (update?.status === "failed" || update?.status === "cancelled") && !announcedJobsRef.current.has(item.jobId);
       });
+
+      if (newlyReady.length || newlyFailed.length) {
+        requestCreditBalanceRefresh();
+      }
 
       if (newlyReady.length) {
         newlyReady.forEach((item) => announcedJobsRef.current.add(item.jobId));

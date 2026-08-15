@@ -54,6 +54,7 @@ export type QueuedGenerationResponse = {
   generationId: string;
   projectId: string;
   status: "queued" | "processing";
+  availableCredits: number | null;
 };
 
 export type QueuedEditResponse = {

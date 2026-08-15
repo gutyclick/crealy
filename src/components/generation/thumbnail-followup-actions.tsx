@@ -4,6 +4,10 @@ import { CopyPlus, LoaderCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { CREATION_QUEUED_EVENT } from "@/components/dashboard/creation-notification-center";
 import { trackConversion } from "@/lib/analytics/events";
+import {
+  publishCreditBalance,
+  requestCreditBalanceRefresh,
+} from "@/lib/credits/client-credit-balance";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
 import type { GenerationErrorResponse, ThumbnailPreset, ThumbnailTextMode } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
@@ -33,6 +37,7 @@ export function ThumbnailFollowupActions({ generationId, projectId, topic, video
     });
     const payload = await readApiResponse<QueuedGenerationResponse | GenerationErrorResponse>(response, "No pudimos preparar la nueva miniatura.");
     if (!response.ok || "error" in payload) throw new Error("error" in payload ? payload.error : "No pudimos preparar la nueva miniatura.");
+    publishCreditBalance(payload.availableCredits);
     window.dispatchEvent(new CustomEvent(CREATION_QUEUED_EVENT, { detail: {
       jobId: payload.jobId, generationId: payload.generationId, label,
       status: payload.status, createdAt: new Date().toISOString(), unread: true,
@@ -53,6 +58,7 @@ export function ThumbnailFollowupActions({ generationId, projectId, topic, video
         trackConversion("thumbnail_concepts_requested", { credit_cost: 2 });
       }
     } catch (cause) {
+      requestCreditBalanceRefresh();
       setError(cause instanceof Error ? cause.message : "No pudimos preparar la solicitud.");
     } finally {
       setLoading(null);

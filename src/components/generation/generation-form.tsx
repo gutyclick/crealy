@@ -46,6 +46,11 @@ import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { trackConversion } from "@/lib/analytics/events";
 import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
 import { getGenerationCreditCost } from "@/lib/credits/get-generation-credit-cost";
+import {
+  publishCreditBalance,
+  requestCreditBalanceRefresh,
+  useCreditBalance,
+} from "@/lib/credits/client-credit-balance";
 import { cn } from "@/lib/utils";
 import { readApiResponse } from "@/lib/uploads/read-api-response";
 import { uploadPrivateImage } from "@/lib/uploads/upload-private-image";
@@ -117,6 +122,7 @@ export function GenerationForm({
   brandStyleEntitlement: BrandStyleEntitlement;
   initialBrandStyleId?: string;
 }) {
+  const currentAvailableCredits = useCreditBalance(availableCredits);
   const initialProduct = getGenerationProduct(
     initialContentType ?? "thumbnail",
   );
@@ -189,7 +195,7 @@ export function GenerationForm({
     quality,
   });
   const hasEnoughCredits =
-    availableCredits === null || availableCredits >= creditCost;
+    currentAvailableCredits === null || currentAvailableCredits >= creditCost;
   const styles = useMemo(
     () =>
       GENERATION_STYLES.filter((item) =>
@@ -349,6 +355,7 @@ export function GenerationForm({
         variant,
         credit_cost: creditCost,
       });
+      publishCreditBalance(payload.availableCredits);
       window.dispatchEvent(
         new CustomEvent(CREATION_QUEUED_EVENT, {
           detail: {
@@ -367,6 +374,7 @@ export function GenerationForm({
       setVideoTitle("");
       setResult({ status: "idle" });
     } catch (error) {
+      requestCreditBalanceRefresh();
       const message =
         error instanceof TypeError && /failed to fetch/i.test(error.message)
           ? "No pudimos conectar con Crealy. Revisa tu conexión e inténtalo otra vez."
@@ -1077,9 +1085,9 @@ export function GenerationForm({
           </p>
           <p className="mt-1 text-xs text-muted">
             Saldo después de generar:{" "}
-            {availableCredits === null
+            {currentAvailableCredits === null
               ? "se verificará al enviar"
-              : Math.max(0, availableCredits - creditCost)}
+              : Math.max(0, currentAvailableCredits - creditCost)}
           </p>
         </div>
 
@@ -1116,14 +1124,14 @@ export function GenerationForm({
             Ver política
           </Link>
         </p>
-        {!hasEnoughCredits && availableCredits !== null ? (
+        {!hasEnoughCredits && currentAvailableCredits !== null ? (
           <p
             role="status"
             aria-live="polite"
             className="mt-3 text-center text-sm text-amber-100"
           >
-            Necesitas {creditCost - availableCredits}{" "}
-            {creditCost - availableCredits === 1
+            Necesitas {creditCost - currentAvailableCredits}{" "}
+            {creditCost - currentAvailableCredits === 1
               ? "crédito más"
               : "créditos más"}
             .{" "}
@@ -1204,9 +1212,9 @@ export function GenerationForm({
           <div className="border-t border-white/8 px-6 py-4 text-xs text-muted">
             Saldo después de generar:{" "}
             <strong className="text-foreground">
-              {availableCredits === null
+              {currentAvailableCredits === null
                 ? "Se verificará al enviar"
-                : Math.max(0, availableCredits - creditCost)}
+                : Math.max(0, currentAvailableCredits - creditCost)}
             </strong>
           </div>
         </div>
