@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { PRODUCT_FEATURES } from "@/config/product-features";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN =
@@ -9,6 +10,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
+  if (!PRODUCT_FEATURES.conversationalEditing) {
+    return NextResponse.json({ error: "No encontrado." }, { status: 404 });
+  }
   const supabase = await createClient();
   const {
     data: { user },

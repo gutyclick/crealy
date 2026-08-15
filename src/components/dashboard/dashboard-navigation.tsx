@@ -11,7 +11,6 @@ const items = [
   { href: "/dashboard", label: "Inicio" },
   { href: "/create", label: "Crear" },
   { href: "/recreate", label: "Recreate", isNew: true },
-  { href: "/edit", label: "Editar" },
   { href: "/generations", label: "Creaciones" },
   { href: "/dashboard/tools", label: "Herramientas" },
   { href: "/my-style", label: "Firma visual", premium: true },

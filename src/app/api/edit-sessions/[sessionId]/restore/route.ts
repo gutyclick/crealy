@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 
+import { PRODUCT_FEATURES } from "@/config/product-features";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
+  if (!PRODUCT_FEATURES.conversationalEditing) {
+    return NextResponse.json({ error: "No encontrado." }, { status: 404 });
+  }
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,4 +43,3 @@ export async function POST(
 
   return NextResponse.json({ currentVersionId: body.versionId });
 }
-

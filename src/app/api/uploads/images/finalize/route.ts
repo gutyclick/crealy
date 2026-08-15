@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { PRODUCT_FEATURES } from "@/config/product-features";
 import { inspectImage, safeUploadName } from "@/lib/editing/image-metadata";
 import { getEditingServerEnv } from "@/lib/env/server";
 import { createClient } from "@/lib/supabase/server";
@@ -45,6 +46,12 @@ export async function POST(request: Request) {
         purpose?: unknown;
       }
     | null;
+  if (body?.purpose === "edit" && !PRODUCT_FEATURES.conversationalEditing) {
+    return NextResponse.json(
+      { code: "not_found", error: "No encontrado." },
+      { status: 404 },
+    );
+  }
   if (
     !body ||
     typeof body.uploadId !== "string" ||

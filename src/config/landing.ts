@@ -97,14 +97,14 @@ export const faqs = [
       "La primera versión contempla miniaturas, banners, posts y portadas para plataformas digitales.",
   },
   {
-    question: "¿Podré editar los resultados?",
+    question: "¿Puedo ajustar un resultado después?",
     answer:
-      "Crealy se centrará primero en producir buenas direcciones con rapidez. Las opciones de edición se incorporarán progresivamente.",
+      "Puedes crear variaciones o usar Recreate con una referencia. El editor conversacional no forma parte de la versión actual y podrá incorporarse más adelante.",
   },
   {
     question: "¿Crealy ya está disponible?",
     answer:
-      "Sí. Puedes crear tu cuenta, generar, editar y administrar tus créditos desde el área privada. Los pagos aparecen únicamente cuando Stripe está habilitado.",
+      "Sí. Puedes crear tu cuenta, generar, usar Recreate y administrar tus créditos desde el área privada. Los pagos aparecen únicamente cuando Stripe está habilitado.",
   },
   {
     question: "¿Las imágenes se generan con inteligencia artificial?",

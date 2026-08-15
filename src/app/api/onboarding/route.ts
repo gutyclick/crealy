@@ -23,7 +23,6 @@ const allowedRoles = new Set([
 const actionRoutes: Record<string, string> = {
   youtube_thumbnail: "/create?type=youtube-thumbnail",
   cover: "/create?type=social-cover",
-  edit: "/edit",
   tools: "/tools",
   dashboard: "/dashboard",
 };
@@ -72,4 +71,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ redirectTo: actionRoutes[firstAction] });
 }
-

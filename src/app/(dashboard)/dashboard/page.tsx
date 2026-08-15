@@ -3,7 +3,6 @@ import { DashboardHome } from "@/components/dashboard/dashboard-home";
 import { requireUser } from "@/lib/auth/require-user";
 import { listGenerations } from "@/lib/generation/list-generations";
 import { createClient } from "@/lib/supabase/server";
-import { listRecentEditSessions } from "@/lib/editing/get-edit-session";
 import { getUserBillingState } from "@/lib/billing/get-user-billing-state";
 
 /*
@@ -40,17 +39,16 @@ export default async function DashboardPage() {
     profile?.full_name?.trim().split(/\s+/)[0] ||
     metadataName.split(/\s+/)[0] ||
     localEmailName;
-  const [recentGenerationsResult, recentEditSessions, activeJobsResult, billing] =
+  const [recentGenerationsResult, activeJobsResult, billing] =
     await Promise.all([
       listGenerations(user.id, 8, { throwOnError: true })
         .then((items) => ({ items, available: true }))
         .catch(() => ({ items: [], available: false })),
-      listRecentEditSessions(user.id, 4),
       supabase
         .from("jobs")
-        .select("id, job_type, status, resource_id, created_at")
+        .select("id, status, resource_id, created_at")
         .eq("user_id", user.id)
-        .in("job_type", ["generation", "edit"])
+        .eq("job_type", "generation")
         .in("status", ["queued", "claimed", "processing", "retry_scheduled"])
         .order("created_at", { ascending: false })
         .limit(5),
@@ -62,10 +60,8 @@ export default async function DashboardPage() {
       firstName={firstName || undefined}
       recentGenerations={recentGenerationsResult.items}
       creationsAvailable={recentGenerationsResult.available}
-      recentEditSessions={recentEditSessions}
       activeJobs={(activeJobsResult.data ?? []).map((job) => ({
         id: job.id,
-        type: job.job_type,
         status: job.status,
         resourceId: job.resource_id,
         createdAt: job.created_at,

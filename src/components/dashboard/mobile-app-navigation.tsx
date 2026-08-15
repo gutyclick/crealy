@@ -6,7 +6,6 @@ import {
   ImagePlus,
   LayoutGrid,
   MoreHorizontal,
-  PencilLine,
   Plus,
   Settings,
   Sparkles,
@@ -27,12 +26,6 @@ const primaryItems = [
 ] as const;
 
 const moreItems = [
-  {
-    href: "/edit",
-    label: "Editar una creación",
-    detail: "Continúa o recupera una sesión",
-    icon: PencilLine,
-  },
   {
     href: "/dashboard/tools",
     label: "Herramientas",

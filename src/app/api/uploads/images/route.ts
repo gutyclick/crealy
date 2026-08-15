@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { PRODUCT_FEATURES } from "@/config/product-features";
 import { getEditingServerEnv } from "@/lib/env/server";
 import { inspectImage, safeUploadName } from "@/lib/editing/image-metadata";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +13,9 @@ export const maxDuration = 60;
 const FORM_OVERHEAD_BYTES = 512_000;
 
 export async function POST(request: Request) {
+  if (!PRODUCT_FEATURES.conversationalEditing) {
+    return NextResponse.json({ code: "not_found", error: "No encontrado." }, { status: 404 });
+  }
   const supabase = await createClient();
   const {
     data: { user },

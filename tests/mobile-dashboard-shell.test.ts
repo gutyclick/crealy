@@ -41,16 +41,14 @@ test("mobile creation flows expose persistent stage navigation", () => {
   assert.match(recreate, /recreate-submit/);
 });
 
-test("mobile editor switches between canvas and conversation instead of stacking both", () => {
-  const editor = readFileSync(
-    "src/components/editing/edit-workspace.tsx",
+test("retired editing mode is absent from mobile navigation", () => {
+  const navigation = readFileSync(
+    "src/components/dashboard/mobile-app-navigation.tsx",
     "utf8",
   );
 
-  assert.match(editor, /mobilePanel/);
-  assert.match(editor, /Vista del editor/);
-  assert.match(editor, /mobilePanel === "canvas"/);
-  assert.match(editor, /mobilePanel === "conversation"/);
+  assert.doesNotMatch(navigation, /href:\s*["']\/edit/);
+  assert.doesNotMatch(navigation, /Editar una creación/);
 });
 
 test("creation notifications stay inside the mobile viewport", () => {

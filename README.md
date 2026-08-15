@@ -154,17 +154,15 @@ npx supabase gen types typescript --project-id TU_PROJECT_ID > src/types/databas
 5. Comprueba la fila en `generations`, el objeto privado en Storage, la
    visualización mediante URL firmada y la descarga autenticada.
 
-Para probar la edición, abre `/edit`, carga una imagen PNG/JPEG/WebP o entra a
-una creación existente y pulsa **Editar imagen**. Crealy usa Responses API con
-la herramienta oficial de generación de imágenes. Los identificadores de
-continuidad permanecen en servidor y cada cambio produce una versión
-recuperable.
+El editor conversacional está retirado de la versión actual. Sus migraciones y
+datos históricos se conservan para permitir una posible reintroducción futura,
+pero `/edit` y sus endpoints no están disponibles para usuarios.
 
 La Image API devuelve una sola imagen PNG por solicitud. Con GPT Image 2,
 Crealy solicita tamaños arbitrarios válidos como cadenas `ANCHOxALTO` y
 entrega estas salidas:
 
-- Miniatura de YouTube → máster `1920x1088`, entrega `1920x1080`
+- Miniatura de YouTube → entrega `1280x720`
 - 1:1 → `1024x1024`
 - 4:5 → `1024x1280`
 - 3:1 → `1536x512`
@@ -172,7 +170,8 @@ entrega estas salidas:
 - X → máster `1536x512`, entrega `1500x500`
 - LinkedIn → máster seguro 3:1, entrega `1584x396`
 
-Las miniaturas y todas las portadas fuerzan calidad alta. Cuando las dimensiones
+Las miniaturas usan una modalidad única y las portadas mantienen su calidad
+adaptada al formato. Cuando las dimensiones
 finales no son válidas para el proveedor (por ejemplo, LinkedIn 4:1), el
 prompt usa una zona segura central y el servidor recorta el máster sin
 estirar la imagen.

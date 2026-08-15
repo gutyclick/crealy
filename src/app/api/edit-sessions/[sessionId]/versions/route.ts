@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 
+import { PRODUCT_FEATURES } from "@/config/product-features";
 import { ensureWelcomeCredits } from "@/lib/credits/credit-service";
 import { getEditCreditCost } from "@/lib/credits/get-credit-cost";
 import { buildEditInstruction } from "@/lib/editing/build-edit-instruction";
@@ -67,6 +68,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
+  if (!PRODUCT_FEATURES.conversationalEditing) {
+    return apiError("not_found", "No encontrado.", 404);
+  }
   if (!request.headers.get("content-type")?.includes("application/json")) {
     return apiError("invalid_request", "Envía la solicitud como JSON.", 415);
   }

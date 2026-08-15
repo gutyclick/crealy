@@ -7,17 +7,14 @@ import {
   Image,
   MonitorPlay,
   PanelsTopLeft,
-  PencilLine,
   RectangleHorizontal,
   Smartphone,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
-import { RecentEditSessions } from "@/components/editing/recent-edit-sessions";
 import { GenerationGrid } from "@/components/generation/generation-grid";
 import { Container } from "@/components/layout/container";
-import type { RecentEditSession } from "@/types/editing";
 import type { GenerationListItem } from "@/types/generation";
 
 const quickCreate = [
@@ -47,7 +44,6 @@ export function DashboardHome({
   firstName,
   recentGenerations,
   creationsAvailable,
-  recentEditSessions,
   activeJobs,
   plan,
   credits,
@@ -57,10 +53,8 @@ export function DashboardHome({
   firstName?: string;
   recentGenerations: GenerationListItem[];
   creationsAvailable: boolean;
-  recentEditSessions: RecentEditSession[];
   activeJobs: Array<{
     id: string;
-    type: string;
     status: string;
     resourceId: string;
     createdAt: string;
@@ -84,21 +78,15 @@ export function DashboardHome({
               {firstName ? `${firstName}, ¿qué ponemos en marcha?` : "¿Qué ponemos en marcha?"}
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted">
-              Crea una pieza desde cero o retoma una imagen. Las medidas, la calidad
-              y el coste se ajustan al destino que elijas.
+              Crea una pieza desde cero o transforma una referencia con Recreate.
+              Las medidas, la calidad y el coste se ajustan al destino que elijas.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8">
               <Link
                 href="/create"
                 className="dashboard-primary-action inline-flex h-12 items-center justify-center gap-2 overflow-hidden rounded-xl bg-brand px-5 text-sm font-bold text-brand-ink transition-transform hover:-translate-y-0.5"
               >
                 Crear diseño <ArrowRight aria-hidden="true" className="size-4" />
-              </Link>
-              <Link
-                href="/edit"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white/[0.07] px-5 text-sm font-semibold text-foreground hover:bg-white/[0.11]"
-              >
-                <PencilLine aria-hidden="true" className="size-4" /> Editar imagen
               </Link>
             </div>
             <dl className="mt-8 flex flex-wrap gap-x-7 gap-y-3 border-t border-white/10 pt-5 text-xs">
@@ -182,7 +170,7 @@ export function DashboardHome({
               ) : activeJobs.length ? activeJobs.map((job) => (
                 <Link
                   key={job.id}
-                  href={job.type === "generation" ? `/generations/${job.resourceId}?job=${job.id}` : "/edit"}
+                  href={`/generations/${job.resourceId}?job=${job.id}`}
                   className="dashboard-job-row group flex min-h-20 items-center gap-4 py-4"
                 >
                   <span className="job-pulse grid size-10 shrink-0 place-items-center rounded-xl bg-brand/[0.08] text-brand">
@@ -190,7 +178,7 @@ export function DashboardHome({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-foreground">
-                      {job.type === "generation" ? "Creando una pieza" : "Aplicando cambios"}
+                      Creando una pieza
                     </span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
                       <span>{jobStatusLabel(job.status)}</span>
@@ -221,7 +209,7 @@ export function DashboardHome({
           <SectionHeading
             id="recent-title"
             title="Creaciones recientes"
-            description="Tus últimos resultados, listos para abrir o editar."
+            description="Tus últimos resultados, listos para abrir y descargar."
             action={recentGenerations.length ? { href: "/generations", label: "Ver todas" } : undefined}
           />
           {creationsAvailable ? (
@@ -263,12 +251,6 @@ export function DashboardHome({
             ))}
           </div>
         </section>
-
-        <RecentEditSessions
-          sessions={recentEditSessions}
-          title="Ediciones recientes"
-          description="Retoma una conversación sin perder versiones."
-        />
 
       </Container>
     </main>

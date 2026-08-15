@@ -29,7 +29,6 @@ const roles = [
 const actions = [
   ["youtube_thumbnail", "Crear una miniatura", "/create?type=youtube-thumbnail"],
   ["cover", "Crear una portada", "/create?type=social-cover"],
-  ["edit", "Editar una imagen", "/edit"],
   ["tools", "Explorar herramientas", "/tools"],
 ] as const;
 

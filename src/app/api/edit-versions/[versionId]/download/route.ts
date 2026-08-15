@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { PRODUCT_FEATURES } from "@/config/product-features";
 import { resolveVersionSource } from "@/lib/editing/resolve-version-source";
 import { createClient } from "@/lib/supabase/server";
 import { getPrivateStorage } from "@/lib/storage/provider";
@@ -8,6 +9,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ versionId: string }> },
 ) {
+  if (!PRODUCT_FEATURES.conversationalEditing) {
+    return new NextResponse("No encontrada.", { status: 404 });
+  }
   const supabase = await createClient();
   const {
     data: { user },

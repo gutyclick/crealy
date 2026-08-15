@@ -6,15 +6,15 @@ import { createMetadata } from "@/lib/seo/create-metadata";
 
 export const metadata = createMetadata({
   title: "Centro de ayuda",
-  description: "Guías breves para crear, editar y administrar tu cuenta de Crealy.",
+  description: "Guías breves para crear, usar Recreate y administrar tu cuenta de Crealy.",
   path: "/help",
 });
 
 const topics = [
   ["Primeros pasos", "Confirma tu correo, completa el onboarding y elige una primera acción sin consumir créditos."],
   ["Generación", "Elige el tipo de contenido, formato, estilo y colores. Cada solicitud muestra su coste antes de comenzar."],
-  ["Edición", "Parte de una creación o imagen propia y pide cambios concretos. Puedes volver a versiones anteriores."],
-  ["Créditos", "Las generaciones y ediciones consumen créditos según la calidad. El saldo se reserva y se libera si el trabajo falla."],
+  ["Recreate", "Usa una referencia visual para crear una propuesta original con tu propia dirección."],
+  ["Créditos", "Cada generación muestra su coste antes de comenzar. El saldo se reserva y se libera si el trabajo falla."],
   ["Facturación", "Stripe gestiona checkout, renovación, cancelación y el portal de facturación."],
   ["Archivos", "Los originales son privados, tienen cuota y pueden expirar según el plan. Descarga lo que quieras conservar."],
   ["Herramientas", "Los previews y verificadores procesan imágenes localmente cuando es posible. Las herramientas con IA indican su uso."],

@@ -27,7 +27,7 @@ const sections = [
   {
     title: "3. Servicio de inteligencia artificial",
     paragraphs: [
-      "Crealy permite generar, recrear, editar, analizar y previsualizar piezas visuales mediante sistemas de inteligencia artificial y herramientas auxiliares. Algunas operaciones se ejecutan en cola y dependen de proveedores externos.",
+      "Crealy permite generar, recrear, analizar y previsualizar piezas visuales mediante sistemas de inteligencia artificial y herramientas auxiliares. Algunas operaciones se ejecutan en cola y dependen de proveedores externos.",
       "La IA puede producir errores, texto imperfecto, resultados inesperados o similitudes accidentales. La calidad depende, entre otros factores, de la claridad del brief y de las referencias aportadas. Debes revisar cada resultado antes de publicarlo o utilizarlo profesionalmente.",
     ],
   },
