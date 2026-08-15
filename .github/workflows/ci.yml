@@ -74,6 +74,7 @@ jobs:
       STRIPE_SECRET_KEY: sk_test_e2e_contract_only
       STRIPE_WEBHOOK_SECRET: whsec_e2e_contract_only
       E2E_STRIPE_WEBHOOK_SECRET: whsec_e2e_contract_only
+      AUTH_E2E_DIAGNOSTICS: "true"
       TRANSACTIONAL_EMAILS_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4

@@ -64,7 +64,7 @@ test.describe("flujo móvil autenticado", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Una referencia clara. Un resultado hecho para ti.",
     );
-    await page.getByRole("button", { name: "Más" }).click();
+    await page.getByRole("button", { name: "Más", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Más en Crealy" })).toBeVisible();
     await page.getByRole("button", { name: "Cerrar" }).click();
     await expect(page.getByRole("dialog", { name: "Más en Crealy" })).toBeHidden();

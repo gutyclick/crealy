@@ -34,7 +34,12 @@ const genericResetMessage =
   "Si existe una cuenta asociada a ese correo, recibirás un enlace para restablecer tu contraseña.";
 
 function reportAuthError(context: string, error: unknown) {
-  if (process.env.NODE_ENV !== "development") return;
+  if (
+    process.env.NODE_ENV !== "development" &&
+    process.env.AUTH_E2E_DIAGNOSTICS !== "true"
+  ) {
+    return;
+  }
 
   const message = error instanceof Error ? error.message : "Error desconocido";
   console.error(`[Crealy Auth · ${context}] ${message}`);
