@@ -1,9 +1,24 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
 
 import { updateSession } from "@/lib/supabase/proxy";
+import { OAUTH_RETURN_COOKIE, parseOAuthReturn } from "@/lib/auth/oauth-return";
 
 export async function proxy(request: NextRequest) {
+  const savedReturn = parseOAuthReturn(
+    request.cookies.get(OAUTH_RETURN_COOKIE)?.value,
+  );
+  const oauthCode = request.nextUrl.searchParams.get("code");
+  const oauthError = request.nextUrl.searchParams.get("error");
+  if (request.nextUrl.pathname === "/" && savedReturn && (oauthCode || oauthError)) {
+    const callbackUrl = new URL("/auth/callback", request.url);
+    if (oauthCode) callbackUrl.searchParams.set("code", oauthCode);
+    if (oauthError) callbackUrl.searchParams.set("error", oauthError);
+    callbackUrl.searchParams.set("next", savedReturn.destination);
+    callbackUrl.searchParams.set("oauth_flow", savedReturn.flow);
+    return NextResponse.redirect(callbackUrl);
+  }
+
   const nonce = randomBytes(16).toString("base64");
   request.headers.set("x-nonce", nonce);
   const response = await updateSession(request);

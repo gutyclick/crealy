@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getAuthCallbackUrl } from "@/lib/auth/request-origin";
 import { recordSignupConsents } from "@/lib/auth/signup-consent";
 import { getSafeRedirect } from "@/lib/auth/redirects";
+import { OAUTH_RETURN_COOKIE, serializeOAuthReturn } from "@/lib/auth/oauth-return";
 import {
   errorState,
   normalizeEmail,
@@ -330,6 +331,17 @@ async function signInWithSocialProvider(
     isSignup && launch.onboardingEnabled ? "/onboarding" : "/dashboard",
   );
   const oauthFlow = isSignup ? "signup" : "login";
+  cookieStore.set(
+    OAUTH_RETURN_COOKIE,
+    serializeOAuthReturn(oauthFlow, destination),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 10 * 60,
+      path: "/",
+    },
+  );
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
@@ -338,6 +350,7 @@ async function signInWithSocialProvider(
     },
   });
   if (error || !data.url) {
+    cookieStore.delete(OAUTH_RETURN_COOKIE);
     reportAuthError(`${config.label} OAuth`, error);
     redirect("/login?error=oauth");
   }

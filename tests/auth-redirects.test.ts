@@ -3,6 +3,10 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 import { getSafeRedirect } from "../src/lib/auth/redirects";
+import {
+  parseOAuthReturn,
+  serializeOAuthReturn,
+} from "../src/lib/auth/oauth-return";
 
 test("preserves a valid pricing intent through registration", () => {
   assert.equal(
@@ -26,6 +30,30 @@ test("preserves only exact authenticated settings destinations", () => {
   assert.equal(getSafeRedirect("/settings/billing", "/dashboard"), "/settings/billing");
   assert.equal(getSafeRedirect("/settings/account", "/dashboard"), "/settings/account");
   assert.equal(getSafeRedirect("/settings/billing/evil", "/dashboard"), "/dashboard");
+});
+
+test("preserves onboarding as a safe OAuth destination", () => {
+  assert.equal(getSafeRedirect("/onboarding", "/dashboard"), "/onboarding");
+  assert.deepEqual(
+    parseOAuthReturn(serializeOAuthReturn("signup", "/onboarding")),
+    { flow: "signup", destination: "/onboarding" },
+  );
+  assert.deepEqual(
+    parseOAuthReturn(serializeOAuthReturn("login", "/dashboard")),
+    { flow: "login", destination: "/dashboard" },
+  );
+  assert.equal(parseOAuthReturn("invalid|https%3A%2F%2Fevil.example"), null);
+});
+
+test("recovers an OAuth callback that Supabase sends to the public Site URL", () => {
+  const actions = readFileSync("src/app/(auth)/actions.ts", "utf8");
+  const callback = readFileSync("src/app/(auth)/auth/callback/route.ts", "utf8");
+  const proxy = readFileSync("src/proxy.ts", "utf8");
+
+  assert.match(actions, /serializeOAuthReturn\(oauthFlow, destination\)/);
+  assert.match(callback, /savedReturn\?\.destination/);
+  assert.match(proxy, /pathname === "\/"/);
+  assert.match(proxy, /new URL\("\/auth\/callback", request\.url\)/);
 });
 
 test("OAuth callbacks use the validated request origin instead of a drifting apex domain", () => {

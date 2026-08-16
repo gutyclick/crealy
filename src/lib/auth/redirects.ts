@@ -1,5 +1,6 @@
 const allowedDestinations = new Set([
   "/dashboard",
+  "/onboarding",
   "/login",
   "/reset-password",
   "/pricing",

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { getSafeRedirect } from "@/lib/auth/redirects";
+import { OAUTH_RETURN_COOKIE, parseOAuthReturn } from "@/lib/auth/oauth-return";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeClient } from "@/lib/stripe/client";
@@ -13,17 +14,22 @@ import { recordSignupConsents } from "@/lib/auth/signup-consent";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const oauthFlow = requestUrl.searchParams.get("oauth_flow");
   const cookieStore = await cookies();
+  const savedReturn = parseOAuthReturn(
+    cookieStore.get(OAUTH_RETURN_COOKIE)?.value,
+  );
+  const oauthFlow =
+    requestUrl.searchParams.get("oauth_flow") || savedReturn?.flow || null;
   const requestedDestination = requestUrl.searchParams.get("next");
   const destination = getSafeRedirect(
-    requestedDestination,
+    requestedDestination || savedReturn?.destination,
     !requestedDestination && getLaunchConfig().onboardingEnabled
       ? "/onboarding"
       : "/dashboard",
   );
 
   if (!code) {
+    cookieStore.delete(OAUTH_RETURN_COOKIE);
     cookieStore.set("crealy_oauth_invite", "", {
       httpOnly: true,
       maxAge: 0,
@@ -43,6 +49,7 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
+    cookieStore.delete(OAUTH_RETURN_COOKIE);
     if (process.env.NODE_ENV === "development") {
       console.error(`[Crealy Auth · callback] ${error.message}`);
     }
@@ -86,6 +93,7 @@ export async function GET(request: Request) {
     maxAge: 0,
     path: "/auth/callback",
   });
+  cookieStore.delete(OAUTH_RETURN_COOKIE);
 
   const newAccountIsRestricted =
     isNewOAuthAccount &&
