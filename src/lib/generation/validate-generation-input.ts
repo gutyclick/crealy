@@ -218,7 +218,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   if (creationMode === "recreate" && !referenceUploadIds?.length) fields.referenceUploadIds = "Añade una referencia para recrear.";
 
   let recreateReferenceRoles: RecreateReferenceRole[] | undefined;
-  let recreateElementAnalyses: RecreateElementAnalysis[] | undefined;
+  let recreateElementAnalyses: Array<RecreateElementAnalysis | null> | undefined;
   let recreatePreservation: RecreatePreservation | undefined;
   if (creationMode === "recreate") {
     const supportingCount = Math.max(0, (referenceUploadIds?.length ?? 0) - 1);
@@ -244,12 +244,13 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     }
 
     const analyses = rawInput.recreateElementAnalyses;
-    if (supportingCount === 0 && analyses === undefined) {
-      recreateElementAnalyses = [];
+    if (analyses === undefined) {
+      recreateElementAnalyses = Array.from({ length: supportingCount }, () => null);
     } else if (
       !Array.isArray(analyses) ||
       analyses.length !== supportingCount ||
       analyses.some((analysis) => {
+        if (analysis === null) return false;
         if (!isRecord(analysis)) return true;
         return (
           typeof analysis.kind !== "string" ||
@@ -270,10 +271,10 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       })
     ) {
       fields.recreateElementAnalyses =
-        "Espera a que Crealy reconozca cada elemento antes de generar.";
+        "La lectura opcional de uno de los elementos no es válida.";
     } else {
-      recreateElementAnalyses = (analyses as RecreateElementAnalysis[]).map(
-        (analysis) => ({
+      recreateElementAnalyses = (analyses as Array<RecreateElementAnalysis | null>).map(
+        (analysis) => analysis ? ({
           kind: analysis.kind,
           recommendedRole: analysis.recommendedRole,
           faceCount: analysis.faceCount,
@@ -287,7 +288,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
             .filter((value): value is string => typeof value === "string")
             .slice(0, 5)
             .map((value) => value.slice(0, 160)),
-        }),
+        }) : null,
       );
     }
 

@@ -76,7 +76,8 @@ export async function analyzeRecreateElement(userId: string, uploadId: string) {
             type: "input_text",
             text: [
               "Analiza este material que el usuario quiere incorporar en un diseño.",
-              "Detecta cuántos rostros humanos claramente visibles hay, sin identificar a la persona ni inferir datos sensibles.",
+              "Inspecciona toda la imagen, incluidos rostros parciales, de perfil, pequeños o parcialmente cubiertos. Cuenta cada rostro humano visible sin identificar a la persona ni inferir datos sensibles.",
+              "No devuelvas faceCount 0 si hay ojos, nariz, boca, contorno facial o una cabeza humana reconocible, aunque el encuadre no sea frontal.",
               "Clasifica el material como person, product, object, background o mixed y recomienda su papel visual.",
               "Describe solo rasgos visibles necesarios para conservar identidad visual, geometría, vestuario, color y detalles distintivos.",
               "Si hay más de una persona, un rostro oculto, baja resolución o recortes que dificulten conservar el elemento, añádelo a warnings.",

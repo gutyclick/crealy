@@ -167,8 +167,7 @@ export function RecreateForm({
     references.slice(1).every(
       (reference) =>
         reference.status === "uploaded" &&
-        Boolean(reference.uploadId) &&
-        Boolean(reference.recreateAnalysis),
+        Boolean(reference.uploadId),
     );
   const compatibleStyles = useMemo(
     () =>
@@ -279,7 +278,7 @@ export function RecreateForm({
             .map((reference) => reference.recreateRole ?? "supporting"),
           recreateElementAnalyses: references
             .slice(1)
-            .map((reference) => reference.recreateAnalysis!),
+            .map((reference) => reference.recreateAnalysis ?? null),
           recreatePreservation: recreate.preservation,
         }),
       });
@@ -634,7 +633,7 @@ export function RecreateForm({
           </p>
         ) : !ready ? (
           <p role="status" className="mt-3 text-center text-xs text-muted">
-            Añade una referencia y espera a que Crealy reconozca tus elementos.
+            Añade una referencia y espera únicamente a que los archivos terminen de subir.
           </p>
         ) : null}
       </div>

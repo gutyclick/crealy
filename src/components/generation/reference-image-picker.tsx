@@ -18,7 +18,9 @@ export type ReferenceDraft = {
   previewUrl: string;
   uploadId?: string;
   recreateRole?: RecreateReferenceRole;
+  recreateRoleEdited?: boolean;
   recreateAnalysis?: RecreateElementAnalysis;
+  analysisStatus?: "idle" | "analyzing" | "ready" | "unavailable";
   status: "ready" | "uploading" | "analyzing" | "uploaded" | "error";
 };
 

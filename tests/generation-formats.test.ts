@@ -314,13 +314,21 @@ test("Recreate validates one role per supporting reference and preservation cont
   });
   assert.equal(missingRole.success, false);
   if (!missingRole.success) assert.ok(missingRole.fields.recreateReferenceRoles);
-  const missingAnalysis = validateGenerationInput({
+  const pendingAnalysis = validateGenerationInput({
+    ...recreate,
+    recreateElementAnalyses: undefined,
+  });
+  assert.equal(pendingAnalysis.success, true);
+  if (pendingAnalysis.success) {
+    assert.deepEqual(pendingAnalysis.data.recreateElementAnalyses, [null]);
+  }
+  const mismatchedAnalysis = validateGenerationInput({
     ...recreate,
     recreateElementAnalyses: [],
   });
-  assert.equal(missingAnalysis.success, false);
-  if (!missingAnalysis.success) {
-    assert.ok(missingAnalysis.fields.recreateElementAnalyses);
+  assert.equal(mismatchedAnalysis.success, false);
+  if (!mismatchedAnalysis.success) {
+    assert.ok(mismatchedAnalysis.fields.recreateElementAnalyses);
   }
   const invalidPreservation = validateGenerationInput({
     ...recreate,

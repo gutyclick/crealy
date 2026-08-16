@@ -157,6 +157,50 @@ test("Recreate becomes usable before deep analysis finishes", () => {
   assert.ok(analysisIndex > readyIndex);
 });
 
+test("supporting images remain usable while face analysis is pending or unavailable", () => {
+  const panel = readFileSync(
+    "src/components/recreate/recreate-panel.tsx",
+    "utf8",
+  );
+  const form = readFileSync(
+    "src/components/recreate/recreate-form.tsx",
+    "utf8",
+  );
+  assert.match(panel, /status: "uploaded",\s+analysisStatus: "analyzing"/);
+  assert.match(panel, /status: "uploaded",\s+analysisStatus: "unavailable"/);
+  assert.match(panel, /pero puedes generar igualmente/);
+  assert.doesNotMatch(form, /Boolean\(reference\.recreateAnalysis\)/);
+  assert.match(form, /reference\.recreateAnalysis \?\? null/);
+});
+
+test("Recreate can instruct the image model when optional face analysis is absent", () => {
+  const input = {
+    creationMode: "recreate",
+    contentType: "thumbnail",
+    variant: "thumbnail-standard",
+    description: "Una persona presentando un producto",
+    referenceUploadIds: ["reference", "person"],
+    recreateReferenceRoles: ["protagonist"],
+    recreateElementAnalyses: [null],
+    recreateBlueprint: {
+      category: "thumbnail",
+      composition: "Sujeto a la derecha y texto a la izquierda",
+      hierarchy: "Rostro, texto y producto",
+      visualStyle: "Alto contraste",
+      background: "Fondo sencillo",
+      emotion: "Confianza",
+      textDensity: "Baja",
+      subjectScale: "Grande",
+      colorPalette: ["amarillo", "negro"],
+      focalElements: ["rostro"],
+      replaceableElements: ["persona", "texto"],
+    },
+  } as unknown as GenerationInput;
+  const prompt = buildRecreatePrompt(input) ?? "";
+  assert.match(prompt, /Analiza visualmente el elemento antes de integrarlo/);
+  assert.match(prompt, /conserva facciones, expresi.n reconocible/);
+});
+
 test("Recreate persists its controls and evaluates critical output defects in the worker", () => {
   const route = readFileSync("src/app/api/generations/route.ts", "utf8");
   const worker = readFileSync("src/lib/jobs/worker.ts", "utf8");

@@ -103,24 +103,37 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
 
   function updateReferenceRole(key: string, role: RecreateReferenceRole) {
     setReferences((current) => current.map((reference) =>
-      reference.key === key ? { ...reference, recreateRole: role } : reference,
+      reference.key === key
+        ? { ...reference, recreateRole: role, recreateRoleEdited: true }
+        : reference,
     ));
   }
 
   async function analyzeSupportingReference(reference: ReferenceDraft) {
-    setReferences((current) =>
-      current.map((item) =>
-        item.key === reference.key ? { ...item, status: "uploading" } : item,
-      ),
-    );
+    let uploadedId = reference.uploadId;
+    setReferences((current) => current.map((item) =>
+      item.key === reference.key
+        ? {
+            ...item,
+            status: uploadedId ? "uploaded" : "uploading",
+            analysisStatus: "analyzing",
+          }
+        : item,
+    ));
     try {
       const upload = reference.uploadId
         ? { uploadId: reference.uploadId }
         : await uploadPrivateImage(reference.file, "reference");
+      uploadedId = upload.uploadId;
       setReferences((current) =>
         current.map((item) =>
           item.key === reference.key
-            ? { ...item, uploadId: upload.uploadId, status: "analyzing" }
+            ? {
+                ...item,
+                uploadId: upload.uploadId,
+                status: "uploaded",
+                analysisStatus: "analyzing",
+              }
             : item,
         ),
       );
@@ -147,7 +160,10 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
                 ...item,
                 uploadId: upload.uploadId,
                 status: "uploaded",
-                recreateRole: payload.analysis.recommendedRole,
+                analysisStatus: "ready",
+                recreateRole: item.recreateRoleEdited
+                  ? item.recreateRole
+                  : payload.analysis.recommendedRole,
                 recreateAnalysis: payload.analysis,
               }
             : item,
@@ -157,13 +173,24 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
     } catch (error) {
       setReferences((current) =>
         current.map((item) =>
-          item.key === reference.key ? { ...item, status: "error" } : item,
+          item.key === reference.key
+            ? uploadedId
+              ? {
+                  ...item,
+                  uploadId: uploadedId,
+                  status: "uploaded",
+                  analysisStatus: "unavailable",
+                }
+              : { ...item, status: "error", analysisStatus: "unavailable" }
+            : item,
         ),
       );
       setSupportingError(
-        error instanceof Error
-          ? error.message
-          : "No pudimos reconocer el elemento.",
+        uploadedId
+          ? "La imagen está lista. No pudimos afinar sus detalles, pero puedes generar igualmente."
+          : error instanceof Error
+            ? error.message
+            : "No pudimos subir el elemento.",
       );
     }
   }
@@ -200,6 +227,7 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
         file,
         previewUrl: URL.createObjectURL(file),
         recreateRole: "supporting",
+        analysisStatus: "idle",
         status: "ready",
       });
     }
@@ -208,7 +236,7 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
       setReferences((current) => [...current, ...accepted].slice(0, maxReferences));
       setMessage(files.length > remaining
         ? `Se añadieron ${remaining}. Tu plan permite ${maxElements} elementos.`
-        : "Estamos reconociendo cada elemento para ubicarlo con precisión.");
+        : "Elementos añadidos. Puedes continuar mientras afinamos sus detalles.");
       accepted.forEach((reference) => void analyzeSupportingReference(reference));
     }
   }
@@ -435,9 +463,9 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
                 <div className="group relative aspect-square overflow-hidden rounded-lg bg-background">
                   <Image src={reference.previewUrl} alt={`Material adicional ${index + 1}`} fill unoptimized className="object-cover" />
                   <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/80 px-1.5 py-1 text-[0.625rem] font-semibold text-white">E{index + 1}</span>
-                  {reference.status === "uploading" || reference.status === "analyzing" ? (
+                  {reference.status === "uploading" ? (
                     <span role="status" className="absolute inset-0 grid place-items-center bg-black/70 text-center text-xs font-semibold text-white">
-                      <span><LoaderCircle aria-hidden="true" className="mx-auto mb-2 size-5 animate-spin text-brand" />{reference.status === "uploading" ? "Subiendo" : "Reconociendo"}</span>
+                      <span><LoaderCircle aria-hidden="true" className="mx-auto mb-2 size-5 animate-spin text-brand" />Subiendo</span>
                     </span>
                   ) : null}
                   <button
@@ -468,10 +496,18 @@ export function RecreatePanel({ category, references, setReferences, disabled, m
                     </div>
                   ) : reference.status === "error" ? (
                     <button type="button" onClick={() => void analyzeSupportingReference(reference)} className="flex min-h-10 items-center gap-1.5 text-left text-xs font-semibold text-red-200">
-                      <AlertTriangle aria-hidden="true" className="size-3.5" /> Reintentar análisis
+                      <AlertTriangle aria-hidden="true" className="size-3.5" /> Reintentar subida
+                    </button>
+                  ) : reference.analysisStatus === "analyzing" ? (
+                    <p className="flex min-h-10 items-center gap-1.5 text-xs text-muted">
+                      <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin text-brand" /> Afinando detalles…
+                    </p>
+                  ) : reference.analysisStatus === "unavailable" ? (
+                    <button type="button" onClick={() => void analyzeSupportingReference(reference)} className="flex min-h-10 items-center gap-1.5 text-left text-xs font-semibold text-muted hover:text-foreground">
+                      <AlertTriangle aria-hidden="true" className="size-3.5 text-amber-300" /> Imagen lista · reintentar lectura
                     </button>
                   ) : (
-                    <p className="text-xs text-muted">Preparando elemento…</p>
+                    <p className="text-xs text-muted">Imagen lista para usar</p>
                   )}
                 </div>
                 <label className="mt-2 block">
