@@ -6,8 +6,6 @@ import {
 } from "@/config/openai";
 
 const DEFAULT_IMAGE_MODEL = "gpt-image-2";
-const DEFAULT_DAILY_LIMIT = 10;
-const DEFAULT_COOLDOWN_SECONDS = 15;
 
 function readPositiveInteger(
   name: string,
@@ -81,16 +79,6 @@ export function getGenerationServerEnv() {
     imageModel,
     generationEnabled,
     fourKEnabled: readBoolean("FOUR_K_GENERATION_ENABLED", false),
-    dailyLimit: readPositiveInteger(
-      "GENERATION_DAILY_LIMIT",
-      DEFAULT_DAILY_LIMIT,
-      86_400,
-    ),
-    cooldownSeconds: readPositiveInteger(
-      "GENERATION_COOLDOWN_SECONDS",
-      DEFAULT_COOLDOWN_SECONDS,
-      86_400,
-    ),
   };
 }
 

@@ -34,6 +34,14 @@ const expandedRecreateReferences = readFileSync(
   "utf8",
 ).toLowerCase();
 
+const generationProductLimitsMigration = readFileSync(
+  new URL(
+    "../supabase/migrations/20260820010000_remove_generation_product_limits.sql",
+    import.meta.url,
+  ),
+  "utf8",
+).toLowerCase();
+
 test("job creation is atomic with credit reservation and outbox", () => {
   assert.match(sql, /create_generation_job_internal/);
   assert.match(sql, /create_edit_job_internal/);
@@ -66,4 +74,10 @@ test("generation queue accepts several jobs while preserving a per-user cap", ()
   assert.match(generationQueueMigration, /generation_queue_limit/);
   assert.match(generationQueueMigration, />= 4/);
   assert.match(generationQueueMigration, /job_type = 'generation'/);
+});
+
+test("generation usage is governed by credits instead of daily product limits", () => {
+  assert.match(generationProductLimitsMigration, /generation_daily_limit_not_removed/);
+  assert.match(generationProductLimitsMigration, /execute corrected_definition/);
+  assert.match(generationProductLimitsMigration, /daily_count >= p_daily_limit/);
 });

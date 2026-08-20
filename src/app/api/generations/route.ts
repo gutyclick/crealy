@@ -30,6 +30,9 @@ export const runtime = "nodejs";
 export const maxDuration = 180;
 
 const MAX_REQUEST_BYTES = 20_000;
+// These values only satisfy the legacy RPC signature. Supabase no longer uses
+// them as product limits; a user's available credits govern generation usage.
+const UNUSED_GENERATION_LIMIT_PARAMETER = 1;
 
 function errorResponse(
   body: GenerationErrorResponse,
@@ -66,24 +69,6 @@ function reservationError(message: string, correlationId?: string) {
       {
         code: "generation_limit",
         error: "Ya tienes cuatro creaciones en cola. Espera a que termine una para añadir otra.",
-      },
-      429,
-    );
-  }
-  if (message.includes("generation_limit")) {
-    return errorResponse(
-      {
-        code: "generation_limit",
-        error: "Alcanzaste el límite diario de generaciones.",
-      },
-      429,
-    );
-  }
-  if (message.includes("generation_cooldown")) {
-    return errorResponse(
-      {
-        code: "generation_cooldown",
-        error: "Espera unos segundos antes de crear otro diseño.",
       },
       429,
     );
@@ -367,8 +352,8 @@ export async function POST(request: Request) {
       .update(JSON.stringify(input))
       .digest("hex"),
     p_credit_cost: creditCost,
-    p_daily_limit: generationConfig.dailyLimit,
-    p_cooldown_seconds: generationConfig.cooldownSeconds,
+    p_daily_limit: UNUSED_GENERATION_LIMIT_PARAMETER,
+    p_cooldown_seconds: UNUSED_GENERATION_LIMIT_PARAMETER,
     p_estimated_cost_usd: estimatedCost,
     p_daily_budget_usd: operations.dailyBudgetUsd,
     p_monthly_budget_usd: operations.monthlyBudgetUsd,

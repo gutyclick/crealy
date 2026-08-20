@@ -229,7 +229,6 @@ export type GenerationErrorResponse = {
     | "generation_disabled"
     | "generation_active"
     | "generation_limit"
-    | "generation_cooldown"
     | "generation_in_progress"
     | "insufficient_credits"
     | "invalid_reference"
