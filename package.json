@@ -39,7 +39,7 @@
     "react-dom": "19.2.4",
     "resend": "^6.18.1",
     "server-only": "^0.0.1",
-    "sharp": "^0.35.3",
+    "sharp": "0.34.5",
     "stripe": "^22.3.2",
     "undici": "^7.29.0",
     "ws": "^8.18.3"
@@ -63,7 +63,6 @@
   "overrides": {
     "brace-expansion": "^5.0.9",
     "minimatch": "^10.2.6",
-    "postcss": "^8.5.25",
-    "sharp": "$sharp"
+    "postcss": "^8.5.25"
   }
 }

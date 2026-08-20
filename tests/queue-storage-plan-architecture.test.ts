@@ -50,3 +50,13 @@ test("the environment exposes one Starter Creator Pro matrix without billing ali
   for (const name of ["STARTER_MONTHLY_CREDITS", "CREATOR_MONTHLY_CREDITS", "PRO_MONTHLY_CREDITS"]) assert.match(example, new RegExp(`^${name}=`, "m"));
   for (const legacy of ["STRIPE_BUSINESS_PRICE_ID", "BUSINESS_MONTHLY_CREDITS", "BUSINESS_PLAN_ENABLED", "STRIPE_PRO_PRICE_ID="]) assert.doesNotMatch(example, new RegExp(legacy));
 });
+
+test("the job consumer uses the Sharp release supported by Next without a global override", () => {
+  const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+    dependencies?: Record<string, string>;
+    overrides?: Record<string, string>;
+  };
+
+  assert.equal(packageJson.dependencies?.sharp, "0.34.5");
+  assert.equal(packageJson.overrides?.sharp, undefined);
+});

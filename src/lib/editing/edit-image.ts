@@ -121,7 +121,7 @@ export async function editImage({
     throw new Error("missing_image_output");
   }
 
-  let buffer = Buffer.from(output.result, "base64");
+  let buffer: Buffer = Buffer.from(output.result, "base64");
   buffer = await sharp(buffer)
     .resize(width, height, { fit: "cover", position: "centre" })
     .png({ compressionLevel: 9 })
