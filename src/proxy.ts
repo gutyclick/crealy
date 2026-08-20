@@ -3,19 +3,47 @@ import { randomBytes } from "node:crypto";
 
 import { updateSession } from "@/lib/supabase/proxy";
 import { OAUTH_RETURN_COOKIE, parseOAuthReturn } from "@/lib/auth/oauth-return";
+import { getCanonicalSiteUrl } from "@/lib/env";
+
+function canonicalBrowserRedirect(request: NextRequest) {
+  if (
+    process.env.NODE_ENV !== "production" ||
+    request.nextUrl.pathname.startsWith("/api/")
+  ) {
+    return null;
+  }
+
+  const canonical = new URL(getCanonicalSiteUrl());
+  const currentHost = request.nextUrl.hostname;
+  const isCrealyAlias =
+    (currentHost === "crealy.app" || currentHost === "www.crealy.app") &&
+    (canonical.hostname === "crealy.app" || canonical.hostname === "www.crealy.app");
+  if (!isCrealyAlias || currentHost === canonical.hostname) return null;
+
+  const destination = request.nextUrl.clone();
+  destination.protocol = canonical.protocol;
+  destination.hostname = canonical.hostname;
+  destination.port = canonical.port;
+  return NextResponse.redirect(destination, 308);
+}
 
 export async function proxy(request: NextRequest) {
+  const canonicalRedirect = canonicalBrowserRedirect(request);
+  if (canonicalRedirect) return canonicalRedirect;
+
   const savedReturn = parseOAuthReturn(
     request.cookies.get(OAUTH_RETURN_COOKIE)?.value,
   );
   const oauthCode = request.nextUrl.searchParams.get("code");
   const oauthError = request.nextUrl.searchParams.get("error");
-  if (request.nextUrl.pathname === "/" && savedReturn && (oauthCode || oauthError)) {
+  if (request.nextUrl.pathname === "/" && (oauthCode || oauthError)) {
     const callbackUrl = new URL("/auth/callback", request.url);
     if (oauthCode) callbackUrl.searchParams.set("code", oauthCode);
     if (oauthError) callbackUrl.searchParams.set("error", oauthError);
-    callbackUrl.searchParams.set("next", savedReturn.destination);
-    callbackUrl.searchParams.set("oauth_flow", savedReturn.flow);
+    if (savedReturn) {
+      callbackUrl.searchParams.set("next", savedReturn.destination);
+      callbackUrl.searchParams.set("oauth_flow", savedReturn.flow);
+    }
     return NextResponse.redirect(callbackUrl);
   }
 

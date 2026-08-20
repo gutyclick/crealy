@@ -3,6 +3,9 @@
 1. Ejecutar `npm run ops:billing`.
 2. Revisar eventos `failed` o `processing` y el delivery en Stripe.
 3. Confirmar `STRIPE_WEBHOOK_SECRET`, modo live/test y Price IDs.
+   El destino recomendado es `https://www.crealy.app/api/webhooks/stripe`.
+   `https://crealy.app/api/webhooks/stripe` también debe responder directamente;
+   una respuesta `3xx` cuenta como entrega fallida en Stripe.
 4. Reenviar el evento desde Stripe; `stripe_events` evita doble procesamiento.
 5. No crear suscripciones ni grants manuales antes de reconciliar el invoice.
 

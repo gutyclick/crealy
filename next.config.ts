@@ -25,16 +25,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
-  async redirects() {
-    return [
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "crealy.app" }],
-        destination: "https://www.crealy.app/:path*",
-        permanent: true,
-      },
-    ];
-  },
 };
 
 export default withSentryConfig(nextConfig, {

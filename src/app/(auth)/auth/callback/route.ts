@@ -10,6 +10,7 @@ import { getLaunchConfig } from "@/lib/launch/server";
 import { queueTransactionalEmail } from "@/lib/email/queue-email";
 import { claimBetaInvite } from "@/lib/launch/invites";
 import { recordSignupConsents } from "@/lib/auth/signup-consent";
+import { logger } from "@/lib/observability/logger";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -29,6 +30,11 @@ export async function GET(request: Request) {
   );
 
   if (!code) {
+    logger.warn("auth.oauth_callback_missing_code", {
+      errorCode: requestUrl.searchParams.has("error")
+        ? "provider_rejected"
+        : "missing_code",
+    });
     cookieStore.delete(OAUTH_RETURN_COOKIE);
     cookieStore.set("crealy_oauth_invite", "", {
       httpOnly: true,
@@ -50,9 +56,9 @@ export async function GET(request: Request) {
 
   if (error) {
     cookieStore.delete(OAUTH_RETURN_COOKIE);
-    if (process.env.NODE_ENV === "development") {
-      console.error(`[Crealy Auth · callback] ${error.message}`);
-    }
+    logger.error("auth.oauth_code_exchange_failed", {
+      errorCode: error.code || "code_exchange_failed",
+    });
     return NextResponse.redirect(
       new URL("/login?error=auth_callback", requestUrl.origin),
     );
@@ -103,6 +109,9 @@ export async function GET(request: Request) {
       (oauthFlow === "signup" && !termsAccepted));
 
   if (user && newAccountIsRestricted) {
+    logger.warn("auth.oauth_new_account_restricted", {
+      errorCode: oauthFlow === "signup" ? "signup_requirements" : "login_flow",
+    });
     await supabase.auth.signOut({ scope: "local" });
     await createAdminClient().auth.admin.deleteUser(user.id);
     return NextResponse.redirect(
@@ -124,6 +133,9 @@ export async function GET(request: Request) {
       source,
     });
     if (!recorded) {
+      logger.error("auth.oauth_consent_record_failed", {
+        errorCode: "consent_record_failed",
+      });
       await supabase.auth.signOut({ scope: "local" });
       await createAdminClient().auth.admin.deleteUser(user.id);
       return NextResponse.redirect(
@@ -157,6 +169,13 @@ export async function GET(request: Request) {
   }
 
   cookieStore.delete("crealy_verification_email");
+
+  logger.info("auth.oauth_callback_completed", {
+    provider:
+      user?.app_metadata.provider === "discord" ? "discord" : "google",
+    flow: oauthFlow === "signup" ? "signup" : "login",
+    destination,
+  });
 
   if (destination === "/reset-password") {
     cookieStore.set("crealy_recovery_session", "1", {

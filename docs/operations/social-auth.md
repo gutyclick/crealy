@@ -28,6 +28,8 @@ En Supabase → Authentication → URL Configuration:
 
 - Site URL: `https://www.crealy.app`
 - Redirect URL: `https://www.crealy.app/auth/callback`
+- No uses `https://crealy.app` como Site URL: el dominio raíz existe como alias,
+  pero el estado PKCE y las cookies de retorno se fijan en `www`.
 - Para previews controlados puede agregarse su URL exacta; evita comodines amplios en producción.
 
 Cuando ambos proveedores estén guardados y habilitados en Supabase, activa en
@@ -36,6 +38,8 @@ Vercel para Production y Preview:
 ```text
 NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true
 NEXT_PUBLIC_DISCORD_AUTH_ENABLED=true
+NEXT_PUBLIC_SITE_URL=https://www.crealy.app
+NEXT_PUBLIC_CANONICAL_HOST=www.crealy.app
 ```
 
 Los Client Secrets pertenecen exclusivamente a Google/Discord y Supabase. No se

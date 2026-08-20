@@ -56,12 +56,22 @@ test("recovers an OAuth callback that Supabase sends to the public Site URL", ()
   assert.match(proxy, /new URL\("\/auth\/callback", request\.url\)/);
 });
 
-test("OAuth callbacks use the validated request origin instead of a drifting apex domain", () => {
+test("OAuth callbacks use the canonical production origin instead of a drifting apex domain", () => {
   const actions = readFileSync("src/app/(auth)/actions.ts", "utf8");
   const origin = readFileSync("src/lib/auth/request-origin.ts", "utf8");
 
   assert.match(actions, /getAuthCallbackUrl\(destination, oauthFlow\)/);
-  assert.match(origin, /x-forwarded-host/);
+  assert.match(origin, /getCanonicalSiteUrl/);
+  assert.match(origin, /process\.env\.NODE_ENV === "production"/);
   assert.match(origin, /canonicalVariants/);
-  assert.match(origin, /candidate\.protocol === "https:"/);
+  assert.match(origin, /allowedHosts\.has\(candidate\.hostname\)/);
+});
+
+test("canonical redirects never intercept API callbacks or webhooks", () => {
+  const proxy = readFileSync("src/proxy.ts", "utf8");
+  const config = readFileSync("next.config.ts", "utf8");
+
+  assert.match(proxy, /pathname\.startsWith\("\/api\/"\)/);
+  assert.match(proxy, /canonicalBrowserRedirect/);
+  assert.doesNotMatch(config, /source: "\/:path\*"/);
 });

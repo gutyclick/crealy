@@ -73,3 +73,26 @@ export function getSiteUrl(): string {
     );
   }
 }
+
+/**
+ * Crealy serves machine endpoints on both public hosts, but browser and OAuth
+ * navigation must converge on one origin so PKCE and return cookies do not
+ * drift between the apex and www domains.
+ */
+export function getCanonicalSiteUrl(): string {
+  const siteUrl = new URL(getSiteUrl());
+  const configuredHost = process.env.NEXT_PUBLIC_CANONICAL_HOST?.trim();
+
+  if (configuredHost) {
+    siteUrl.hostname = configuredHost;
+    siteUrl.port = "";
+  } else if (
+    process.env.NODE_ENV === "production" &&
+    (siteUrl.hostname === "crealy.app" || siteUrl.hostname === "www.crealy.app")
+  ) {
+    siteUrl.hostname = "www.crealy.app";
+    siteUrl.port = "";
+  }
+
+  return siteUrl.origin;
+}
