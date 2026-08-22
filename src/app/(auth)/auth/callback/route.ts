@@ -30,10 +30,18 @@ export async function GET(request: Request) {
   );
 
   if (!code) {
+    const providerError = requestUrl.searchParams.get("error");
+    const providerErrorCode =
+      requestUrl.searchParams.get("error_code") || providerError;
+    const returnPath = oauthFlow === "signup" ? "/signup" : "/login";
+    const publicError = providerError
+      ? providerError === "access_denied"
+        ? "oauth_cancelled"
+        : "oauth_provider"
+      : "auth_callback";
     logger.warn("auth.oauth_callback_missing_code", {
-      errorCode: requestUrl.searchParams.has("error")
-        ? "provider_rejected"
-        : "missing_code",
+      errorCode: providerErrorCode || "missing_code",
+      flow: oauthFlow === "signup" ? "signup" : "login",
     });
     cookieStore.delete(OAUTH_RETURN_COOKIE);
     cookieStore.set("crealy_oauth_invite", "", {
@@ -47,7 +55,7 @@ export async function GET(request: Request) {
       path: "/auth/callback",
     });
     return NextResponse.redirect(
-      new URL("/login?error=auth_callback", requestUrl.origin),
+      new URL(`${returnPath}?error=${publicError}`, requestUrl.origin),
     );
   }
 

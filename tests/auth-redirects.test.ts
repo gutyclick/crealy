@@ -75,3 +75,17 @@ test("canonical redirects never intercept API callbacks or webhooks", () => {
   assert.match(proxy, /canonicalBrowserRedirect/);
   assert.doesNotMatch(config, /source: "\/:path\*"/);
 });
+
+test("OAuth provider failures return to the originating auth flow", () => {
+  const callback = readFileSync("src/app/(auth)/auth/callback/route.ts", "utf8");
+  const signup = readFileSync("src/app/(auth)/signup/page.tsx", "utf8");
+  const login = readFileSync("src/app/(auth)/login/page.tsx", "utf8");
+
+  assert.match(callback, /oauthFlow === "signup" \? "\/signup" : "\/login"/);
+  assert.match(callback, /providerError === "access_denied"/);
+  assert.match(callback, /error_code/);
+  assert.match(signup, /oauth_cancelled/);
+  assert.match(signup, /oauth_provider/);
+  assert.match(login, /oauth_cancelled/);
+  assert.match(login, /oauth_provider/);
+});

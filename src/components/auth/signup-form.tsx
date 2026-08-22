@@ -27,6 +27,7 @@ type SignupFormProps = {
   inviteError?: boolean;
   termsError?: boolean;
   consentError?: boolean;
+  oauthError?: "cancelled" | "provider";
 };
 
 function MethodOption({
@@ -116,6 +117,7 @@ export function SignupForm({
   inviteError = false,
   termsError = false,
   consentError = false,
+  oauthError,
 }: SignupFormProps) {
   const [state, formAction] = useActionState(signUp, initialAuthState);
   const [method, setMethod] = useState<SignupMethod | null>(null);
@@ -133,6 +135,7 @@ export function SignupForm({
   if (!method) {
     return (
       <div className="grid gap-5">
+        {oauthError ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 px-4 py-3 text-sm leading-6 text-red-200">{oauthError === "cancelled" ? "El registro con el proveedor fue cancelado. Elige Google o Discord para intentarlo nuevamente." : "Google o Discord rechazó la solicitud de registro. Inténtalo de nuevo y autoriza el acceso a Crealy."}</p> : null}
         {consentError ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 px-4 py-3 text-sm leading-6 text-red-200">No pudimos guardar tus preferencias. Elige un método e inténtalo nuevamente.</p> : null}
         {inviteError ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 px-4 py-3 text-sm leading-6 text-red-200">El código de invitación no está disponible o ha expirado.</p> : null}
         {termsError ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 px-4 py-3 text-sm leading-6 text-red-200">Debes aceptar los términos y la política de privacidad para registrarte.</p> : null}
@@ -155,6 +158,7 @@ export function SignupForm({
 
   return (
     <div className="grid gap-5">
+      {oauthError ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 px-4 py-3 text-sm leading-6 text-red-200">{oauthError === "cancelled" ? "El registro con el proveedor fue cancelado. Inténtalo nuevamente." : "El proveedor rechazó la solicitud de registro. Vuelve a autorizar el acceso a Crealy."}</p> : null}
       <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
         <div>
           <p className="text-xs text-muted">Método seleccionado</p>

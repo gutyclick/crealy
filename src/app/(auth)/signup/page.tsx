@@ -27,6 +27,13 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           inviteError={params.error === "invite"}
           termsError={params.error === "terms"}
           consentError={params.error === "consent"}
+          oauthError={
+            params.error === "oauth_cancelled"
+              ? "cancelled"
+              : params.error === "oauth_provider"
+                ? "provider"
+                : undefined
+          }
         />
       ) : (
         <p className="rounded-xl border border-white/10 bg-white/[0.035] p-5 text-sm leading-6 text-muted">

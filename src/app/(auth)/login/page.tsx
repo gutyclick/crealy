@@ -31,6 +31,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         authError={
           params.error === "rate_limited"
             ? "rate_limited"
+            : params.error === "oauth_cancelled"
+              ? "oauth_cancelled"
+              : params.error === "oauth_provider"
+                ? "oauth_provider"
             : params.error === "oauth"
               ? "oauth"
               : params.error === "social_signup_restricted"

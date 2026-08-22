@@ -16,7 +16,13 @@ import {
 
 type LoginFormProps = {
   nextPath: string;
-  authError?: "callback" | "oauth" | "rate_limited" | "restricted";
+  authError?:
+    | "callback"
+    | "oauth"
+    | "oauth_cancelled"
+    | "oauth_provider"
+    | "rate_limited"
+    | "restricted";
   signedOut?: boolean;
   googleEnabled?: boolean;
   discordEnabled?: boolean;
@@ -36,6 +42,10 @@ export function LoginForm({
           ? "Demasiados intentos. Espera unos minutos antes de volver a intentarlo."
           : authError === "restricted"
             ? "Esta cuenta todavía necesita una invitación para acceder."
+          : authError === "oauth_cancelled"
+            ? "El acceso con el proveedor fue cancelado. Puedes intentarlo nuevamente."
+          : authError === "oauth_provider"
+            ? "Google o Discord rechazó la solicitud de acceso. Inténtalo de nuevo y autoriza el acceso a Crealy."
           : authError === "oauth"
             ? "No pudimos conectar ese proveedor. Revisa tu autorización e inténtalo nuevamente."
             : "El enlace de autenticación no es válido o ya expiró. Inténtalo nuevamente.",
