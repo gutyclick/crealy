@@ -26,6 +26,7 @@ import {
   resolveImageSize,
 } from "../src/lib/generation/resolve-image-size";
 import { validateGenerationInput } from "../src/lib/generation/validate-generation-input";
+import { deriveAutomaticThumbnailText } from "../src/lib/generation/derive-thumbnail-text";
 import {
   THUMBNAIL_DISTINCTIVENESS_RULES,
   THUMBNAIL_PRESET_CRAFT,
@@ -86,6 +87,16 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
   assert.match(orchestrator, /deriveAutomaticThumbnailText\(input\)/);
   assert.match(orchestrator, /thumbnailCreativeSignature\(input\)/);
   assert.match(orchestrator, /Prohibido devolver ganchos intercambiables/);
+  assert.match(orchestrator, /MÁQUINAS EXPENDEDORAS DE JAPÓN/);
+  assert.match(orchestrator, /textPrimaryColor/);
+  assert.match(orchestrator, /identity_drift/);
+  assert.equal(
+    deriveAutomaticThumbnailText({
+      videoTitle: "Probé Todas las Máquinas Expendedoras de Japón",
+      description: "Un recorrido por máquinas de Japón.",
+    }),
+    "MÁQUINAS EXPENDEDORAS DE JAPÓN",
+  );
   assert.ok(THUMBNAIL_DISTINCTIVENESS_RULES.length >= 5);
   for (const preset of THUMBNAIL_PRESETS) {
     assert.ok(THUMBNAIL_PRESET_CRAFT[preset.id].length >= 4, preset.id);
@@ -474,6 +485,9 @@ test("style registry includes the established set and story-specific directions"
     "Promocional", "Moda", "Gastronomía", "Evento",
   ]) {
     assert.ok(labels.has(label));
+  }
+  for (const style of GENERATION_STYLES.filter((item) => item.previewAsset)) {
+    assert.ok(style.promptGuidelines.length >= 4, style.id);
   }
 });
 

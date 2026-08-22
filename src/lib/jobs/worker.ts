@@ -468,6 +468,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
           mimeType: generated.mimeType,
           input,
           plan: thumbnailPlan,
+          referenceImages: references,
           observe: observeProviderCall,
           operation: "thumbnail_evaluation_initial",
         }),
@@ -501,6 +502,7 @@ async function processGeneration(job: JobRecord, startedAt: number) {
               mimeType: corrected.mimeType,
               input,
               plan: thumbnailPlan,
+              referenceImages: references,
               observe: observeProviderCall,
               operation: "thumbnail_evaluation_correction",
             });

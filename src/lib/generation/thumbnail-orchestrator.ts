@@ -2,11 +2,13 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-import { THUMBNAIL_ARCHETYPES, THUMBNAIL_AVOID, THUMBNAIL_DISTINCTIVENESS_RULES, THUMBNAIL_GLOBAL_RULES, THUMBNAIL_NICHES, THUMBNAIL_PRESET_CRAFT, THUMBNAIL_PRESETS } from "@/config/thumbnail-creation";
+import { THUMBNAIL_ARCHETYPES, THUMBNAIL_AVOID, THUMBNAIL_DISTINCTIVENESS_RULES, THUMBNAIL_GLOBAL_RULES, THUMBNAIL_IDENTITY_RULES, THUMBNAIL_NICHES, THUMBNAIL_PRESET_CRAFT, THUMBNAIL_PRESETS } from "@/config/thumbnail-creation";
+import { getVisualStyle, resolveAutomaticStyle } from "@/config/visual-styles";
 import { getEditingServerEnv } from "@/lib/env/server";
 import { getOpenAIClient } from "@/lib/openai/client";
-import type { GenerationInput, ThumbnailConcept, ThumbnailCreativePlan, ThumbnailEvaluation, ThumbnailNiche } from "@/types/generation";
+import type { GenerationInput, GenerationReferenceImage, ThumbnailConcept, ThumbnailCreativePlan, ThumbnailEvaluation, ThumbnailNiche } from "@/types/generation";
 import { parseResponseUsage, type ProviderUsageObserver } from "@/lib/analytics/provider-cost";
+import { deriveAutomaticThumbnailText, isGenericThumbnailText } from "@/lib/generation/derive-thumbnail-text";
 
 const conceptSchema = {
   type: "object", additionalProperties: false,
@@ -34,10 +36,12 @@ const planSchema = {
         mainPromise: { type: "string" }, primaryEmotion: { type: "string" },
         secondaryEmotion: { type: "string" }, mainSubject: { type: "string" },
         supportingObject: { type: "string" }, recommendedText: { type: "string" },
+        textPrimaryColor: { type: "string" }, textAccentColor: { type: "string" },
+        textColorReason: { type: "string" },
         visualPriority: { type: "string" },
         avoid: { type: "array", items: { type: "string" }, maxItems: 8 },
       },
-      required: ["topic", "videoTitle", "niche", "contentType", "audience", "mainPromise", "primaryEmotion", "secondaryEmotion", "mainSubject", "supportingObject", "recommendedText", "visualPriority", "avoid"],
+      required: ["topic", "videoTitle", "niche", "contentType", "audience", "mainPromise", "primaryEmotion", "secondaryEmotion", "mainSubject", "supportingObject", "recommendedText", "textPrimaryColor", "textAccentColor", "textColorReason", "visualPriority", "avoid"],
     },
     concepts: { type: "array", items: conceptSchema, minItems: 3, maxItems: 3 },
     selectedConceptIndex: { type: "integer", minimum: 0, maximum: 2 },
@@ -49,7 +53,7 @@ const evaluationSchema = {
   type: "object", additionalProperties: false,
   properties: {
     approved: { type: "boolean" }, score: { type: "integer", minimum: 0, maximum: 100 },
-    criticalErrors: { type: "array", items: { type: "string", enum: ["incorrect_text", "cropped_text", "deformed_face", "unrelated_content", "watermark", "unreadable_composition", "wrong_aspect_ratio", "incomplete_image"] }, maxItems: 8 },
+    criticalErrors: { type: "array", items: { type: "string", enum: ["incorrect_text", "cropped_text", "deformed_face", "identity_drift", "unrelated_content", "watermark", "unreadable_composition", "wrong_aspect_ratio", "incomplete_image"] }, maxItems: 8 },
     problems: { type: "array", items: { type: "string" }, maxItems: 8 },
     corrections: { type: "array", items: { type: "string" }, maxItems: 8 },
   },
@@ -59,47 +63,39 @@ const evaluationSchema = {
 function exactThumbnailText(input: GenerationInput, recommended: string) {
   if (input.thumbnailTextMode === "none") return "";
   if (input.thumbnailTextMode === "custom") return input.primaryText?.trim() ?? "";
-  const normalized = recommended.trim().replace(/[¿?¡!]/g, "").toLocaleUpperCase("es");
-  const genericHooks = ["QUÉ PASÓ", "NO LO CREERÁS", "INCREÍBLE", "IMPACTANTE", "TIENES QUE VERLO"];
-  const contextual = genericHooks.some((hook) => normalized === hook)
+  const contextual = isGenericThumbnailText(recommended)
     ? deriveAutomaticThumbnailText(input)
     : recommended;
   return contextual.trim().split(/\s+/).slice(0, 5).join(" ");
 }
 
-const AUTOMATIC_TEXT_STOP_WORDS = new Set([
-  "a", "al", "algo", "como", "con", "de", "del", "el", "en", "es",
-  "esta", "este", "esto", "la", "las", "lo", "los", "mi", "para",
-  "por", "que", "se", "sin", "su", "sus", "te", "tu", "un", "una",
-  "video", "youtube", "y",
-]);
+const TEXT_PALETTES = [
+  { primary: "blanco puro #FFFFFF", accent: "rojo intenso #F22E2E", reason: "claridad con tensión editorial" },
+  { primary: "amarillo cálido #FFD400", accent: "blanco puro #FFFFFF", reason: "energía y lectura inmediata" },
+  { primary: "blanco puro #FFFFFF", accent: "verde vivo #38E36F", reason: "descubrimiento, resultado o progreso" },
+  { primary: "rojo intenso #F22E2E", accent: "blanco puro #FFFFFF", reason: "urgencia o conflicto real" },
+  { primary: "celeste brillante #55D9FF", accent: "blanco puro #FFFFFF", reason: "contraste frío y tecnología" },
+] as const;
 
-function textTokens(value: string) {
-  return value
-    .replace(/[¿?¡!.,:;()[\]{}"']/g, " ")
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
+function fallbackTextPalette(input: GenerationInput) {
+  if (input.colorPreference === "custom" && input.customColors?.length) {
+    return {
+      primary: input.customColors[0],
+      accent: input.customColors[1] ?? input.customColors[0],
+      reason: "paleta personalizada indicada por el usuario",
+    };
+  }
+  const digest = createHash("sha256")
+    .update(`${input.clientRequestId}|text-palette|${input.videoTitle || input.description}`)
+    .digest();
+  return TEXT_PALETTES[digest[0] % TEXT_PALETTES.length];
 }
 
-export function deriveAutomaticThumbnailText(input: GenerationInput) {
-  const source = `${input.videoTitle?.trim() || ""} ${input.description}`.trim();
-  const meaningful = textTokens(source).filter((token) => {
-    const normalized = token
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-    return /\d/.test(token) || (normalized.length > 2 && !AUTOMATIC_TEXT_STOP_WORDS.has(normalized));
-  });
-  const unique = meaningful.filter(
-    (token, index) =>
-      meaningful.findIndex((candidate) => candidate.toLowerCase() === token.toLowerCase()) === index,
-  );
-  const selected = unique.slice(0, 4);
-  if (selected.length) return selected.join(" ").toLocaleUpperCase("es");
-
-  const fallback = textTokens(source).slice(0, 3).join(" ");
-  return fallback.toLocaleUpperCase("es") || "TU IDEA";
+function resolvedVisualStyle(input: GenerationInput) {
+  const selected = input.style === "automatic" || input.style === "auto"
+    ? resolveAutomaticStyle({ contentType: input.contentType, description: `${input.videoTitle || ""} ${input.description}` })
+    : input.style;
+  return getVisualStyle(selected) ?? getVisualStyle("viral")!;
 }
 
 const COMPOSITIONS = [
@@ -137,6 +133,7 @@ export function thumbnailCreativeSignature(input: GenerationInput) {
 
 function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePlan, "finalPrompt">) {
   const preset = THUMBNAIL_PRESETS.find((item) => item.id === input.thumbnailPreset) ?? THUMBNAIL_PRESETS[0];
+  const visualStyle = resolvedVisualStyle(input);
   const text = exactThumbnailText(input, plan.brief.recommendedText);
   return [
     "Create one complete professional YouTube thumbnail as a single finished image in horizontal 16:9 format.",
@@ -147,12 +144,20 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     `Supporting element: ${plan.brief.supportingObject || "none"}`, "",
     text ? `Thumbnail text: Render exactly "${text}". Do not add any other words, letters, logos, labels, or interface text.` : "Thumbnail text: Do not render any text, letters, logos, labels, or interface elements.",
     "Typography: large, bold, highly readable YouTube thumbnail typography with strong contrast and clean separation from the background.",
+    text ? `Text color direction: primary ${plan.brief.textPrimaryColor}; accent ${plan.brief.textAccentColor}. Reason: ${plan.brief.textColorReason}. Use one dominant text color and at most one accent; add a dark outline or shadow only when needed for mobile contrast.` : "",
+    text ? input.colorPreference === "custom" && input.customColors?.length
+      ? `The text must use only colors from the user's palette: ${input.customColors.join(", ")}. Choose the most legible roles within it.`
+      : "Do not default mechanically to white plus yellow. Prefer white, yellow, red or green according to the subject, emotion and actual background; cyan or another color is valid only when it produces a stronger, intentional contrast."
+      : "",
+    "", `Selected visual style: ${visualStyle.label} — ${visualStyle.description}. This must change the composition, lighting, typography and finish, not merely the color palette.`,
+    ...visualStyle.promptGuidelines.map((rule) => `- ${rule}`),
     "", `Visual preset: ${preset.label}. Its visual language is mandatory, not optional.`,
     ...preset.direction.map((rule) => `- ${rule}.`),
     ...THUMBNAIL_PRESET_CRAFT[preset.id].map((rule) => `- ${rule}.`),
     "", "Unique art direction for this generation:", ...thumbnailCreativeSignature(input).map((rule) => `- ${rule}`),
     "", "Mobile readability and global rules:", ...THUMBNAIL_GLOBAL_RULES.map((rule) => `- ${rule}`),
     ...THUMBNAIL_DISTINCTIVENESS_RULES.map((rule) => `- ${rule}`),
+    ...(input.referenceUploadIds?.length ? ["", "Non-negotiable subject identity:", ...THUMBNAIL_IDENTITY_RULES.map((rule) => `- ${rule}.`)] : []),
     "", "The entire thumbnail must be generated as one complete image, ready to publish. Do not create a mockup or separate layers.",
     `Avoid: ${[...THUMBNAIL_AVOID, ...plan.brief.avoid].join(", ")}.`,
   ].join("\n");
@@ -175,6 +180,7 @@ function fallbackNiche(topic: string): ThumbnailNiche {
 
 export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCreativePlan {
   const niche = fallbackNiche(`${input.videoTitle || ""} ${input.description}`);
+  const textPalette = fallbackTextPalette(input);
   const requestedText =
     input.thumbnailTextMode === "custom"
       ? input.primaryText?.trim() ?? ""
@@ -186,9 +192,7 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
       strategy: "clarity",
       archetype: "result",
       concept: "Mostrar el resultado principal de forma inmediata y sin elementos innecesarios.",
-      thumbnailText: input.thumbnailTextMode === "automatic"
-        ? deriveAutomaticThumbnailText({ ...input, videoTitle: `${input.videoTitle || input.description} momento decisivo` })
-        : requestedText,
+      thumbnailText: requestedText,
       mainSubject: input.referenceUploadIds?.length ? "La persona de referencia como protagonista" : "El resultado principal del tema",
       composition: "Sujeto dominante en primer plano, resultado visible al lado opuesto y fondo simple.",
       score: 88,
@@ -197,9 +201,7 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
       strategy: "emotion",
       archetype: "extreme_moment",
       concept: "Representar el momento de mayor tensión o sorpresa relacionado con el tema.",
-      thumbnailText: input.thumbnailTextMode === "automatic"
-        ? deriveAutomaticThumbnailText({ ...input, videoTitle: `${input.videoTitle || input.description} clave oculta` })
-        : requestedText,
+      thumbnailText: requestedText,
       mainSubject: input.referenceUploadIds?.length ? "La persona de referencia con expresión legible" : "Un momento narrativo reconocible",
       composition: "Primer plano emocional con un único elemento secundario que explique la situación.",
       score: 82,
@@ -227,6 +229,9 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
     mainSubject: selectedConcept.mainSubject,
     supportingObject: "Un solo elemento relacionado directamente con el tema",
     recommendedText: requestedText,
+    textPrimaryColor: textPalette.primary,
+    textAccentColor: textPalette.accent,
+    textColorReason: textPalette.reason,
     visualPriority: "Sujeto, resultado y texto en ese orden",
     avoid: [...THUMBNAIL_AVOID],
   };
@@ -246,6 +251,7 @@ export async function planThumbnail(
 ): Promise<ThumbnailCreativePlan> {
   const { responsesModel } = getEditingServerEnv();
   const preset = THUMBNAIL_PRESETS.find((item) => item.id === input.thumbnailPreset) ?? THUMBNAIL_PRESETS[0];
+  const visualStyle = resolvedVisualStyle(input);
   const startedAt = Date.now();
   let response;
   try {
@@ -255,18 +261,27 @@ export async function planThumbnail(
       "Actúa como director creativo de miniaturas de YouTube. Devuelve el plan en español.",
       `Tema o idea: ${input.description}`, `Título del video: ${input.videoTitle || "No proporcionado"}`,
       `Preset elegido: ${preset.label} — ${preset.description}`, `Modo de texto: ${input.thumbnailTextMode || "automatic"}`,
+      `Estilo visual elegido: ${visualStyle.label} — ${visualStyle.description}`,
+      `Preferencia cromática: ${input.colorPreference}${input.customColors?.length ? ` — paleta obligatoria ${input.customColors.join(", ")}` : ""}`,
       input.primaryText ? `Texto exacto del usuario: ${input.primaryText}` : "",
       `Hay foto del usuario: ${Boolean(input.referenceUploadIds?.length) ? "sí; debe ser el único protagonista y conservar su identidad" : "no; decide si hace falta una persona"}.`,
       "Dirección creativa exclusiva para esta solicitud:",
       ...thumbnailCreativeSignature(input),
       "Detecta el nicho. Si la confianza es baja usa general. Crea exactamente tres conceptos textuales realmente distintos: claridad, emoción y curiosidad.",
       "Puntúa cada concepto considerando claridad, relevancia, curiosidad, emoción, diferenciación, lectura móvil, facilidad de generación, relación con el título, honestidad y nicho.",
-      "En modo automático, deriva cada texto del título y del tema concretos. Debe nombrar un resultado, objeto, cifra, conflicto o beneficio reconocible del video.",
-      "El texto recomendado debe complementar el título, no repetirlo literalmente, tener 1–4 palabras preferiblemente y nunca más de 5.",
+      "En modo automático, resume o destila el título y el tema concretos. Debe nombrar el sujeto, lugar, resultado, cifra, conflicto o beneficio reconocible del video; puede crear urgencia o curiosidad, pero nunca perder el tema.",
+      "Ejemplo de razonamiento: para «Probé Todas las Máquinas Expendedoras de Japón», una síntesis válida es «MÁQUINAS EXPENDEDORAS DE JAPÓN», no un gancho genérico.",
+      "El texto recomendado debe entenderse sin contexto, tener 2–4 palabras preferiblemente y nunca más de 5. Puede resumir el título cuando esa es la frase más clara.",
+      input.colorPreference === "custom" && input.customColors?.length
+        ? "Elige color principal y acento exclusivamente dentro de la paleta personalizada del usuario y explica su contraste."
+        : "Elige los colores del texto después de razonar sobre fondo, emoción y semántica. Prioriza blanco, amarillo, rojo o verde; usa celeste u otro color solo si supera claramente el contraste. Devuelve color principal, acento y motivo. No elijas siempre blanco y amarillo.",
       "Prohibido devolver ganchos intercambiables como ¿QUÉ PASÓ?, NO LO CREERÁS, INCREÍBLE, IMPACTANTE o TIENES QUE VERLO.",
       "Los tres conceptos deben diferir en metáfora, encuadre, jerarquía, texto y emoción; no son variaciones cosméticas de una plantilla.",
       `Cumple de forma visible el preset ${preset.label}:`,
       ...THUMBNAIL_PRESET_CRAFT[preset.id],
+      `Cumple también el estilo ${visualStyle.label}:`,
+      ...visualStyle.promptGuidelines,
+      ...(input.referenceUploadIds?.length ? ["La identidad del sujeto es una restricción dura:", ...THUMBNAIL_IDENTITY_RULES] : []),
     ].filter(Boolean).join("\n") }] }],
     text: { format: { type: "json_schema", name: "thumbnail_creative_plan", strict: true, schema: planSchema } },
     });
@@ -295,7 +310,7 @@ export async function planThumbnail(
   return { ...planWithoutPrompt, finalPrompt: buildFinalPrompt(input, planWithoutPrompt) };
 }
 
-export async function evaluateThumbnail({ buffer, mimeType, input, plan, observe, operation = "thumbnail_evaluation" }: { buffer: Buffer; mimeType: string; input: GenerationInput; plan: ThumbnailCreativePlan; observe?: ProviderUsageObserver; operation?: string }): Promise<ThumbnailEvaluation> {
+export async function evaluateThumbnail({ buffer, mimeType, input, plan, referenceImages = [], observe, operation = "thumbnail_evaluation" }: { buffer: Buffer; mimeType: string; input: GenerationInput; plan: ThumbnailCreativePlan; referenceImages?: GenerationReferenceImage[]; observe?: ProviderUsageObserver; operation?: string }): Promise<ThumbnailEvaluation> {
   const { responsesModel } = getEditingServerEnv();
   const expectedText = exactThumbnailText(input, plan.brief.recommendedText);
   const startedAt = Date.now();
@@ -308,10 +323,18 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan, observe
         "Evalúa esta miniatura de YouTube usando solo evidencia visible.",
         `Tema esperado: ${input.description}`, `Texto exacto esperado: ${expectedText || "sin texto"}`,
         `Preset visual obligatorio: ${input.thumbnailPreset || "impactful"}. Verifica que se reconozca claramente y no solo por el color.`,
-        "Puntuación total: claridad visual 15, calidad técnica 15, texto contextual 20, relevancia 15, potencial de clic visual 15, fidelidad al preset 10 y diferenciación frente a una plantilla genérica 10.",
+        `Colores de texto previstos: ${plan.brief.textPrimaryColor} y ${plan.brief.textAccentColor}. Evalúa contraste e intención, no una combinación fija.`,
+        referenceImages.length ? "Las primeras imágenes son referencias del usuario y la última es el resultado. Compara el rostro de cada persona: debe ser inequívocamente la misma identidad, aunque la expresión pueda cambiar de forma natural." : "No hay referencias personales para comparar.",
+        "Puntuación total: claridad visual 15, calidad técnica 15, texto contextual 20, relevancia 15, potencial de clic visual 15, fidelidad al preset y estilo 10, y diferenciación frente a una plantilla genérica 10.",
         "Penaliza texto intercambiable, rostro centrado con glow, fondos abstractos sin relación, flechas gratuitas y composiciones de stock.",
+        "Si una cara de referencia cambió de identidad, fue embellecida artificialmente o perdió rasgos reconocibles, añade identity_drift como error crítico.",
         "Marca approved solo con 80+ o con 70–79 sin errores críticos. Con menos de 70 o cualquier error crítico, approved debe ser false.",
       ].join("\n") },
+      ...referenceImages.slice(0, 4).map((reference) => ({
+        type: "input_image" as const,
+        image_url: `data:${reference.mimeType};base64,${reference.buffer.toString("base64")}`,
+        detail: "high" as const,
+      })),
       { type: "input_image", image_url: `data:${mimeType};base64,${buffer.toString("base64")}`, detail: "high" },
     ] }],
     text: { format: { type: "json_schema", name: "thumbnail_evaluation", strict: true, schema: evaluationSchema } },
@@ -330,6 +353,7 @@ export function buildCorrectiveThumbnailPrompt(plan: ThumbnailCreativePlan, eval
     "Regenerate the complete thumbnail as one finished image while preserving the core concept.", "", plan.finalPrompt, "",
     "Correct these observed problems:", ...(evaluation.problems.length ? evaluation.problems : evaluation.criticalErrors).map((problem) => `- ${problem}`),
     "", "Required corrections:", ...evaluation.corrections.map((correction) => `- ${correction}`),
+    ...(evaluation.criticalErrors.includes("identity_drift") ? ["Identity correction is mandatory: restore the exact person from the uploaded reference. Preserve facial geometry, skin texture and recognizable traits; change only the requested natural expression and scene lighting."] : []),
     "Do not repeat the defects. Return one final 16:9 thumbnail only.",
   ].join("\n");
 }

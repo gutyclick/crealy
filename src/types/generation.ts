@@ -133,6 +133,9 @@ export type ThumbnailCreativePlan = {
     mainSubject: string;
     supportingObject: string;
     recommendedText: string;
+    textPrimaryColor: string;
+    textAccentColor: string;
+    textColorReason: string;
     visualPriority: string;
     avoid: string[];
   };

@@ -64,6 +64,16 @@ export const THUMBNAIL_DISTINCTIVENESS_RULES = [
   "Prohibidas las frases genéricas ¿QUÉ PASÓ?, NO LO CREERÁS e INCREÍBLE",
   "La composición debe responder al tema concreto y no parecer una plantilla reutilizada",
   "Cada nueva generación debe cambiar encuadre, ritmo, relación de escala o metáfora visual",
+  "No recurras siempre a texto blanco y amarillo: decide el color por contraste, emoción y escena",
+  "El acabado debe ser específico del nicho y del relato, nunca una plantilla de miniatura genérica",
+] as const;
+
+export const THUMBNAIL_IDENTITY_RULES = [
+  "La fotografía subida es la autoridad absoluta para la identidad del sujeto",
+  "Conserva geometría facial, distancia entre ojos, nariz, mandíbula, boca, edad aparente, tono y textura real de piel",
+  "Se permite una expresión distinta solo mediante cambios anatómicamente naturales; no reemplaces ni idealices el rostro",
+  "No embellezcas, rejuvenezcas, estilices, mezcles ni reconstruyas la cara como otra persona",
+  "Retoca luz, contraste, color y separación del fondo sin borrar poros ni rasgos identificables",
 ] as const;
 
 export const THUMBNAIL_TEXT_MODES: ReadonlyArray<{

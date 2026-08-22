@@ -34,7 +34,7 @@ export const VISUAL_STYLES = [
     label: "Automático",
     description: "La dirección más adecuada para tu brief.",
     previewAsset: null,
-    promptGuidelines: ["Prioriza legibilidad, equilibrio y una jerarquía clara."],
+    promptGuidelines: ["Detecta nicho, emoción y objetivo antes de elegir el lenguaje visual.", "Elige una dirección concreta y reconocible; no mezcles estilos por defecto.", "Prioriza una historia visual y una jerarquía legible en móvil."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -42,7 +42,7 @@ export const VISUAL_STYLES = [
     label: "Viral",
     description: "Impacto inmediato y contraste alto.",
     previewAsset: "/styles/viral.webp",
-    promptGuidelines: ["Sujeto dominante.", "Jerarquía enérgica pero limpia.", "Pocos elementos secundarios y formas grandes."],
+    promptGuidelines: ["Sujeto dominante con gesto o acción creíble, nunca una cara flotante genérica.", "Escalas extremas, contraste decidido y una única tensión visual fácil de entender.", "Objetos específicos del tema, recortes precisos y acabado de creador profesional.", "Tipografía contundente integrada a la escena; evita glow, flechas y círculos gratuitos."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -50,7 +50,7 @@ export const VISUAL_STYLES = [
     label: "Gamer",
     description: "Energía digital, profundidad y luz dramática.",
     previewAsset: "/styles/gamer.webp",
-    promptGuidelines: ["Luz dramática y colores intensos.", "Composición dinámica con profundidad.", "Detalles digitales controlados."],
+    promptGuidelines: ["Acción congelada, perspectiva inmersiva y profundidad propia del juego mencionado.", "Iluminación motivada por el mundo del juego; evita neón morado-azul automático.", "HUD, partículas o energía solo si pertenecen al universo visual y aportan información.", "Sujeto y elemento jugable deben leerse incluso a tamaño móvil."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -58,7 +58,7 @@ export const VISUAL_STYLES = [
     label: "Deportivo",
     description: "Movimiento, competición y sujeto destacado.",
     previewAsset: "/styles/sports.webp",
-    promptGuidelines: ["Sensación de movimiento.", "Tipografía fuerte y contraste.", "Sujeto principal destacado."],
+    promptGuidelines: ["Captura esfuerzo, velocidad o choque en el instante de máxima tensión.", "Anatomía atlética realista, dirección de movimiento clara y fondo contextual reconocible.", "Luz dura de estadio o exterior y contraste editorial deportivo.", "Cifras, marcador o tipografía solo cuando expliquen el reto o resultado."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -66,7 +66,7 @@ export const VISUAL_STYLES = [
     label: "Minimalista",
     description: "Espacio negativo y jerarquía esencial.",
     previewAsset: "/styles/minimal.webp",
-    promptGuidelines: ["Pocos elementos.", "Tipografía limpia.", "Paleta controlada y espacio negativo generoso."],
+    promptGuidelines: ["Uno o dos elementos con siluetas impecables y espacio negativo intencional.", "Jerarquía por escala, alineación y contraste, no por efectos decorativos.", "Tipografía editorial precisa y paleta corta con un solo acento.", "El minimalismo debe aumentar la intriga o claridad, no parecer vacío."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -74,7 +74,7 @@ export const VISUAL_STYLES = [
     label: "Profesional",
     description: "Orden, confianza y contraste moderado.",
     previewAsset: "/styles/professional.webp",
-    promptGuidelines: ["Composición ordenada.", "Tipografía clara.", "Apariencia confiable sin efectos excesivos."],
+    promptGuidelines: ["Fotografía y retoque creíbles con luz de estudio o entorno laboral real.", "Composición segura y contemporánea con evidencia concreta del tema.", "Tipografía sobria, márgenes precisos y contraste moderado.", "Evita apretones de manos, oficinas de stock y poses corporativas artificiales."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -82,7 +82,7 @@ export const VISUAL_STYLES = [
     label: "Podcast",
     description: "Identidad editorial para presentadores y episodios.",
     previewAsset: "/styles/podcast.webp",
-    promptGuidelines: ["Protagonista o presentadores claros.", "Título legible.", "Identidad de programa con apariencia editorial."],
+    promptGuidelines: ["Presentador reconocible con identidad facial intacta y encuadre editorial cercano.", "Micrófono, invitado o tema como contexto narrativo; no llenes la escena de equipo.", "Sistema gráfico de episodio consistente pero con concepto propio para ese tema.", "Iluminación de estudio cálida y tipografía con carácter de programa."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -90,7 +90,7 @@ export const VISUAL_STYLES = [
     label: "Cinematográfico",
     description: "Atmósfera narrativa, luz y profundidad.",
     previewAsset: "/styles/cinematic.webp",
-    promptGuidelines: ["Iluminación cinematográfica.", "Profundidad atmosférica.", "Encuadre narrativo y contraste controlado."],
+    promptGuidelines: ["Construye un fotograma narrativo con primer plano, plano medio y fondo.", "Luz motivada, lente y color grading coherentes con la historia.", "Captura el instante anterior o posterior al hecho clave para crear tensión.", "Evita póster genérico, teal-orange automático, humo y partículas sin causa."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -98,7 +98,7 @@ export const VISUAL_STYLES = [
     label: "Corporativo",
     description: "Marca sólida, estructura y claridad comercial.",
     previewAsset: "/styles/corporate.webp",
-    promptGuidelines: ["Composición institucional contemporánea.", "Geometría clara.", "Confianza y consistencia de marca."],
+    promptGuidelines: ["Retícula sólida, geometría limpia y una propuesta comercial inequívoca.", "Usa producto, dato o proceso real como evidencia; evita iconografía de stock.", "Color y tipografía alineados con una marca contemporánea y confiable.", "La autoridad debe venir del orden y la precisión, no de una apariencia aburrida."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -106,7 +106,7 @@ export const VISUAL_STYLES = [
     label: "Educativo",
     description: "Conceptos claros, didácticos y memorables.",
     previewAsset: "/styles/educational.webp",
-    promptGuidelines: ["Jerarquía didáctica.", "Concepto central fácil de reconocer.", "Elementos explicativos simples."],
+    promptGuidelines: ["Convierte el aprendizaje en una demostración visual concreta, no en una pizarra llena.", "Jerarquía problema → mecanismo → resultado con pocos elementos explicativos.", "Símbolos, diagramas o comparaciones deben ser correctos y legibles.", "Usa curiosidad intelectual y claridad antes que exageración emocional."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -114,7 +114,7 @@ export const VISUAL_STYLES = [
     label: "Tecnología",
     description: "Precisión, innovación y detalle digital.",
     previewAsset: "/styles/technology.webp",
-    promptGuidelines: ["Sensación de innovación.", "Detalles digitales precisos.", "Volumen y luz contemporáneos."],
+    promptGuidelines: ["Tecnología o interfaz específica y plausible como protagonista.", "Materiales, reflejos y luz contemporáneos sin caer siempre en cian y púrpura.", "Profundidad limpia, precisión industrial y un beneficio visible.", "Evita circuitos aleatorios, hologramas ilegibles y robots genéricos."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -122,7 +122,7 @@ export const VISUAL_STYLES = [
     label: "Lujo",
     description: "Elegancia editorial y materiales refinados.",
     previewAsset: "/styles/luxury.webp",
-    promptGuidelines: ["Composición refinada.", "Contraste sobrio.", "Materiales premium y detalles contenidos."],
+    promptGuidelines: ["Dirección editorial contenida con materiales auténticos y detalle táctil.", "Luz selectiva, sombras ricas y espacio negativo calculado.", "Tipografía elegante con escala segura; evita dorado y negro como fórmula automática.", "La exclusividad debe sentirse en acabado, encuadre y rareza, no en ornamentos."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -130,7 +130,7 @@ export const VISUAL_STYLES = [
     label: "Noticias",
     description: "Urgencia, autoridad y lectura rápida.",
     previewAsset: "/styles/news.webp",
-    promptGuidelines: ["Jerarquía informativa inmediata.", "Contraste editorial.", "Sensación de actualidad sin imitar marcas."],
+    promptGuidelines: ["Hecho, persona o lugar verificable como foco informativo inmediato.", "Jerarquía editorial fuerte, urgencia controlada y contexto visual suficiente.", "Rojo puede señalar alerta, pero no debe dominar todas las noticias.", "Evita cintillos falsos, logos inventados, alarmismo y estética de canal genérico."],
     compatibleContentTypes: ALL_CONTENT_TYPES,
   },
   {
@@ -188,7 +188,11 @@ export function resolveAutomaticStyle(input: {
     [["minimal", "limpio", "simple"], "minimal"],
   ];
   return rules.find(([keywords]) => keywords.some((keyword) => text.includes(keyword)))?.[1]
-    ?? (input.coverPlatform === "linkedin" ? "professional" : "professional");
+    ?? (input.contentType === "thumbnail"
+      ? "viral"
+      : input.coverPlatform === "linkedin"
+        ? "professional"
+        : "professional");
 }
 
 export function getVisualStyle(style: GenerationStyle) {
