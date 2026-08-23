@@ -68,7 +68,7 @@ const evaluationSchema = {
   type: "object", additionalProperties: false,
   properties: {
     approved: { type: "boolean" }, score: { type: "integer", minimum: 0, maximum: 100 },
-    criticalErrors: { type: "array", items: { type: "string", enum: ["incorrect_text", "cropped_text", "deformed_face", "identity_drift", "unrelated_content", "watermark", "unreadable_composition", "wrong_aspect_ratio", "incomplete_image"] }, maxItems: 8 },
+    criticalErrors: { type: "array", items: { type: "string", enum: ["incorrect_text", "cropped_text", "deformed_face", "identity_drift", "unrelated_content", "watermark", "unreadable_composition", "generic_text_layout", "weak_text_contrast", "missed_explicit_transformation", "wrong_aspect_ratio", "incomplete_image"] }, maxItems: 8 },
     problems: { type: "array", items: { type: "string" }, maxItems: 8 },
     corrections: { type: "array", items: { type: "string" }, maxItems: 8 },
   },
@@ -100,6 +100,14 @@ function fallbackTextPalette(input: GenerationInput) {
       reason: "paleta personalizada indicada por el usuario",
     };
   }
+  const topic = `${input.videoTitle || ""} ${input.description}`.toLowerCase();
+  const explicitColorContrast = [
+    { pattern: /\b(azul|blue|celeste|cyan)\b/i, primary: "blanco puro #FFFFFF", accent: "amarillo cálido #FFD400", reason: "contraste cálido contra un tema predominantemente azul; contorno negro profundo" },
+    { pattern: /\b(rojo|red|carmesí|granate)\b/i, primary: "blanco puro #FFFFFF", accent: "verde lima #B9FF38", reason: "separación luminosa contra un tema predominantemente rojo; contorno negro profundo" },
+    { pattern: /\b(amarillo|yellow|dorado|gold)\b/i, primary: "blanco puro #FFFFFF", accent: "rojo intenso #F22E2E", reason: "evita perder el titular dentro de un tema amarillo o dorado; contorno negro profundo" },
+    { pattern: /\b(verde|green|lima)\b/i, primary: "blanco puro #FFFFFF", accent: "rojo intenso #F22E2E", reason: "contraste complementario contra un tema predominantemente verde; contorno negro profundo" },
+  ].find((candidate) => candidate.pattern.test(topic));
+  if (explicitColorContrast) return explicitColorContrast;
   const digest = createHash("sha256")
     .update(`${input.clientRequestId}|text-palette|${input.videoTitle || input.description}`)
     .digest();
@@ -137,6 +145,23 @@ const TYPE_TREATMENTS = [
   "texto pequeño anclado a un borde como detalle editorial intencional",
 ] as const;
 
+const TYPOGRAPHY_LAYOUTS = [
+  "titular grande detrás del protagonista: el cuerpo o la cabeza ocluye intencionalmente entre 10% y 25% de algunas letras, pero la frase completa sigue siendo inequívoca",
+  "titular en la franja superior siguiendo el ancho disponible; el sujeto puede invadir parcialmente su borde inferior para unir texto y escena",
+  "titular anclado abajo como parte del primer plano; manos, objetos o siluetas pueden pasar por delante sin tapar palabras esenciales",
+  "titular central compacto integrado dentro de una pantalla, cartel, pared u otra superficie real de la escena",
+  "titular apilado en el lateral con espacio negativo real, elegido por la mirada y el peso visual; nunca por una plantilla que empuje automáticamente el texto a la derecha",
+  "titular en diagonal o siguiendo la perspectiva de un objeto, con escala media y jerarquía subordinada al momento visual",
+  "titular dividido deliberadamente entre arriba y abajo para abrazar el sujeto sin convertirlo en dos bloques desconectados",
+] as const;
+
+function resolvedTypographyLayout(input: GenerationInput) {
+  const digest = createHash("sha256")
+    .update(`${input.clientRequestId}|typography-layout|${input.videoTitle || input.description}`)
+    .digest();
+  return TYPOGRAPHY_LAYOUTS[digest[0] % TYPOGRAPHY_LAYOUTS.length];
+}
+
 export function thumbnailCreativeSignature(input: GenerationInput) {
   const digest = createHash("sha256")
     .update(`${input.clientRequestId}|${input.description}|${input.videoTitle || ""}|${input.thumbnailPreset || "impactful"}`)
@@ -145,6 +170,7 @@ export function thumbnailCreativeSignature(input: GenerationInput) {
     `Composición distintiva: ${COMPOSITIONS[digest[0] % COMPOSITIONS.length]}.`,
     `Iluminación: ${LIGHTING[digest[1] % LIGHTING.length]}.`,
     `Tratamiento del texto: ${TYPE_TREATMENTS[digest[2] % TYPE_TREATMENTS.length]}.`,
+    `Ubicación tipográfica obligatoria: ${resolvedTypographyLayout(input)}.`,
     `Firma creativa: ${digest.subarray(0, 5).toString("hex")}. No reutilices una plantilla genérica.`,
   ];
 }
@@ -166,6 +192,7 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     `Confirmed visual facts: ${plan.brief.explicitVisualFacts.join("; ") || "none beyond the supplied brief"}.`,
     `Unknown visual details: ${plan.brief.unknownVisualDetails.join("; ") || "none"}.`,
     `Forbidden inventions: ${plan.brief.forbiddenInventions.join("; ") || "none"}. Do not depict these as concrete facts.`,
+    "Literal transformations: every explicit visual property, exaggeration or impossible transformation requested by the user is intentional art direction. Apply it visibly and literally to representative members of the named category; do not weaken it into lighting, color grading or a vague hint. This rule does not authorize unrelated objects or an unspecified result.",
     `Controlled ambiguity: ${plan.brief.controlledAmbiguity}.`,
     `Brand direction: ${plan.brief.brandMarkDirection}.`,
     `Curiosity gap: ${plan.brief.curiosityGap}`,
@@ -184,8 +211,8 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
         ? `People: show exactly ${input.peopleCount} distinct uploaded ${input.peopleCount === 1 ? "person" : "people"}. Every uploaded face is mandatory. Preserve each identity; never merge, duplicate or add people.`
         : `People: generate exactly ${input.peopleCount} narratively necessary ${input.peopleCount === 1 ? "person" : "people"}. No stock posing, crowds or background faces.`,
     text ? `Thumbnail text: Render exactly "${text}". Do not add any other words, letters, labels or interface text. A brand mark is allowed only when brandMarkDirection explicitly authorizes it; it remains small and secondary.` : "Thumbnail text: Do not render editorial text, labels or interface copy. A brand mark is allowed only when brandMarkDirection explicitly authorizes it; otherwise render no letters or logos.",
-    "Typography: highly readable at mobile size, but not automatically huge, right-aligned, extruded or detached from the scene. Follow the selected placement, scale and integration. It may be centered, compact, subtle, overlap a subject safely, follow an object, or live inside a real compositional surface when that improves the idea.",
-    text ? `Text color direction: primary ${plan.brief.textPrimaryColor}; accent ${plan.brief.textAccentColor}. Reason: ${plan.brief.textColorReason}. Use one dominant text color and at most one accent; add a dark outline or shadow only when needed for mobile contrast.` : "",
+    `Typography: highly readable at mobile size. Execute this request-specific layout exactly: ${resolvedTypographyLayout(input)}. The text may sit behind the person, above, below, centered, integrated into the scene or partially occluded as directed. Do not move it into a detached right-side block merely because a person occupies the left. Preserve natural depth with deliberate front/back layering.`,
+    text ? `Text color direction: primary ${plan.brief.textPrimaryColor}; accent ${plan.brief.textAccentColor}. Reason: ${plan.brief.textColorReason}. First determine the actual local background behind every word, then assign fill, accent, outline and shadow for immediate mobile contrast. Never use the same dominant hue as the object or background behind the text. Use one dominant fill and at most one semantic accent; the outline must oppose the local luminance. Color is a hierarchy decision, not decoration.` : "",
     text ? input.colorPreference === "custom" && input.customColors?.length
       ? `The text must use only colors from the user's palette: ${input.customColors.join(", ")}. Choose the most legible roles within it.`
       : "Do not default mechanically to white plus yellow. Prefer white, yellow, red or green according to the subject, emotion and actual background; cyan or another color is valid only when it produces a stronger, intentional contrast."
@@ -231,7 +258,7 @@ function fallbackImpactDirection(input: GenerationInput, impactCore: string) {
     curiosityGap: "La consecuencia concreta que el espectador todavía no conoce",
     explicitVisualFacts: [eventSummary],
     unknownVisualDetails: ["Cualquier apariencia, resultado o atributo que el título y el brief no describan"],
-    forbiddenInventions: ["Género, personajes, interfaz, escenario o resultado concreto no confirmado por el usuario"],
+    forbiddenInventions: ["Género, personajes, interfaz, escenario o resultado concreto no confirmado por el usuario; una transformación visual expresamente pedida no cuenta como invención"],
     controlledAmbiguity: "No ocultar nada por defecto; si un dato visual esencial falta, representarlo solo como una zona localizada e inequívocamente no revelada",
     brandMarkDirection: "Usar una marca solo si fue nombrada explícitamente y aporta contexto; si no puede representarse con precisión, omitirla o escribir el nombre sin imitar el logotipo",
     revealDevice: "Ninguno por defecto; usar ocultación localizada solo cuando exista un resultado realmente desconocido",
@@ -271,7 +298,7 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
       thumbnailText: requestedText,
       mainSubject: input.peopleMode === "uploaded" ? "Cada persona de referencia con identidad distinguible" : "El resultado principal del tema",
       composition: `Protagonista reaccionando en primer plano y ${impact.impactCore} como evidencia visual dominante, ubicados según la mirada, el peso óptico y el espacio disponible; no asumir izquierda o derecha.`,
-      textPlacement: "En el espacio negativo que deje libre la evidencia; no asumir el lado derecho",
+      textPlacement: resolvedTypographyLayout(input),
       textScale: "Media o dominante según la carga visual, sin cubrir el payoff",
       textIntegration: "Anclado a la geometría real de la escena, sin bloque flotante genérico",
       score: 88,
@@ -357,6 +384,7 @@ export async function planThumbnail(
       "Usa un análisis semántico abierto, no una tabla de palabras, temas, nichos, emociones ni ejemplos memorizados. Debe funcionar también con situaciones que nunca hayas visto.",
       "Antes de proponer conceptos, ejecuta esta cadena: (1) resume literalmente qué sucede; (2) establece qué sería lo ordinario en ese contexto; (3) identifica la desviación que vuelve particular la historia; (4) determina qué se puede ganar, perder, descubrir o transformar; (5) formula la pregunta concreta que queda abierta para el espectador; (6) deriva la emoción de esa relación causal; (7) define la evidencia visual que permite entenderla sin leer el título.",
       "AUDITORÍA DE ESPECIFICIDAD OBLIGATORIA: separa explicitVisualFacts de unknownVisualDetails. Todo objeto, marca, persona, lugar, apariencia y resultado concreto debe estar respaldado por el título, brief o una referencia. Convierte cada dato desconocido relevante en forbiddenInventions; no completes vacíos con una fantasía plausible.",
+      "Una propiedad visual, exageración o transformación imposible expresada por el usuario es una instrucción literal, no un dato desconocido. Si modifica una categoría, aplícala claramente a varios miembros reconocibles y pertinentes de esa categoría. No la reduzcas a iluminación ambiental, tinte global o insinuación; tampoco inventes elementos ajenos a la categoría.",
       "Si el usuario dice que creó un juego pero no describe cuál, NO inventes género, pixel art, personajes, enemigos, castillos, interfaz ni escenario. Puedes mostrar una pantalla reconocible como proceso o resultado de juego, pero el contenido desconocido debe permanecer fuera de cuadro, tapado por reflejo, recortado o con blur localizado. La ausencia de información se convierte en intriga controlada, no en una afirmación falsa.",
       "Las marcas solo pueden aparecer cuando el usuario las nombró expresamente o son indispensables para entender la historia. Usa como máximo una o dos, pequeñas y secundarias; no inventes logotipos, no alteres su apariencia y no insinúes patrocinio, alianza o aval. Si no puedes representar una marca con precisión, omítela o usa su nombre en texto plano.",
       "RAZONA LA EMOCIÓN, NO LA ASIGNES POR LA FORMA DEL TÍTULO NI POR UNA PALABRA AISLADA. Interpreta conjuntamente acción, sujeto, objeto, modificadores, duración, escala, restricción, contraste, incertidumbre y consecuencia. Explica la cadena causal antes de elegir emoción, reacción o atmósfera.",
@@ -375,7 +403,8 @@ export async function planThumbnail(
         : "Elige los colores del texto después de razonar sobre fondo, emoción y semántica. Prioriza blanco, amarillo, rojo o verde; usa celeste u otro color solo si supera claramente el contraste. Devuelve color principal, acento y motivo. No elijas siempre blanco y amarillo.",
       "Prohibido devolver ganchos intercambiables como ¿QUÉ PASÓ?, NO LO CREERÁS, INCREÍBLE, IMPACTANTE o TIENES QUE VERLO.",
       "Los tres conceptos deben diferir en metáfora, encuadre, jerarquía, texto y emoción; no son variaciones cosméticas de una plantilla.",
-      "Para cada concepto decide textPlacement, textScale y textIntegration DESPUÉS de decidir sujeto, mirada, evidencia y espacio negativo. No uses por defecto el lado derecho ni texto enorme con extrusión 3D. Entre los tres conceptos debe existir variedad material: central o integrado, lateral o superpuesto, y una solución compacta o sutil cuando corresponda.",
+      `Para cada concepto decide textPlacement, textScale y textIntegration DESPUÉS de decidir sujeto, mirada, evidencia y espacio negativo. Para el concepto ganador cumple esta dirección: ${resolvedTypographyLayout(input)}. No uses por defecto el lado derecho ni texto enorme con extrusión 3D. Entre los tres conceptos debe existir variedad material: detrás del sujeto, arriba, abajo, central o integrado, lateral o superpuesto, y una solución compacta o sutil cuando corresponda.`,
+      "COLOR TIPOGRÁFICO: predice el fondo local exacto que habrá detrás de cada palabra. Elige relleno principal, acento y contorno por contraste de luminancia y contraste cromático; evita repetir el color dominante del objeto o fondo. El acento debe destacar solo la palabra con mayor carga semántica. Blanco, amarillo, rojo y verde son candidatos prioritarios, no una combinación fija.",
       `Cumple de forma visible el preset ${preset.label}:`,
       ...THUMBNAIL_PRESET_CRAFT[preset.id],
       `Cumple también el estilo ${visualStyle.label}:`,
@@ -428,6 +457,9 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan, referen
         `Mecanismo emocional: ${plan.brief.emotionalMechanism}. Emoción: ${plan.brief.primaryEmotion}. Justificación: ${plan.brief.emotionalReasoning}.`,
         `Preset visual obligatorio: ${input.thumbnailPreset || "impactful"}. Verifica que se reconozca claramente y no solo por el color.`,
         `Colores de texto previstos: ${plan.brief.textPrimaryColor} y ${plan.brief.textAccentColor}. Evalúa contraste e intención, no una combinación fija.`,
+        `Ubicación tipográfica obligatoria: ${resolvedTypographyLayout(input)}. Si el resultado vuelve al bloque habitual de la derecha, ignora la profundidad solicitada o no respeta las capas, marca generic_text_layout.`,
+        "Si el texto comparte el tono dominante del fondo, pierde lectura en móvil o el acento no jerarquiza una palabra importante, marca weak_text_contrast.",
+        "Si el usuario expresó una propiedad visual, exageración o transformación literal y el resultado la reduce a un tinte, luz ambiental o insinuación, marca missed_explicit_transformation.",
         referenceImages.length ? "Las primeras imágenes son referencias del usuario y la última es el resultado. Compara el rostro de cada persona: debe ser inequívocamente la misma identidad, aunque la expresión pueda cambiar de forma natural." : "No hay referencias personales para comparar.",
         "Puntuación total: núcleo de impacto y evidencia visual 20, claridad visual 10, calidad técnica 10, texto contextual 15, relevancia 15, emoción y potencial de clic 15, fidelidad al preset y estilo 5, y diferenciación frente a una plantilla genérica 10.",
         "Si el elemento extraordinario del título queda pequeño, secundario, genérico o ausente, marca unrelated_content y no apruebes el resultado.",

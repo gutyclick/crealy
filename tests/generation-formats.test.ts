@@ -190,6 +190,11 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
   assert.match(orchestrator, /no inventes género, pixel art, personajes/i);
   assert.match(orchestrator, /textPlacement, textScale y textIntegration/);
   assert.match(orchestrator, /no uses por defecto el lado derecho/i);
+  assert.match(orchestrator, /detrás del sujeto, arriba, abajo, central o integrado/i);
+  assert.match(orchestrator, /generic_text_layout/);
+  assert.match(orchestrator, /weak_text_contrast/);
+  assert.match(orchestrator, /transformación imposible expresada por el usuario es una instrucción literal/i);
+  assert.match(orchestrator, /missed_explicit_transformation/);
   assert.match(orchestrator, /evento → anomalía → consecuencia/i);
   assert.match(orchestrator, /viewerQuestion/);
   assert.doesNotMatch(orchestrator, /72 horas comiendo comida rápida/i);
