@@ -378,6 +378,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     } else {
       textMode = rawTextMode as GenerationTextMode;
     }
+    if (contentType === "social-post" && textMode === "custom") {
+      fields.textMode = "En los posts, Crealy redacta el texto automáticamente desde tu descripción.";
+    }
     if (textMode === "custom" && !primaryText) {
       fields.primaryText = "Escribe el texto exacto que debe aparecer en el diseño.";
     }

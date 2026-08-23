@@ -95,6 +95,29 @@ test("text choice is explicit for every text-capable format", () => {
   }
 });
 
+test("social posts only accept automatic copy or no visible text", () => {
+  const socialPost = {
+    ...validInput,
+    contentType: "social-post",
+    platform: "instagram",
+    variant: "post-square",
+    format: "post-square",
+  };
+
+  assert.equal(validateGenerationInput({ ...socialPost, textMode: "automatic" }).success, true);
+  assert.equal(validateGenerationInput({ ...socialPost, textMode: "none" }).success, true);
+
+  const custom = validateGenerationInput({
+    ...socialPost,
+    textMode: "custom",
+    primaryText: "Agenda por whatsapp",
+  });
+  assert.equal(custom.success, false);
+  if (!custom.success) {
+    assert.match(custom.fields.textMode, /automáticamente/i);
+  }
+});
+
 test("thumbnail creation exposes presets and explicit text modes", () => {
   assert.deepEqual(THUMBNAIL_PRESETS.map((item) => item.id), [
     "impactful", "curiosity", "result", "comparison", "minimal", "cinematic",

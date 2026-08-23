@@ -84,6 +84,43 @@ function peoplePrompt(input: GenerationInput) {
   ].join(" ");
 }
 
+const visibleTextLanguageRules = [
+  "Escribe con ortografía correcta, acentos, puntuación y uso natural de mayúsculas en el idioma del brief.",
+  "Respeta la grafía oficial de marcas inequívocamente conocidas cuando aparezcan en el brief; por ejemplo: WhatsApp, YouTube, Instagram, LinkedIn, TikTok, OpenAI y ChatGPT.",
+  "No autocorrijas nombres propios, marcas locales, productos, usuarios o términos dudosos. Si no tienes certeza, conserva exactamente la grafía proporcionada por el usuario.",
+  "Conserva sin cambios teléfonos, precios, fechas, direcciones, nombres legales, identificadores, @usuarios y URLs.",
+  "No inventes nombres, cifras, servicios, resultados, credenciales, promociones ni datos de contacto.",
+] as const;
+
+function visibleTextPrompt(input: GenerationInput, textMode: GenerationInput["textMode"]) {
+  if (textMode === "custom" && input.primaryText) {
+    return [
+      `Incluye únicamente este mensaje visible: "${input.primaryText}". No añadas ninguna otra frase.`,
+      "Conserva las palabras y los datos aportados; corrige únicamente ortografía común inequívoca y la grafía oficial de una marca ampliamente conocida.",
+      ...visibleTextLanguageRules,
+    ].join(" ");
+  }
+
+  if (textMode === "automatic") {
+    const copyDirection = input.contentType === "social-post"
+      ? [
+          "Redacta el texto visible automáticamente a partir de la descripción del usuario.",
+          "Selecciona solo la información esencial y conviértela en una pieza clara para Instagram: un titular preciso y, solo si aporta valor, una línea de apoyo o llamada a la acción.",
+          "Si el brief es escaso, crea un titular corto y útil sobre su tema central; no rellenes los vacíos con hechos, beneficios, servicios o datos de contacto inventados.",
+          "Puedes reorganizar y resumir la redacción, pero todos los datos concretos del resultado deben estar respaldados por el brief.",
+        ]
+      : [
+          "Crea un único texto visible breve a partir del brief.",
+          "Resume la idea concreta; no inventes un gancho genérico ni repitas todo el brief.",
+          "Hazlo legible en el formato final y no añadas texto secundario, logos ni marcas de agua.",
+        ];
+
+    return [...copyDirection, ...visibleTextLanguageRules].join(" ");
+  }
+
+  return "SALIDA SIN TEXTO: no dibujes letras, palabras, números, titulares, etiquetas, logotipos, marcas de agua ni caracteres decorativos. Comunica el brief únicamente con la imagen.";
+}
+
 export function buildImagePrompt(input: GenerationInput) {
   const recreatePrompt = buildRecreatePrompt(input);
   const product = getGenerationProduct(input.contentType);
@@ -97,15 +134,7 @@ export function buildImagePrompt(input: GenerationInput) {
   const textMode = product.acceptsText
     ? input.textMode ?? input.thumbnailTextMode ?? "none"
     : "none";
-  const visibleText = textMode === "custom" && input.primaryText
-    ? `Incluye únicamente este texto visible y prioriza su legibilidad: "${input.primaryText}". No añadas ninguna otra palabra.`
-    : textMode === "automatic"
-      ? [
-          "Crea un único texto visible breve a partir del brief.",
-          "Resume la idea concreta; no inventes un gancho genérico ni repitas todo el brief.",
-          "Hazlo legible en el formato final y no añadas texto secundario, logos ni marcas de agua.",
-        ].join(" ")
-      : "SALIDA SIN TEXTO: no dibujes letras, palabras, números, titulares, etiquetas, logotipos, marcas de agua ni caracteres decorativos. Comunica el brief únicamente con la imagen.";
+  const visibleText = visibleTextPrompt(input, textMode);
 
   return [
     recreatePrompt,

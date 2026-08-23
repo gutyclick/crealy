@@ -228,6 +228,9 @@ export function GenerationForm({
     setVariant(next.defaultVariant);
     setQuality(getDefaultQuality(getGenerationVariant(next.defaultVariant)!));
     setStyle("automatic");
+    setTextMode((current) =>
+      nextType === "social-post" && current === "custom" ? "automatic" : current,
+    );
     setBrandStyleId((current) =>
       current &&
       brandStyles
@@ -878,8 +881,15 @@ export function GenerationForm({
             idPrefix="creation"
             mode={textMode}
             value={primaryText}
-            onModeChange={setTextMode}
+            onModeChange={(nextMode) =>
+              setTextMode(
+                contentType === "social-post" && nextMode === "custom"
+                  ? "automatic"
+                  : nextMode,
+              )
+            }
             onValueChange={setPrimaryText}
+            automaticOnly={contentType === "social-post"}
             exactTextPlaceholder={contentType === "thumbnail" ? "Ej. SOLO UNA SIRVE" : undefined}
             exactTextHint={contentType === "thumbnail" ? "Máximo cinco palabras." : undefined}
             modeError={fieldErrors.textMode ?? fieldErrors.thumbnailTextMode}

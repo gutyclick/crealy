@@ -13,6 +13,7 @@ type VisibleTextControlProps = {
   onValueChange: (value: string) => void;
   exactTextHint?: string;
   exactTextPlaceholder?: string;
+  automaticOnly?: boolean;
   modeError?: string;
   textError?: string;
 };
@@ -38,6 +39,7 @@ export function VisibleTextControl({
   onValueChange,
   exactTextHint = "Usa una frase breve y fácil de leer.",
   exactTextPlaceholder = "Ej. Crea más. Publica mejor.",
+  automaticOnly = false,
   modeError,
   textError,
 }: VisibleTextControlProps) {
@@ -77,7 +79,15 @@ export function VisibleTextControl({
         })}
       </div>
 
-      {usesText ? (
+      {usesText && automaticOnly ? (
+        <div className="mt-3 rounded-xl bg-white/[0.035] px-4 py-3 ring-1 ring-white/10">
+          <p className="text-sm font-semibold text-foreground">Redacción automática</p>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            Crealy convertirá tu descripción en un mensaje breve. Incluye allí cualquier
+            nombre, teléfono o dato que deba aparecer.
+          </p>
+        </div>
+      ) : usesText ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {textSources.map((option) => {
             const selected = mode === option.id;
