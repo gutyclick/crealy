@@ -3,6 +3,7 @@
 import { ArrowRight, LoaderCircle, ShieldCheck, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { trackConversion } from "@/lib/analytics/events";
@@ -31,14 +32,21 @@ export function CheckoutButton({
   const openerRef = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const loadingRef = useRef(false);
+  const checkoutStartedRef = useRef(false);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
 
   useEffect(() => {
     if (!consentOpen) return;
     const previousOverflow = document.body.style.overflow;
+    const opener = openerRef.current;
     document.body.style.overflow = "hidden";
-    closeRef.current?.focus();
+    const focusFrame = window.requestAnimationFrame(() => closeRef.current?.focus());
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !loading) setConsentOpen(false);
+      if (event.key === "Escape" && !loadingRef.current) setConsentOpen(false);
       if (event.key === "Tab") {
         const focusable = Array.from(
           dialogRef.current?.querySelectorAll<HTMLElement>(
@@ -59,11 +67,12 @@ export function CheckoutButton({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
-      openerRef.current?.focus();
+      if (opener?.isConnected) opener.focus();
     };
-  }, [consentOpen, loading]);
+  }, [consentOpen]);
 
   if (!authenticated) {
     const destination = `/pricing?plan=${plan}&period=${period}`;
@@ -76,7 +85,9 @@ export function CheckoutButton({
   }
 
   async function openCheckout() {
-    if (!consentAccepted) return;
+    if (!consentAccepted || loadingRef.current || checkoutStartedRef.current) return;
+    checkoutStartedRef.current = true;
+    loadingRef.current = true;
     trackConversion("checkout_started", { plan });
     setLoading(true);
     setMessage(null);
@@ -106,6 +117,8 @@ export function CheckoutButton({
       window.location.assign(payload.url);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No pudimos abrir el pago seguro.");
+      checkoutStartedRef.current = false;
+      loadingRef.current = false;
       setLoading(false);
     }
   }
@@ -114,7 +127,13 @@ export function CheckoutButton({
     openerRef.current = document.activeElement as HTMLElement | null;
     setMessage(null);
     setConsentAccepted(false);
+    checkoutStartedRef.current = false;
     setConsentOpen(true);
+  }
+
+  function closeConsent() {
+    if (loadingRef.current) return;
+    setConsentOpen(false);
   }
 
   return (
@@ -138,14 +157,14 @@ export function CheckoutButton({
 
       {message && !consentOpen ? <p role="alert" className="mt-3 text-sm leading-6 text-red-300">{message}</p> : null}
 
-      {consentOpen ? (
-        <div className="fixed inset-0 z-[80] grid place-items-end bg-black/75 p-0 backdrop-blur-sm sm:place-items-center sm:p-5" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) setConsentOpen(false); }}>
+      {consentOpen && typeof document !== "undefined" ? createPortal((
+        <div className="fixed inset-0 z-[80] grid place-items-end bg-black/75 p-0 backdrop-blur-sm sm:place-items-center sm:p-5" onClick={(event) => { if (event.target === event.currentTarget) closeConsent(); }}>
           <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={`checkout-consent-${plan}`} className="w-full max-w-lg rounded-t-2xl border border-white/10 bg-surface-elevated p-5 shadow-2xl sm:rounded-2xl sm:p-7">
             <div className="flex items-start justify-between gap-4">
               <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
                 <ShieldCheck aria-hidden="true" className="size-5" />
               </div>
-              <button ref={closeRef} type="button" onClick={() => setConsentOpen(false)} disabled={loading} aria-label="Cerrar" className="grid size-11 place-items-center rounded-xl text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50">
+              <button ref={closeRef} type="button" onClick={closeConsent} disabled={loading} aria-label="Cerrar" className="grid size-11 place-items-center rounded-xl text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50">
                 <X aria-hidden="true" className="size-5" />
               </button>
             </div>
@@ -166,11 +185,11 @@ export function CheckoutButton({
               <Button type="button" size="lg" disabled={!consentAccepted || loading} onClick={openCheckout} className="w-full">
                 {loading ? <><LoaderCircle aria-hidden="true" className="size-4 animate-spin" />Abriendo Stripe</> : <>Continuar al pago seguro<ArrowRight aria-hidden="true" className="size-4" /></>}
               </Button>
-              <Button type="button" size="lg" variant="secondary" disabled={loading} onClick={() => setConsentOpen(false)}>Ahora no</Button>
+              <Button type="button" size="lg" variant="secondary" disabled={loading} onClick={closeConsent}>Ahora no</Button>
             </div>
           </section>
         </div>
-      ) : null}
+      ), document.body) : null}
     </div>
   );
 }
