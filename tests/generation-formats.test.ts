@@ -131,6 +131,9 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
   );
   assert.match(orchestrator, /núcleo de impacto/i);
   assert.match(orchestrator, /serpientes venenosas/i);
+  assert.match(orchestrator, /RAZONA LA EMOCIÓN/i);
+  assert.match(orchestrator, /72 horas comiendo comida rápida/i);
+  assert.match(orchestrator, /vuelve a razonar desde cero/i);
   assert.ok(THUMBNAIL_DISTINCTIVENESS_RULES.length >= 5);
   for (const preset of THUMBNAIL_PRESETS) {
     assert.ok(THUMBNAIL_PRESET_CRAFT[preset.id].length >= 4, preset.id);
