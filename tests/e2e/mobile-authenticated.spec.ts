@@ -134,6 +134,15 @@ test.describe("flujo móvil autenticado", () => {
         document: document.documentElement.scrollWidth,
       }));
       expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
+      if (route === "/create") {
+        await expect(page.getByText("¿Quieres personas en el diseño?")).toBeVisible();
+        await page.getByRole("button", { name: /Crearlas con IA/i }).click();
+        await page.getByRole("button", { name: "4 personas" }).click();
+        await expect(page.getByText("Máximo cuatro protagonistas o participantes.")).toBeVisible();
+        if (process.env.E2E_CAPTURE_SCREENSHOTS === "true") {
+          await page.screenshot({ path: ".codex/artifacts/create-people-mobile.png", fullPage: true });
+        }
+      }
     }
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(

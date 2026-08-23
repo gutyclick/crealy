@@ -65,6 +65,25 @@ function productGuidelines(input: GenerationInput) {
   }
 }
 
+function peoplePrompt(input: GenerationInput) {
+  if (input.peopleMode === "none") {
+    return "PERSONAS: no incluyas personas, rostros, manos, siluetas humanas ni figuras incidentales en el fondo.";
+  }
+  if (input.peopleMode === "uploaded") {
+    return [
+      `PERSONAS PROPIAS: deben aparecer exactamente ${input.peopleCount}.`,
+      "Cada imagen de referencia corresponde a una persona distinta y obligatoria.",
+      "Conserva identidad, geometría facial, edad aparente, tono y rasgos reconocibles; puedes ajustar expresión, pose e iluminación sin convertirla en otra persona.",
+      "No mezcles identidades, no dupliques sujetos y no añadas personas de relleno.",
+    ].join(" ");
+  }
+  return [
+    `PERSONAS GENERADAS: crea exactamente ${input.peopleCount} ${input.peopleCount === 1 ? "persona" : "personas"} coherentes con el brief.`,
+    "Dales una función narrativa concreta, expresiones distintas y posiciones legibles; no uses modelos de stock posando.",
+    "No añadas rostros, multitudes ni siluetas humanas adicionales en el fondo.",
+  ].join(" ");
+}
+
 export function buildImagePrompt(input: GenerationInput) {
   const recreatePrompt = buildRecreatePrompt(input);
   const product = getGenerationProduct(input.contentType);
@@ -95,6 +114,8 @@ export function buildImagePrompt(input: GenerationInput) {
     "",
     "Brief:",
     input.description,
+    "",
+    peoplePrompt(input),
     "",
     "Reglas del producto:",
     ...productGuidelines(input).map((line) => `- ${line}`),

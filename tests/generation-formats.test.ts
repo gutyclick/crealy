@@ -46,6 +46,8 @@ const validInput = {
   format: "thumbnail-standard",
   quality: "standard",
   textMode: "automatic",
+  peopleMode: "none",
+  peopleCount: 0,
 };
 
 test("thumbnail has one canonical creation format, dimensions and cost", () => {
@@ -103,6 +105,44 @@ test("thumbnail creation exposes presets and explicit text modes", () => {
   }).success, false);
 });
 
+test("creation supports zero to four generated or uploaded people", () => {
+  const generated = validateGenerationInput({
+    ...validInput,
+    peopleMode: "generated",
+    peopleCount: 4,
+  });
+  assert.equal(generated.success, true);
+
+  const uploadIds = [
+    "eaf1a9f6-e37d-4fe4-b17e-000000000001",
+    "eaf1a9f6-e37d-4fe4-b17e-000000000002",
+  ];
+  const uploaded = validateGenerationInput({
+    ...validInput,
+    peopleMode: "uploaded",
+    peopleCount: 2,
+    referenceUploadIds: uploadIds,
+  });
+  assert.equal(uploaded.success, true);
+
+  const missingPerson = validateGenerationInput({
+    ...validInput,
+    peopleMode: "uploaded",
+    peopleCount: 2,
+    referenceUploadIds: uploadIds.slice(0, 1),
+  });
+  assert.equal(missingPerson.success, false);
+  if (!missingPerson.success) assert.match(missingPerson.fields.referenceUploadIds, /exactamente 2 fotos/i);
+
+  const tooMany = validateGenerationInput({
+    ...validInput,
+    peopleMode: "generated",
+    peopleCount: 5,
+  });
+  assert.equal(tooMany.success, false);
+  if (!tooMany.success) assert.match(tooMany.fields.peopleCount, /una y cuatro/i);
+});
+
 test("automatic thumbnail copy is contextual and presets have enforceable craft", () => {
   const orchestrator = readFileSync(
     new URL("../src/lib/generation/thumbnail-orchestrator.ts", import.meta.url),
@@ -136,6 +176,8 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
   assert.match(orchestrator, /RAZONA LA EMOCIÓN/i);
   assert.match(orchestrator, /análisis semántico abierto/i);
   assert.match(orchestrator, /prueba contrafactual/i);
+  assert.match(orchestrator, /desenfoque localizado/i);
+  assert.match(orchestrator, /revealJustification/);
   assert.match(orchestrator, /evento → anomalía → consecuencia/i);
   assert.match(orchestrator, /viewerQuestion/);
   assert.doesNotMatch(orchestrator, /72 horas comiendo comida rápida/i);

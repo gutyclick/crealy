@@ -135,6 +135,10 @@ export type ThumbnailCreativePlan = {
     anomaly: string;
     viewerQuestion: string;
     causalChain: string;
+    curiosityGap: string;
+    revealDevice: string;
+    revealPayoff: string;
+    revealJustification: string;
     impactCore: string;
     stakes: string;
     emotionalMechanism: string;
@@ -174,6 +178,7 @@ export type ProfileMode =
   | "studio"
   | "brand";
 export type ProfileIntensity = "subtle" | "balanced" | "creative";
+export type GenerationPeopleMode = "none" | "generated" | "uploaded";
 export type ProfileBackground =
   | "auto"
   | "white"
@@ -197,6 +202,8 @@ export type GenerationInput = {
   variant: GenerationFormat;
   format: GenerationFormat;
   quality: GenerationQuality;
+  peopleMode: GenerationPeopleMode;
+  peopleCount: number;
   referenceUploadIds?: string[];
   profileMode?: ProfileMode;
   profileIntensity?: ProfileIntensity;

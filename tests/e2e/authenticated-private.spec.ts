@@ -205,6 +205,14 @@ test.describe("flujos privados con Supabase de testing", () => {
     await expect(
       page.getByRole("button", { name: /Crear miniatura/i }),
     ).toBeVisible();
+    await expect(page.getByText("¿Quieres personas en el diseño?")).toBeVisible();
+    await page.getByRole("button", { name: /Usar mis personas/i }).click();
+    await page.getByRole("button", { name: "2 personas" }).click();
+    await expect(page.getByText("Fotos de las personas")).toBeVisible();
+    await expect(page.getByText(/una foto clara por persona/i)).toBeVisible();
+    if (process.env.E2E_CAPTURE_SCREENSHOTS === "true") {
+      await page.screenshot({ path: ".codex/artifacts/create-people-desktop.png", fullPage: true });
+    }
 
     await page.goto("/recreate");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(

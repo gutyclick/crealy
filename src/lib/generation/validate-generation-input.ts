@@ -26,6 +26,7 @@ import type {
   ColorPreference,
   GenerationInput,
   GenerationPlatform,
+  GenerationPeopleMode,
   GenerationQuality,
   GenerationStyle,
   GenerationTextMode,
@@ -116,6 +117,21 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
   const quality = requestedQuality ?? (definition ? getDefaultQuality(definition) : undefined);
   const brandStyleId = typeof rawInput.brandStyleId === "string" ? rawInput.brandStyleId : undefined;
   const creationMode = rawInput.creationMode === "recreate" ? "recreate" : "create";
+  const peopleMode = rawInput.peopleMode === undefined
+    ? "none"
+    : typeof rawInput.peopleMode === "string" && ["none", "generated", "uploaded"].includes(rawInput.peopleMode)
+      ? rawInput.peopleMode as GenerationPeopleMode
+      : undefined;
+  const peopleCount = typeof rawInput.peopleCount === "number" && Number.isInteger(rawInput.peopleCount)
+    ? rawInput.peopleCount
+    : rawInput.peopleCount === undefined && peopleMode === "none"
+      ? 0
+      : undefined;
+  if (!peopleMode) fields.peopleMode = "Elige una opción válida para las personas.";
+  if (peopleMode === "none" && peopleCount !== 0) fields.peopleCount = "Sin personas, la cantidad debe ser cero.";
+  if (peopleMode !== "none" && (peopleCount === undefined || peopleCount < 1 || peopleCount > 4)) {
+    fields.peopleCount = "Elige entre una y cuatro personas.";
+  }
   const recreateSimilarity: RecreateSimilarity = rawInput.recreateSimilarity === "inspired" || rawInput.recreateSimilarity === "very_similar" ? rawInput.recreateSimilarity : "similar";
   const recreateFocus: RecreateFocus = ["subject", "text", "atmosphere"].includes(String(rawInput.recreateFocus)) ? rawInput.recreateFocus as RecreateFocus : "composition";
   const recreateGoal: RecreateGoal = ["clean", "premium", "bold"].includes(String(rawInput.recreateGoal)) ? rawInput.recreateGoal as RecreateGoal : "performance";
@@ -217,6 +233,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     }
   }
   if (creationMode === "recreate" && !referenceUploadIds?.length) fields.referenceUploadIds = "Añade una referencia para recrear.";
+  if (creationMode === "create" && peopleMode === "uploaded" && referenceUploadIds?.length !== peopleCount) {
+    fields.referenceUploadIds = `Añade exactamente ${peopleCount} ${peopleCount === 1 ? "foto" : "fotos"} de personas.`;
+  }
 
   let recreateReferenceRoles: RecreateReferenceRole[] | undefined;
   let recreateElementAnalyses: Array<RecreateElementAnalysis | null> | undefined;
@@ -406,6 +425,8 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       variant,
       format: variant,
       quality: quality as GenerationQuality,
+      peopleMode: peopleMode as GenerationPeopleMode,
+      peopleCount: peopleCount as number,
       ...(referenceUploadIds ? { referenceUploadIds } : {}),
       ...(profileMode ? { profileMode } : {}),
       ...(profileIntensity ? { profileIntensity } : {}),

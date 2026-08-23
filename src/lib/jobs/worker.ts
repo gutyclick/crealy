@@ -360,6 +360,12 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       (generationMetadata.textMode as GenerationInput["textMode"]) ??
       (generationMetadata.thumbnailTextMode as GenerationInput["textMode"]) ??
       (generation.primary_text ? "custom" : "none"),
+    peopleMode:
+      (generationMetadata.peopleMode as GenerationInput["peopleMode"]) ?? "none",
+    peopleCount:
+      typeof generationMetadata.peopleCount === "number"
+        ? generationMetadata.peopleCount
+        : 0,
     brandStyleId: generation.brand_style_id ?? undefined,
     styleConsistency: (generation.style_consistency as GenerationInput["styleConsistency"]) ?? undefined,
     creationMode: generationMetadata.creationMode === "recreate" ? "recreate" : "create",

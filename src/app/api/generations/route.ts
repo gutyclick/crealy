@@ -400,6 +400,8 @@ export async function POST(request: Request) {
           thumbnailPreset: input.thumbnailPreset ?? null,
           thumbnailTextMode: input.thumbnailTextMode ?? null,
           textMode: input.textMode ?? "none",
+          peopleMode: input.peopleMode,
+          peopleCount: input.peopleCount,
           generationCount: 1,
           downloaded: false,
           variationRequested: false,
