@@ -8,7 +8,7 @@ import { getEditingServerEnv } from "@/lib/env/server";
 import { getOpenAIClient } from "@/lib/openai/client";
 import type { GenerationInput, GenerationReferenceImage, ThumbnailConcept, ThumbnailCreativePlan, ThumbnailEvaluation, ThumbnailNiche } from "@/types/generation";
 import { parseResponseUsage, type ProviderUsageObserver } from "@/lib/analytics/provider-cost";
-import { deriveAutomaticThumbnailText, isGenericThumbnailText } from "@/lib/generation/derive-thumbnail-text";
+import { deriveAutomaticThumbnailText, hasIncompleteThumbnailQuantity, isGenericThumbnailText } from "@/lib/generation/derive-thumbnail-text";
 
 const conceptSchema = {
   type: "object", additionalProperties: false,
@@ -78,7 +78,9 @@ const evaluationSchema = {
 function exactThumbnailText(input: GenerationInput, recommended: string) {
   if (input.thumbnailTextMode === "none") return "";
   if (input.thumbnailTextMode === "custom") return input.primaryText?.trim() ?? "";
-  const contextual = isGenericThumbnailText(recommended)
+  const source = input.videoTitle?.trim() || input.description;
+  const contextual = isGenericThumbnailText(recommended) ||
+    hasIncompleteThumbnailQuantity(recommended, source)
     ? deriveAutomaticThumbnailText(input)
     : recommended;
   return contextual.trim().split(/\s+/).slice(0, 5).join(" ");
@@ -398,6 +400,7 @@ export async function planThumbnail(
       "Puntúa cada concepto considerando claridad, relevancia, curiosidad, emoción, diferenciación, lectura móvil, facilidad de generación, relación con el título, honestidad y nicho.",
       "En modo automático, resume o destila el título y el tema concretos. Debe nombrar el sujeto, lugar, resultado, cifra, conflicto o beneficio reconocible del video; puede crear urgencia o curiosidad, pero nunca perder el tema.",
       "El texto recomendado debe entenderse sin contexto, tener 2–4 palabras preferiblemente y nunca más de 5. Debe condensar el detonante, resultado, conflicto, beneficio o pregunta específica que tu análisis descubrió; nunca copiar una fórmula reusable.",
+      "Las cantidades y sus unidades son indivisibles. Si eliges una duración, distancia, peso, dinero, porcentaje u otra magnitud, conserva siempre número y unidad completos. Prohibido terminar en un número huérfano como POR 1, DURANTE 24 o COSTÓ 100.",
       input.colorPreference === "custom" && input.customColors?.length
         ? "Elige color principal y acento exclusivamente dentro de la paleta personalizada del usuario y explica su contraste."
         : "Elige los colores del texto después de razonar sobre fondo, emoción y semántica. Prioriza blanco, amarillo, rojo o verde; usa celeste u otro color solo si supera claramente el contraste. Devuelve color principal, acento y motivo. No elijas siempre blanco y amarillo.",
@@ -451,6 +454,7 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan, referen
       { type: "input_text", text: [
         "Evalúa esta miniatura de YouTube usando solo evidencia visible.",
         `Tema esperado: ${input.description}`, `Texto exacto esperado: ${expectedText || "sin texto"}`,
+        "Comprueba que ninguna cifra quede sin su unidad original. Un número huérfano o una duración truncada es incorrect_text.",
         `Evento: ${plan.brief.eventSummary}. Base ordinaria: ${plan.brief.ordinaryBaseline}. Anomalía: ${plan.brief.anomaly}. Pregunta abierta: ${plan.brief.viewerQuestion}. Brecha de curiosidad: ${plan.brief.curiosityGap}.`,
         `Recurso de revelación previsto: ${plan.brief.revealDevice}. Resultado prometido: ${plan.brief.revealPayoff}. Justificación: ${plan.brief.revealJustification}.`,
         `Cadena causal: ${plan.brief.causalChain}. Contexto narrativo: ${plan.brief.narrativeContext}. Núcleo de impacto esperado: ${plan.brief.impactCore}. Evidencia visual requerida: ${plan.brief.visualProof}.`,

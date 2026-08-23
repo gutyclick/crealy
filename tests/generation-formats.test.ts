@@ -26,7 +26,10 @@ import {
   resolveImageSize,
 } from "../src/lib/generation/resolve-image-size";
 import { validateGenerationInput } from "../src/lib/generation/validate-generation-input";
-import { deriveAutomaticThumbnailText } from "../src/lib/generation/derive-thumbnail-text";
+import {
+  deriveAutomaticThumbnailText,
+  hasIncompleteThumbnailQuantity,
+} from "../src/lib/generation/derive-thumbnail-text";
 import {
   THUMBNAIL_DISTINCTIVENESS_RULES,
   THUMBNAIL_PRESET_CRAFT,
@@ -156,6 +159,7 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
   assert.match(orchestrator, /deriveAutomaticThumbnailText\(input\)/);
   assert.match(orchestrator, /thumbnailCreativeSignature\(input\)/);
   assert.match(orchestrator, /Prohibido devolver ganchos intercambiables/);
+  assert.match(orchestrator, /cantidades y sus unidades son indivisibles/i);
   assert.match(orchestrator, /textPrimaryColor/);
   assert.match(orchestrator, /identity_drift/);
   assert.equal(
@@ -178,6 +182,34 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
       description: "Documenté todo el proceso y el resultado.",
     }),
     "JUEGO CON CODEX",
+  );
+  assert.equal(
+    deriveAutomaticThumbnailText({
+      videoTitle: "Comí comida chatarra por 1 semana",
+      description: "Documenté el reto y sus consecuencias.",
+    }),
+    "1 SEMANA",
+  );
+  assert.equal(
+    deriveAutomaticThumbnailText({
+      videoTitle: "Viví sin internet durante 30 días",
+      description: "Un experimento personal.",
+    }),
+    "30 DÍAS",
+  );
+  assert.equal(
+    hasIncompleteThumbnailQuantity(
+      "COMÍ COMIDA CHATARRA POR 1",
+      "Comí comida chatarra por 1 semana",
+    ),
+    true,
+  );
+  assert.equal(
+    hasIncompleteThumbnailQuantity(
+      "1 SEMANA",
+      "Comí comida chatarra por 1 semana",
+    ),
+    false,
   );
   assert.match(orchestrator, /núcleo de impacto/i);
   assert.match(orchestrator, /RAZONA LA EMOCIÓN/i);

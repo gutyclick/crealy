@@ -14,6 +14,31 @@ const GENERIC_TEXTS = new Set([
   "INCREÍBLE", "IMPACTANTE", "TIENES QUE VERLO", "TU IDEA",
 ]);
 
+const TIME_UNIT_PATTERN =
+  "segundos?|minutos?|horas?|d[ií]as?|semanas?|mes(?:es)?|a(?:ñ|n)os?";
+
+function explicitDurationPhrase(source: string) {
+  const match = source.match(
+    new RegExp(`\\b(\\d+|un|una)\\s+(${TIME_UNIT_PATTERN})\\b`, "i"),
+  );
+  return match ? `${match[1]} ${match[2]}` : "";
+}
+
+export function hasIncompleteThumbnailQuantity(
+  candidate: string,
+  source: string,
+) {
+  const duration = explicitDurationPhrase(source);
+  if (!duration) return false;
+  const [amount, unit] = tokens(duration);
+  const candidateTokens = tokens(candidate);
+  const normalizedCandidate = candidateTokens.map(normalizeForComparison);
+  const amountIndex = normalizedCandidate.lastIndexOf(normalizeForComparison(amount));
+  if (amountIndex < 0) return false;
+  const following = candidateTokens[amountIndex + 1];
+  return !following || normalizeForComparison(following) !== normalizeForComparison(unit);
+}
+
 function normalizeForComparison(value: string) {
   return value
     .normalize("NFD")
@@ -68,6 +93,8 @@ export function deriveAutomaticThumbnailText(
   const source = input.videoTitle?.trim() || input.description.trim();
   const impactPhrase = explicitlyEmphasizedPhrase(source);
   if (impactPhrase && !isGenericThumbnailText(impactPhrase)) return impactPhrase;
+  const durationPhrase = explicitDurationPhrase(source);
+  if (durationPhrase) return durationPhrase.toLocaleUpperCase("es");
   const phrase = tokens(source);
 
   while (
