@@ -33,7 +33,9 @@ const planSchema = {
         topic: { type: "string" }, videoTitle: { type: "string" },
         niche: { type: "string", enum: THUMBNAIL_NICHES.map((item) => item.id) },
         contentType: { type: "string" }, audience: { type: "string" },
-        mainPromise: { type: "string" }, primaryEmotion: { type: "string" },
+        mainPromise: { type: "string" }, impactCore: { type: "string" },
+        stakes: { type: "string" }, visualProof: { type: "string" },
+        reactionDirection: { type: "string" }, primaryEmotion: { type: "string" },
         secondaryEmotion: { type: "string" }, mainSubject: { type: "string" },
         supportingObject: { type: "string" }, recommendedText: { type: "string" },
         textPrimaryColor: { type: "string" }, textAccentColor: { type: "string" },
@@ -41,7 +43,7 @@ const planSchema = {
         visualPriority: { type: "string" },
         avoid: { type: "array", items: { type: "string" }, maxItems: 8 },
       },
-      required: ["topic", "videoTitle", "niche", "contentType", "audience", "mainPromise", "primaryEmotion", "secondaryEmotion", "mainSubject", "supportingObject", "recommendedText", "textPrimaryColor", "textAccentColor", "textColorReason", "visualPriority", "avoid"],
+      required: ["topic", "videoTitle", "niche", "contentType", "audience", "mainPromise", "impactCore", "stakes", "visualProof", "reactionDirection", "primaryEmotion", "secondaryEmotion", "mainSubject", "supportingObject", "recommendedText", "textPrimaryColor", "textAccentColor", "textColorReason", "visualPriority", "avoid"],
     },
     concepts: { type: "array", items: conceptSchema, minItems: 3, maxItems: 3 },
     selectedConceptIndex: { type: "integer", minimum: 0, maximum: 2 },
@@ -139,7 +141,10 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     "Create one complete professional YouTube thumbnail as a single finished image in horizontal 16:9 format.",
     "", `Video topic: ${plan.brief.topic}`, `Video title: ${plan.brief.videoTitle || "Not provided"}`,
     `Niche: ${plan.detectedNiche}`, `Creative goal: ${plan.brief.mainPromise}`,
-    `Primary emotion: ${plan.brief.primaryEmotion}`, `Main concept: ${plan.selectedConcept.concept}`,
+    `Click-driving impact core: ${plan.brief.impactCore}. This must be the most immediate visual fact after the face, not background decoration.`,
+    `Stakes: ${plan.brief.stakes}`, `Required visual proof: ${plan.brief.visualProof}`,
+    `Primary emotion: ${plan.brief.primaryEmotion}`, `Natural reaction direction: ${plan.brief.reactionDirection}`,
+    `Main concept: ${plan.selectedConcept.concept}`,
     `Composition: ${plan.selectedConcept.composition}`, `Main subject: ${plan.selectedConcept.mainSubject}`,
     `Supporting element: ${plan.brief.supportingObject || "none"}`, "",
     text ? `Thumbnail text: Render exactly "${text}". Do not add any other words, letters, logos, labels, or interface text.` : "Thumbnail text: Do not render any text, letters, logos, labels, or interface elements.",
@@ -178,6 +183,32 @@ function fallbackNiche(topic: string): ThumbnailNiche {
   return "general";
 }
 
+function fallbackImpactDirection(input: GenerationInput, impactCore: string) {
+  const source = `${input.videoTitle || ""} ${input.description}`.toLocaleLowerCase("es");
+  if (/(venenos|serpiente|tibur[oó]n|cocodrilo|araña|mortal|peligro|ataque)/.test(source)) {
+    return {
+      impactCore,
+      stakes: "Amenaza física inmediata y posibilidad real de daño",
+      visualProof: `${impactCore} visible, reconocible, cercano y dominante; no reducido a decoración de fondo`,
+      primaryEmotion: "miedo y tensión",
+      secondaryEmotion: "curiosidad",
+      reactionDirection: input.referenceUploadIds?.length
+        ? "Alarma o susto natural dirigido hacia la amenaza, conservando exactamente la identidad facial"
+        : "Tensión corporal creíble ante una amenaza próxima",
+    };
+  }
+  return {
+    impactCore,
+    stakes: "La consecuencia concreta que hace extraordinaria la historia",
+    visualProof: `El elemento más sorprendente —${impactCore}— mostrado de forma inequívoca y a gran escala`,
+    primaryEmotion: input.thumbnailPreset === "curiosity" ? "curiosidad" : "interés",
+    secondaryEmotion: "anticipación",
+    reactionDirection: input.referenceUploadIds?.length
+      ? "Expresión natural coherente con el momento de máximo impacto, sin alterar la identidad"
+      : "Una reacción o señal visual honesta que comunique la emoción principal",
+  };
+}
+
 export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCreativePlan {
   const niche = fallbackNiche(`${input.videoTitle || ""} ${input.description}`);
   const textPalette = fallbackTextPalette(input);
@@ -187,20 +218,24 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
       : input.thumbnailTextMode === "none"
         ? ""
         : deriveAutomaticThumbnailText(input);
+  const impact = fallbackImpactDirection(
+    input,
+    requestedText || input.videoTitle || input.description,
+  );
   const concepts: ThumbnailConcept[] = [
     {
       strategy: "clarity",
       archetype: "result",
-      concept: "Mostrar el resultado principal de forma inmediata y sin elementos innecesarios.",
+      concept: `Hacer visible ${impact.impactCore} de forma inmediata y sin elementos innecesarios.`,
       thumbnailText: requestedText,
       mainSubject: input.referenceUploadIds?.length ? "La persona de referencia como protagonista" : "El resultado principal del tema",
-      composition: "Sujeto dominante en primer plano, resultado visible al lado opuesto y fondo simple.",
+      composition: `Protagonista reaccionando en primer plano y ${impact.impactCore} como evidencia visual dominante al lado opuesto.`,
       score: 88,
     },
     {
       strategy: "emotion",
       archetype: "extreme_moment",
-      concept: "Representar el momento de mayor tensión o sorpresa relacionado con el tema.",
+      concept: `Representar el instante de máxima ${impact.primaryEmotion} provocado por ${impact.impactCore}.`,
       thumbnailText: requestedText,
       mainSubject: input.referenceUploadIds?.length ? "La persona de referencia con expresión legible" : "Un momento narrativo reconocible",
       composition: "Primer plano emocional con un único elemento secundario que explique la situación.",
@@ -209,7 +244,7 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
     {
       strategy: "curiosity",
       archetype: "curiosity",
-      concept: "Insinuar la respuesta sin revelarla por completo para abrir una pregunta visual honesta.",
+      concept: `Revelar suficiente de ${impact.impactCore} para abrir una pregunta visual honesta sin volverlo ambiguo.`,
       thumbnailText: requestedText,
       mainSubject: input.referenceUploadIds?.length ? "La persona de referencia observando el elemento clave" : "El elemento inesperado del tema",
       composition: "Foco principal grande, elemento parcialmente revelado y espacio limpio para el texto.",
@@ -224,8 +259,7 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
     contentType: "Miniatura de YouTube",
     audience: "Audiencia interesada en el tema del video",
     mainPromise: "Comunicar el valor central del video en menos de un segundo",
-    primaryEmotion: input.thumbnailPreset === "curiosity" ? "curiosidad" : "interés",
-    secondaryEmotion: "confianza",
+    ...impact,
     mainSubject: selectedConcept.mainSubject,
     supportingObject: "Un solo elemento relacionado directamente con el tema",
     recommendedText: requestedText,
@@ -268,6 +302,10 @@ export async function planThumbnail(
       "Dirección creativa exclusiva para esta solicitud:",
       ...thumbnailCreativeSignature(input),
       "Detecta el nicho. Si la confianza es baja usa general. Crea exactamente tres conceptos textuales realmente distintos: claridad, emoción y curiosidad.",
+      "Antes de proponer conceptos, separa el título en contexto, núcleo de impacto y consecuencia. El núcleo de impacto es el detalle que hace que esta historia sea extraordinaria y que una persona querría ver en menos de un segundo.",
+      "No confundas duración, lugar o formato del reto con el núcleo de impacto. Una cifra puede aportar credibilidad, pero un peligro, criatura, transformación, premio, anomalía o conflicto concreto debe dominar cuando sea lo verdaderamente extraordinario.",
+      "Convierte el núcleo de impacto en evidencia visual grande, específica y reconocible. Define también qué está en juego y qué reacción facial o corporal natural corresponde; evita una cara posando sin relación con la escena.",
+      "Ejemplo: en «Pasé 72 horas en una isla llena de serpientes VENENOSAS», el contexto es 72 horas en una isla; el núcleo de impacto son las serpientes venenosas; lo que está en juego es una amenaza física; la emoción principal es miedo y tensión. Las serpientes deben dominar la evidencia visual y el protagonista puede mostrar alarma o susto natural sin perder su identidad.",
       "Puntúa cada concepto considerando claridad, relevancia, curiosidad, emoción, diferenciación, lectura móvil, facilidad de generación, relación con el título, honestidad y nicho.",
       "En modo automático, resume o destila el título y el tema concretos. Debe nombrar el sujeto, lugar, resultado, cifra, conflicto o beneficio reconocible del video; puede crear urgencia o curiosidad, pero nunca perder el tema.",
       "Ejemplo de razonamiento: para «Probé Todas las Máquinas Expendedoras de Japón», una síntesis válida es «MÁQUINAS EXPENDEDORAS DE JAPÓN», no un gancho genérico.",
@@ -322,10 +360,12 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan, referen
       { type: "input_text", text: [
         "Evalúa esta miniatura de YouTube usando solo evidencia visible.",
         `Tema esperado: ${input.description}`, `Texto exacto esperado: ${expectedText || "sin texto"}`,
+        `Núcleo de impacto esperado: ${plan.brief.impactCore}. Evidencia visual requerida: ${plan.brief.visualProof}. Emoción: ${plan.brief.primaryEmotion}.`,
         `Preset visual obligatorio: ${input.thumbnailPreset || "impactful"}. Verifica que se reconozca claramente y no solo por el color.`,
         `Colores de texto previstos: ${plan.brief.textPrimaryColor} y ${plan.brief.textAccentColor}. Evalúa contraste e intención, no una combinación fija.`,
         referenceImages.length ? "Las primeras imágenes son referencias del usuario y la última es el resultado. Compara el rostro de cada persona: debe ser inequívocamente la misma identidad, aunque la expresión pueda cambiar de forma natural." : "No hay referencias personales para comparar.",
-        "Puntuación total: claridad visual 15, calidad técnica 15, texto contextual 20, relevancia 15, potencial de clic visual 15, fidelidad al preset y estilo 10, y diferenciación frente a una plantilla genérica 10.",
+        "Puntuación total: núcleo de impacto y evidencia visual 20, claridad visual 10, calidad técnica 10, texto contextual 15, relevancia 15, emoción y potencial de clic 15, fidelidad al preset y estilo 5, y diferenciación frente a una plantilla genérica 10.",
+        "Si el elemento extraordinario del título queda pequeño, secundario, genérico o ausente, marca unrelated_content y no apruebes el resultado.",
         "Penaliza texto intercambiable, rostro centrado con glow, fondos abstractos sin relación, flechas gratuitas y composiciones de stock.",
         "Si una cara de referencia cambió de identidad, fue embellecida artificialmente o perdió rasgos reconocibles, añade identity_drift como error crítico.",
         "Marca approved solo con 80+ o con 70–79 sin errores críticos. Con menos de 70 o cualquier error crítico, approved debe ser false.",

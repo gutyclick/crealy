@@ -129,6 +129,10 @@ export type ThumbnailCreativePlan = {
     contentType: string;
     audience: string;
     mainPromise: string;
+    impactCore: string;
+    stakes: string;
+    visualProof: string;
+    reactionDirection: string;
     primaryEmotion: string;
     secondaryEmotion: string;
     mainSubject: string;

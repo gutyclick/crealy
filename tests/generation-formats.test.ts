@@ -122,6 +122,15 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
     }),
     "MÁQUINAS EXPENDEDORAS DE JAPÓN",
   );
+  assert.equal(
+    deriveAutomaticThumbnailText({
+      videoTitle: "Pasé 72 horas en una isla llena de serpientes VENENOSAS",
+      description: "Un reto de supervivencia rodeado de animales peligrosos.",
+    }),
+    "SERPIENTES VENENOSAS",
+  );
+  assert.match(orchestrator, /núcleo de impacto/i);
+  assert.match(orchestrator, /serpientes venenosas/i);
   assert.ok(THUMBNAIL_DISTINCTIVENESS_RULES.length >= 5);
   for (const preset of THUMBNAIL_PRESETS) {
     assert.ok(THUMBNAIL_PRESET_CRAFT[preset.id].length >= 4, preset.id);
