@@ -33,6 +33,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             ? "rate_limited"
             : params.error === "oauth_cancelled"
               ? "oauth_cancelled"
+            : params.error === "oauth_configuration"
+              ? "oauth_configuration"
               : params.error === "oauth_provider"
                 ? "oauth_provider"
             : params.error === "oauth"

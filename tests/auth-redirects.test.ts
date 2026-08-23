@@ -54,6 +54,8 @@ test("recovers an OAuth callback that Supabase sends to the public Site URL", ()
   assert.match(callback, /savedReturn\?\.destination/);
   assert.match(proxy, /pathname === "\/"/);
   assert.match(proxy, /new URL\("\/auth\/callback", request\.url\)/);
+  assert.match(proxy, /"error_code"/);
+  assert.match(proxy, /"error_description"/);
 });
 
 test("OAuth callbacks use the canonical production origin instead of a drifting apex domain", () => {
@@ -83,6 +85,8 @@ test("OAuth provider failures return to the originating auth flow", () => {
 
   assert.match(callback, /oauthFlow === "signup" \? "\/signup" : "\/login"/);
   assert.match(callback, /providerError === "access_denied"/);
+  assert.match(callback, /providerError === "server_error"/);
+  assert.match(callback, /oauth_configuration/);
   assert.match(callback, /error_code/);
   assert.match(signup, /oauth_cancelled/);
   assert.match(signup, /oauth_provider/);

@@ -21,6 +21,7 @@ type LoginFormProps = {
     | "oauth"
     | "oauth_cancelled"
     | "oauth_provider"
+    | "oauth_configuration"
     | "rate_limited"
     | "restricted";
   signedOut?: boolean;
@@ -46,6 +47,8 @@ export function LoginForm({
             ? "El acceso con el proveedor fue cancelado. Puedes intentarlo nuevamente."
           : authError === "oauth_provider"
             ? "Google o Discord rechazó la solicitud de acceso. Inténtalo de nuevo y autoriza el acceso a Crealy."
+          : authError === "oauth_configuration"
+            ? "El proveedor no pudo completar la conexión con Crealy. La configuración de acceso necesita revisión; no fue un rechazo de tu cuenta."
           : authError === "oauth"
             ? "No pudimos conectar ese proveedor. Revisa tu autorización e inténtalo nuevamente."
             : "El enlace de autenticación no es válido o ya expiró. Inténtalo nuevamente.",

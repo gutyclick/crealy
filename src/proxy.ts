@@ -38,8 +38,15 @@ export async function proxy(request: NextRequest) {
   const oauthError = request.nextUrl.searchParams.get("error");
   if (request.nextUrl.pathname === "/" && (oauthCode || oauthError)) {
     const callbackUrl = new URL("/auth/callback", request.url);
-    if (oauthCode) callbackUrl.searchParams.set("code", oauthCode);
-    if (oauthError) callbackUrl.searchParams.set("error", oauthError);
+    for (const parameter of [
+      "code",
+      "error",
+      "error_code",
+      "error_description",
+    ]) {
+      const value = request.nextUrl.searchParams.get(parameter);
+      if (value) callbackUrl.searchParams.set(parameter, value);
+    }
     if (savedReturn) {
       callbackUrl.searchParams.set("next", savedReturn.destination);
       callbackUrl.searchParams.set("oauth_flow", savedReturn.flow);

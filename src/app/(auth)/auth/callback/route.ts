@@ -33,14 +33,22 @@ export async function GET(request: Request) {
     const providerError = requestUrl.searchParams.get("error");
     const providerErrorCode =
       requestUrl.searchParams.get("error_code") || providerError;
+    const providerErrorDescription = requestUrl.searchParams
+      .get("error_description")
+      ?.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ .,_:-]/g, "")
+      .slice(0, 180);
     const returnPath = oauthFlow === "signup" ? "/signup" : "/login";
     const publicError = providerError
       ? providerError === "access_denied"
         ? "oauth_cancelled"
+        : providerError === "server_error" ||
+            providerErrorCode === "oauth_provider_error"
+          ? "oauth_configuration"
         : "oauth_provider"
       : "auth_callback";
     logger.warn("auth.oauth_callback_missing_code", {
       errorCode: providerErrorCode || "missing_code",
+      errorDescription: providerErrorDescription || null,
       flow: oauthFlow === "signup" ? "signup" : "login",
     });
     cookieStore.delete(OAUTH_RETURN_COOKIE);
