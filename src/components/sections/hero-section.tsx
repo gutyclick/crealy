@@ -12,25 +12,19 @@ type CreativePiece = {
 };
 
 const firstRail: CreativePiece[] = [
-  { src: "/images/examples/gaming.webp", format: "wide" },
-  { src: "/images/examples/productivity.webp", format: "square" },
-  { src: "/images/examples/podcast.webp", format: "cover" },
-  { src: "/images/crealy-hero-studio-v2.webp", format: "banner" },
-  { src: "/images/examples/technology.webp", format: "wide" },
-  { src: "/images/examples/restaurant.webp", format: "square" },
-  { src: "/images/examples/fitness.webp", format: "cover" },
-  { src: "/images/examples/podcast.webp", format: "wide", position: "object-top" },
+  { src: "/images/hero/crealy-hero-miniaturas (1).webp", format: "wide" },
+  { src: "/images/hero/crealy-hero-miniaturas (3).webp", format: "wide" },
+  { src: "/images/hero/crealy-hero-post-vertical.webp", format: "square" },
+  { src: "/images/hero/crealy-hero banner.webp", format: "banner" },
+  { src: "/images/hero/crealy-hero-miniaturas (4).webp", format: "wide" },
 ];
 
 const secondRail: CreativePiece[] = [
-  { src: "/images/examples/restaurant.webp", format: "square" },
-  { src: "/images/examples/fitness.webp", format: "cover" },
-  { src: "/images/examples/technology.webp", format: "wide" },
-  { src: "/images/crealy-hero-studio-v2.webp", format: "banner" },
-  { src: "/images/examples/podcast.webp", format: "square" },
-  { src: "/images/examples/gaming.webp", format: "wide" },
-  { src: "/images/examples/productivity.webp", format: "cover" },
-  { src: "/images/examples/fitness.webp", format: "wide", position: "object-top" },
+  { src: "/images/hero/crealy-hero-miniaturas (5).webp", format: "wide" },
+  { src: "/images/hero/crealy-hero-miniaturas (6).webp", format: "wide" },
+  { src: "/images/hero/crealy-hero-miniaturas (7).webp", format: "wide" },
+  { src: "/images/hero/crealy-hero-miniaturas (2).webp", format: "wide" },
+  { src: "/images/hero/crealy-hero-miniaturas (9).webp", format: "wide" },
 ];
 
 function CreativeRail({
@@ -52,7 +46,8 @@ function CreativeRail({
               src={piece.src}
               alt=""
               fill
-              priority={index === 0}
+              loading="eager"
+              fetchPriority={index === 0 ? "high" : "auto"}
               sizes={
                 piece.format === "banner"
                   ? "(max-width: 640px) 64vw, 28vw"
