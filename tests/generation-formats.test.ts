@@ -108,11 +108,14 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
     new URL("../src/lib/generation/thumbnail-orchestrator.ts", import.meta.url),
     "utf8",
   );
+  const copyFallback = readFileSync(
+    new URL("../src/lib/generation/derive-thumbnail-text.ts", import.meta.url),
+    "utf8",
+  );
   assert.doesNotMatch(orchestrator, /:\s*["']¿QUÉ PASÓ\?["']/);
   assert.match(orchestrator, /deriveAutomaticThumbnailText\(input\)/);
   assert.match(orchestrator, /thumbnailCreativeSignature\(input\)/);
   assert.match(orchestrator, /Prohibido devolver ganchos intercambiables/);
-  assert.match(orchestrator, /MÁQUINAS EXPENDEDORAS DE JAPÓN/);
   assert.match(orchestrator, /textPrimaryColor/);
   assert.match(orchestrator, /identity_drift/);
   assert.equal(
@@ -130,10 +133,21 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
     "SERPIENTES VENENOSAS",
   );
   assert.match(orchestrator, /núcleo de impacto/i);
-  assert.match(orchestrator, /serpientes venenosas/i);
   assert.match(orchestrator, /RAZONA LA EMOCIÓN/i);
-  assert.match(orchestrator, /72 horas comiendo comida rápida/i);
-  assert.match(orchestrator, /vuelve a razonar desde cero/i);
+  assert.match(orchestrator, /análisis semántico abierto/i);
+  assert.match(orchestrator, /prueba contrafactual/i);
+  assert.match(orchestrator, /evento → anomalía → consecuencia/i);
+  assert.match(orchestrator, /viewerQuestion/);
+  assert.doesNotMatch(orchestrator, /72 horas comiendo comida rápida/i);
+  assert.doesNotMatch(copyFallback, /HIGH_IMPACT_PATTERNS/);
+  assert.doesNotMatch(copyFallback, /serpientes?|tiburones?|hamburguesas?/i);
+  assert.equal(
+    deriveAutomaticThumbnailText({
+      videoTitle: "Dormí en el hotel más PEQUEÑO del mundo",
+      description: "Una experiencia inesperada en un espacio mínimo.",
+    }),
+    "MÁS PEQUEÑO",
+  );
   assert.ok(THUMBNAIL_DISTINCTIVENESS_RULES.length >= 5);
   for (const preset of THUMBNAIL_PRESETS) {
     assert.ok(THUMBNAIL_PRESET_CRAFT[preset.id].length >= 4, preset.id);

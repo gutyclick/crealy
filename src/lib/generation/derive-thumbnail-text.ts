@@ -14,26 +14,6 @@ const GENERIC_TEXTS = new Set([
   "INCREÍBLE", "IMPACTANTE", "TIENES QUE VERLO", "TU IDEA",
 ]);
 
-const HIGH_IMPACT_PATTERNS = [
-  /venenos[ao]s?/i,
-  /serpientes?/i,
-  /tiburones?/i,
-  /cocodrilos?/i,
-  /arañas?/i,
-  /mortales?/i,
-  /peligros[ao]s?/i,
-  /prohibid[ao]s?/i,
-  /explosi[oó]n/i,
-  /incendio/i,
-  /hurac[aá]n/i,
-  /tornado/i,
-  /terremoto/i,
-  /abandonad[ao]s?/i,
-  /secreto/i,
-  /récord/i,
-  /millon(?:es)?/i,
-] as const;
-
 function normalizeForComparison(value: string) {
   return value
     .normalize("NFD")
@@ -52,39 +32,19 @@ function tokens(value: string) {
     .filter(Boolean);
 }
 
-function highImpactPhrase(source: string) {
+function explicitlyEmphasizedPhrase(source: string) {
   const sourceTokens = tokens(source);
   if (sourceTokens.length < 2) return "";
+  const emphasized = sourceTokens
+    .map((token, index) => ({ token, index }))
+    .filter(({ token }) => /[A-ZÁÉÍÓÚÜÑ]/.test(token) && token.length > 2 && token === token.toLocaleUpperCase("es"));
+  if (!emphasized.length || emphasized.length >= Math.ceil(sourceTokens.length / 2)) return "";
 
-  let strongestIndex = -1;
-  let strongestScore = -1;
-  sourceTokens.forEach((token, index) => {
-    const normalized = token.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const patternIndex = HIGH_IMPACT_PATTERNS.findIndex((pattern) => pattern.test(normalized));
-    if (patternIndex < 0) return;
-    const uppercaseEmphasis = token.length > 2 && token === token.toLocaleUpperCase("es") ? 5 : 0;
-    const lateReveal = index / sourceTokens.length;
-    const score = HIGH_IMPACT_PATTERNS.length - patternIndex + uppercaseEmphasis + lateReveal;
-    if (score > strongestScore) {
-      strongestIndex = index;
-      strongestScore = score;
-    }
-  });
-
-  if (strongestIndex < 0) return "";
-  const strongest = sourceTokens[strongestIndex]
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  const isDescriptor = /^(venenos|mortal|peligros|prohibid|abandonad)/.test(strongest);
-  const next = sourceTokens[strongestIndex + 1]
-    ?.normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  const nextIsDescriptor = Boolean(next && /^(venenos|mortal|peligros)/.test(next));
-  const start = isDescriptor ? Math.max(0, strongestIndex - 1) : strongestIndex;
-  const end = Math.min(sourceTokens.length, strongestIndex + (nextIsDescriptor ? 2 : 1));
-  return sourceTokens.slice(start, end).join(" ").toLocaleUpperCase("es");
+  const last = emphasized.at(-1)!;
+  let start = last.index;
+  while (start > 0 && emphasized.some(({ index }) => index === start - 1)) start -= 1;
+  if (start === last.index && start > 0) start -= 1;
+  return sourceTokens.slice(start, last.index + 1).join(" ").toLocaleUpperCase("es");
 }
 
 export function isGenericThumbnailText(value: string) {
@@ -100,7 +60,7 @@ export function deriveAutomaticThumbnailText(
   input: Pick<GenerationInput, "videoTitle" | "description">,
 ) {
   const source = input.videoTitle?.trim() || input.description.trim();
-  const impactPhrase = highImpactPhrase(source);
+  const impactPhrase = explicitlyEmphasizedPhrase(source);
   if (impactPhrase && !isGenericThumbnailText(impactPhrase)) return impactPhrase;
   const phrase = tokens(source);
 

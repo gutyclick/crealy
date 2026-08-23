@@ -34,6 +34,9 @@ const planSchema = {
         niche: { type: "string", enum: THUMBNAIL_NICHES.map((item) => item.id) },
         contentType: { type: "string" }, audience: { type: "string" },
         mainPromise: { type: "string" }, narrativeContext: { type: "string" },
+        eventSummary: { type: "string" }, ordinaryBaseline: { type: "string" },
+        anomaly: { type: "string" }, viewerQuestion: { type: "string" },
+        causalChain: { type: "string" },
         impactCore: { type: "string" }, stakes: { type: "string" },
         emotionalMechanism: { type: "string" }, emotionalReasoning: { type: "string" },
         visualProof: { type: "string" },
@@ -45,7 +48,7 @@ const planSchema = {
         visualPriority: { type: "string" },
         avoid: { type: "array", items: { type: "string" }, maxItems: 8 },
       },
-      required: ["topic", "videoTitle", "niche", "contentType", "audience", "mainPromise", "narrativeContext", "impactCore", "stakes", "emotionalMechanism", "emotionalReasoning", "visualProof", "reactionDirection", "primaryEmotion", "secondaryEmotion", "mainSubject", "supportingObject", "recommendedText", "textPrimaryColor", "textAccentColor", "textColorReason", "visualPriority", "avoid"],
+      required: ["topic", "videoTitle", "niche", "contentType", "audience", "mainPromise", "narrativeContext", "eventSummary", "ordinaryBaseline", "anomaly", "viewerQuestion", "causalChain", "impactCore", "stakes", "emotionalMechanism", "emotionalReasoning", "visualProof", "reactionDirection", "primaryEmotion", "secondaryEmotion", "mainSubject", "supportingObject", "recommendedText", "textPrimaryColor", "textAccentColor", "textColorReason", "visualPriority", "avoid"],
     },
     concepts: { type: "array", items: conceptSchema, minItems: 3, maxItems: 3 },
     selectedConceptIndex: { type: "integer", minimum: 0, maximum: 2 },
@@ -144,6 +147,11 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     "", `Video topic: ${plan.brief.topic}`, `Video title: ${plan.brief.videoTitle || "Not provided"}`,
     `Niche: ${plan.detectedNiche}`, `Creative goal: ${plan.brief.mainPromise}`,
     `Narrative context: ${plan.brief.narrativeContext}`,
+    `Literal event: ${plan.brief.eventSummary}`,
+    `Ordinary baseline: ${plan.brief.ordinaryBaseline}`,
+    `Meaningful anomaly: ${plan.brief.anomaly}`,
+    `Viewer's open question: ${plan.brief.viewerQuestion}`,
+    `Causal chain: ${plan.brief.causalChain}`,
     `Click-driving impact core: ${plan.brief.impactCore}. This must be the most immediate visual fact after the face, not background decoration.`,
     `Stakes: ${plan.brief.stakes}`, `Required visual proof: ${plan.brief.visualProof}`,
     `Emotional mechanism: ${plan.brief.emotionalMechanism}. Reasoning: ${plan.brief.emotionalReasoning}`,
@@ -188,46 +196,23 @@ function fallbackNiche(topic: string): ThumbnailNiche {
 }
 
 function fallbackImpactDirection(input: GenerationInput, impactCore: string) {
-  const source = `${input.videoTitle || ""} ${input.description}`.toLocaleLowerCase("es");
-  if (/(venenos|serpiente|tibur[oó]n|cocodrilo|araña|mortal|peligro|ataque)/.test(source)) {
-    return {
-      impactCore,
-      stakes: "Amenaza física inmediata y posibilidad real de daño",
-      emotionalMechanism: "peligro y supervivencia",
-      emotionalReasoning: "La presencia de una amenaza física convierte la duración del reto en exposición al peligro",
-      visualProof: `${impactCore} visible, reconocible, cercano y dominante; no reducido a decoración de fondo`,
-      primaryEmotion: "miedo y tensión",
-      secondaryEmotion: "curiosidad",
-      reactionDirection: input.referenceUploadIds?.length
-        ? "Alarma o susto natural dirigido hacia la amenaza, conservando exactamente la identidad facial"
-        : "Tensión corporal creíble ante una amenaza próxima",
-    };
-  }
-  if (/(comida r[aá]pida|hamburgues|pizza|fritura|comiendo|alimento)/.test(source)) {
-    return {
-      impactCore,
-      stakes: "Descubrir cómo afecta al cuerpo y al ánimo sostener un exceso durante todo el reto",
-      emotionalMechanism: "exceso, tentación y consecuencias",
-      emotionalReasoning: "La comida no implica una amenaza inmediata; el interés nace del exceso, la acumulación y su posible consecuencia física",
-      visualProof: `${impactCore} mostrado en cantidad exagerada y con una consecuencia corporal o emocional legible`,
-      primaryEmotion: "curiosidad y asombro",
-      secondaryEmotion: "disgusto o tentación",
-      reactionDirection: input.referenceUploadIds?.length
-        ? "Saturación, sorpresa o cansancio natural ante el exceso, conservando exactamente la identidad facial"
-        : "Una señal visual creíble de exceso y consecuencia",
-    };
-  }
+  const eventSummary = input.videoTitle?.trim() || input.description.trim();
   return {
+    eventSummary,
+    ordinaryBaseline: "La versión cotidiana o esperable de la situación descrita",
+    anomaly: impactCore,
+    viewerQuestion: "Qué ocurrió, qué cambió o cuál fue el resultado concreto de esta situación",
+    causalChain: "Situación descrita → elemento extraordinario → consecuencia pendiente de descubrir",
     impactCore,
-    stakes: "La consecuencia concreta que hace extraordinaria la historia",
-    emotionalMechanism: "curiosidad por una situación fuera de lo normal",
-    emotionalReasoning: "La emoción debe surgir de la relación semántica entre acción, objeto, duración y consecuencia, no de una plantilla",
-    visualProof: `El elemento más sorprendente —${impactCore}— mostrado de forma inequívoca y a gran escala`,
-    primaryEmotion: input.thumbnailPreset === "curiosity" ? "curiosidad" : "interés",
+    stakes: "La consecuencia concreta todavía no resuelta por el título y el brief",
+    emotionalMechanism: "curiosidad específica por la consecuencia de la situación",
+    emotionalReasoning: "Fallback prudente: no inventar peligro, éxito ni sorpresa; representar el hecho descrito y dejar que su consecuencia sostenga el interés",
+    visualProof: `${impactCore} mostrado de forma inequívoca, contextual y conectado con la acción descrita`,
+    primaryEmotion: "curiosidad contextual",
     secondaryEmotion: "anticipación",
     reactionDirection: input.referenceUploadIds?.length
-      ? "Expresión natural coherente con el momento de máximo impacto, sin alterar la identidad"
-      : "Una reacción o señal visual honesta que comunique la emoción principal",
+      ? "Expresión natural y contenida coherente con la escena, sin inventar dramatismo ni alterar la identidad"
+      : "Una señal visual honesta de la consecuencia, sin imponer una emoción no sustentada",
   };
 }
 
@@ -325,18 +310,16 @@ export async function planThumbnail(
       "Dirección creativa exclusiva para esta solicitud:",
       ...thumbnailCreativeSignature(input),
       "Detecta el nicho. Si la confianza es baja usa general. Crea exactamente tres conceptos textuales realmente distintos: claridad, emoción y curiosidad.",
-      "Antes de proponer conceptos, separa el título en contexto, núcleo de impacto y consecuencia. El núcleo de impacto es el detalle que hace que esta historia sea extraordinaria y que una persona querría ver en menos de un segundo.",
-      "RAZONA LA EMOCIÓN, NO LA ASIGNES POR LA ESTRUCTURA DEL TÍTULO. Interpreta la relación semántica entre acción, duración, sujeto, objeto, modificadores y consecuencia. Explica por qué esa relación provoca una emoción concreta antes de elegirla.",
-      "La misma estructura verbal puede tener emociones opuestas. No transfieras el miedo, la urgencia o la expresión facial de un ejemplo a otro tema.",
-      "No confundas duración, lugar o formato del reto con el núcleo de impacto. Una cifra puede aportar credibilidad, pero un peligro, criatura, transformación, premio, anomalía o conflicto concreto debe dominar cuando sea lo verdaderamente extraordinario.",
-      "Convierte el núcleo de impacto en evidencia visual grande, específica y reconocible. Define también qué está en juego y qué reacción facial o corporal natural corresponde; evita una cara posando sin relación con la escena.",
-      "Ejemplo: en «Pasé 72 horas en una isla llena de serpientes VENENOSAS», el contexto es 72 horas en una isla; el núcleo de impacto son las serpientes venenosas; lo que está en juego es una amenaza física; la emoción principal es miedo y tensión. Las serpientes deben dominar la evidencia visual y el protagonista puede mostrar alarma o susto natural sin perder su identidad.",
-      "Contraste semántico: en «Pasé 72 horas comiendo comida rápida», 72 horas sigue siendo contexto, pero no hay peligro inmediato. El núcleo es el exceso de comida y sus consecuencias; la emoción puede ser curiosidad, asombro, tentación, saturación o disgusto según el brief. La evidencia visual sería abundancia extrema y una reacción de cansancio o saturación, nunca miedo a serpientes.",
-      "Estos ejemplos solo calibran el método. Para cada título nuevo vuelve a razonar desde cero y no copies sus emociones, texto, composición ni objetos.",
+      "Usa un análisis semántico abierto, no una tabla de palabras, temas, nichos, emociones ni ejemplos memorizados. Debe funcionar también con situaciones que nunca hayas visto.",
+      "Antes de proponer conceptos, ejecuta esta cadena: (1) resume literalmente qué sucede; (2) establece qué sería lo ordinario en ese contexto; (3) identifica la desviación que vuelve particular la historia; (4) determina qué se puede ganar, perder, descubrir o transformar; (5) formula la pregunta concreta que queda abierta para el espectador; (6) deriva la emoción de esa relación causal; (7) define la evidencia visual que permite entenderla sin leer el título.",
+      "RAZONA LA EMOCIÓN, NO LA ASIGNES POR LA FORMA DEL TÍTULO NI POR UNA PALABRA AISLADA. Interpreta conjuntamente acción, sujeto, objeto, modificadores, duración, escala, restricción, contraste, incertidumbre y consecuencia. Explica la cadena causal antes de elegir emoción, reacción o atmósfera.",
+      "No uses una taxonomía cerrada. Puedes devolver emociones precisas o combinadas cuando estén justificadas. Si el título es ambiguo, usa el brief; si ambos son ambiguos, conserva incertidumbre o curiosidad honesta en vez de inventar peligro, éxito, escándalo o sorpresa.",
+      "Aplica una prueba contrafactual: imagina que cambia el objeto, la acción o la consecuencia manteniendo la misma sintaxis. Si mantendrías automáticamente la misma emoción o composición, tu razonamiento es genérico y debes rehacerlo.",
+      "Distingue contexto de detonante: una cifra, duración, lugar o formato puede ser el núcleo solo si realmente cambia el significado. El impacto debe recaer en la relación que hace excepcional este caso, sea cual sea el tema.",
+      "Convierte la anomalía y su consecuencia en evidencia visual grande, específica y reconocible. Define qué está en juego y una reacción facial o corporal natural; evita rostros posando, emociones teatrales o elementos que no tengan una función causal en la historia.",
       "Puntúa cada concepto considerando claridad, relevancia, curiosidad, emoción, diferenciación, lectura móvil, facilidad de generación, relación con el título, honestidad y nicho.",
       "En modo automático, resume o destila el título y el tema concretos. Debe nombrar el sujeto, lugar, resultado, cifra, conflicto o beneficio reconocible del video; puede crear urgencia o curiosidad, pero nunca perder el tema.",
-      "Ejemplo de razonamiento: para «Probé Todas las Máquinas Expendedoras de Japón», una síntesis válida es «MÁQUINAS EXPENDEDORAS DE JAPÓN», no un gancho genérico.",
-      "El texto recomendado debe entenderse sin contexto, tener 2–4 palabras preferiblemente y nunca más de 5. Puede resumir el título cuando esa es la frase más clara.",
+      "El texto recomendado debe entenderse sin contexto, tener 2–4 palabras preferiblemente y nunca más de 5. Debe condensar el detonante, resultado, conflicto, beneficio o pregunta específica que tu análisis descubrió; nunca copiar una fórmula reusable.",
       input.colorPreference === "custom" && input.customColors?.length
         ? "Elige color principal y acento exclusivamente dentro de la paleta personalizada del usuario y explica su contraste."
         : "Elige los colores del texto después de razonar sobre fondo, emoción y semántica. Prioriza blanco, amarillo, rojo o verde; usa celeste u otro color solo si supera claramente el contraste. Devuelve color principal, acento y motivo. No elijas siempre blanco y amarillo.",
@@ -387,7 +370,8 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan, referen
       { type: "input_text", text: [
         "Evalúa esta miniatura de YouTube usando solo evidencia visible.",
         `Tema esperado: ${input.description}`, `Texto exacto esperado: ${expectedText || "sin texto"}`,
-        `Contexto narrativo: ${plan.brief.narrativeContext}. Núcleo de impacto esperado: ${plan.brief.impactCore}. Evidencia visual requerida: ${plan.brief.visualProof}.`,
+        `Evento: ${plan.brief.eventSummary}. Base ordinaria: ${plan.brief.ordinaryBaseline}. Anomalía: ${plan.brief.anomaly}. Pregunta abierta: ${plan.brief.viewerQuestion}.`,
+        `Cadena causal: ${plan.brief.causalChain}. Contexto narrativo: ${plan.brief.narrativeContext}. Núcleo de impacto esperado: ${plan.brief.impactCore}. Evidencia visual requerida: ${plan.brief.visualProof}.`,
         `Mecanismo emocional: ${plan.brief.emotionalMechanism}. Emoción: ${plan.brief.primaryEmotion}. Justificación: ${plan.brief.emotionalReasoning}.`,
         `Preset visual obligatorio: ${input.thumbnailPreset || "impactful"}. Verifica que se reconozca claramente y no solo por el color.`,
         `Colores de texto previstos: ${plan.brief.textPrimaryColor} y ${plan.brief.textAccentColor}. Evalúa contraste e intención, no una combinación fija.`,
@@ -395,6 +379,7 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan, referen
         "Puntuación total: núcleo de impacto y evidencia visual 20, claridad visual 10, calidad técnica 10, texto contextual 15, relevancia 15, emoción y potencial de clic 15, fidelidad al preset y estilo 5, y diferenciación frente a una plantilla genérica 10.",
         "Si el elemento extraordinario del título queda pequeño, secundario, genérico o ausente, marca unrelated_content y no apruebes el resultado.",
         "Si la reacción o atmósfera expresa una emoción que no corresponde semánticamente al título y al brief, no apruebes el resultado.",
+        "Comprueba que la imagen representa la cadena evento → anomalía → consecuencia y responde visualmente a la pregunta abierta. Si solo coincide con palabras sueltas, no la apruebes.",
         "Penaliza texto intercambiable, rostro centrado con glow, fondos abstractos sin relación, flechas gratuitas y composiciones de stock.",
         "Si una cara de referencia cambió de identidad, fue embellecida artificialmente o perdió rasgos reconocibles, añade identity_drift como error crítico.",
         "Marca approved solo con 80+ o con 70–79 sin errores críticos. Con menos de 70 o cualquier error crítico, approved debe ser false.",
