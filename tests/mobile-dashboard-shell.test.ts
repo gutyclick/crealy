@@ -61,3 +61,23 @@ test("creation notifications stay inside the mobile viewport", () => {
   assert.match(notifications, /max-h-\[calc\(100dvh-6rem\)\]/);
   assert.match(notifications, /env\(safe-area-inset-bottom\)/);
 });
+
+test("creation notifications are isolated by authenticated account", () => {
+  const notifications = readFileSync(
+    "src/components/dashboard/creation-notification-center.tsx",
+    "utf8",
+  );
+  const header = readFileSync(
+    "src/components/dashboard/dashboard-header.tsx",
+    "utf8",
+  );
+  const layout = readFileSync("src/app/(dashboard)/layout.tsx", "utf8");
+
+  assert.match(notifications, /crealy:creation-notifications:v2/);
+  assert.match(notifications, /STORAGE_KEY_PREFIX}:\$\{userId\}/);
+  assert.match(notifications, /removeItem\(LEGACY_STORAGE_KEY\)/);
+  assert.doesNotMatch(notifications, /getItem\(LEGACY_STORAGE_KEY\)/);
+  assert.match(header, /key=\{userId\}/);
+  assert.match(header, /userId=\{userId\}/);
+  assert.match(layout, /userId=\{user\.id\}/);
+});

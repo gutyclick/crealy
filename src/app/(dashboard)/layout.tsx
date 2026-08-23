@@ -77,6 +77,7 @@ export default async function DashboardLayout({
   return (
     <div className="dashboard-shell min-h-dvh bg-background pb-24 lg:pb-0">
       <DashboardHeader
+        userId={user.id}
         displayName={metadataName || fallbackName}
         email={user.email || "Cuenta de Crealy"}
         credits={credits}
@@ -90,7 +91,7 @@ export default async function DashboardLayout({
         }))}
         plan={plan}
       />
-      <ActivityPing />
+      <ActivityPing userId={user.id} />
       {showMfaReminder ? <MfaSecurityReminder /> : null}
       {children}
       <MobileAppNavigation plan={plan} />

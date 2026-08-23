@@ -29,6 +29,7 @@ import {
 import type { PlanKey } from "@/types/billing";
 
 type DashboardHeaderProps = {
+  userId: string;
   displayName: string;
   email: string;
   credits: number | null;
@@ -45,6 +46,7 @@ const accountItems = [
 ] as const;
 
 export function DashboardHeader({
+  userId,
   displayName,
   email,
   credits,
@@ -134,6 +136,8 @@ export function DashboardHeader({
 
         <div className="flex items-center gap-1.5 justify-self-end">
           <CreationNotificationCenter
+            key={userId}
+            userId={userId}
             initialNotifications={initialNotifications}
           />
 

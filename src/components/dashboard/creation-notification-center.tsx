@@ -27,7 +27,8 @@ type ToastState = {
   tone: "queued" | "ready" | "failed";
 };
 
-const STORAGE_KEY = "crealy:creation-notifications";
+const LEGACY_STORAGE_KEY = "crealy:creation-notifications";
+const STORAGE_KEY_PREFIX = "crealy:creation-notifications:v2";
 const SOUND_PREFERENCE_KEY = "crealy:completion-sound";
 const COMPLETION_SOUND_PATH = "/audio/generation-complete.wav";
 const ACTIVE_STATUSES = new Set<JobStatus>(["queued", "claimed", "processing", "retry_scheduled"]);
@@ -47,7 +48,13 @@ function statusCopy(status: JobStatus) {
   return "Cancelado";
 }
 
-export function CreationNotificationCenter({ initialNotifications }: { initialNotifications: CreationNotification[] }) {
+export function CreationNotificationCenter({
+  initialNotifications,
+  userId,
+}: {
+  initialNotifications: CreationNotification[];
+  userId: string;
+}) {
   const [notifications, setNotifications] = useState(initialNotifications);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -56,13 +63,18 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
   const initializedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const announcedJobsRef = useRef(new Set<string>());
+  const storageKey = `${STORAGE_KEY_PREFIX}:${userId}`;
 
   useEffect(() => {
     let stored: CreationNotification[] = [];
     try {
-      stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") as CreationNotification[];
+      // This legacy key was shared by every account in the browser. Never read
+      // it again: removing it prevents metadata from a previous session from
+      // being shown after a different user signs in.
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      stored = JSON.parse(localStorage.getItem(storageKey) || "[]") as CreationNotification[];
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(storageKey);
     }
     const storedSoundEnabled = localStorage.getItem(SOUND_PREFERENCE_KEY) !== "off";
     initializedRef.current = true;
@@ -71,7 +83,7 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
       setNotifications((current) => mergeNotifications(stored, current));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     const audio = new Audio(COMPLETION_SOUND_PATH);
@@ -105,8 +117,8 @@ export function CreationNotificationCenter({ initialNotifications }: { initialNo
   }, [soundEnabled]);
 
   useEffect(() => {
-    if (initializedRef.current) localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-  }, [notifications]);
+    if (initializedRef.current) localStorage.setItem(storageKey, JSON.stringify(notifications));
+  }, [notifications, storageKey]);
 
   useEffect(() => {
     function receiveQueued(event: Event) {
