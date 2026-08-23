@@ -18,6 +18,13 @@ export function classifyJobError(
     typeof error.code === "string"
       ? error.code
       : null;
+  const structuralMessage =
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+      ? error.message
+      : null;
   if (
     structuralCode === "provider_rate_limit" ||
     structuralCode === "provider_timeout" ||
@@ -53,7 +60,19 @@ export function classifyJobError(
     return { retryable: false, errorCode: code.slice(0, 80), delaySeconds: 0 };
   }
 
-  const message = error instanceof Error ? error.message : "unknown_error";
+  const message = error instanceof Error
+    ? error.message
+    : structuralMessage ?? structuralCode ?? "unknown_error";
+  if (
+    structuralCode === "23514" &&
+    /enhanced_prompt|generations_enhanced_prompt_length/i.test(message)
+  ) {
+    return {
+      retryable: false,
+      errorCode: "generation_prompt_too_long",
+      delaySeconds: 0,
+    };
+  }
   if (
     /insufficient permissions/i.test(message) ||
     /missing scopes?/i.test(message) ||

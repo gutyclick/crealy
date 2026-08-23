@@ -40,3 +40,24 @@ test("mapped generation provider failures preserve retry semantics", () => {
   assert.equal(result.errorCode, "provider_rate_limit");
   assert.equal(result.delaySeconds, 10);
 });
+
+test("database errors preserve their real message and classify oversized prompts", () => {
+  const result = classifyJobError(
+    {
+      code: "23514",
+      message:
+        'new row violates check constraint "generations_enhanced_prompt_length"',
+    },
+    1,
+  );
+  assert.equal(result.retryable, false);
+  assert.equal(result.errorCode, "generation_prompt_too_long");
+});
+
+test("non-Error provider-shaped failures are not collapsed to unknown", () => {
+  const result = classifyJobError(
+    { code: "provider_rejected", message: "provider rejected request" },
+    1,
+  );
+  assert.equal(result.errorCode, "provider_rejected_request");
+});

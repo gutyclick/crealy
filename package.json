@@ -15,6 +15,7 @@
     "validate:production-env": "tsx scripts/validate-production-env.ts",
     "smoke:production": "tsx scripts/smoke-test-production.ts",
     "ops:jobs": "tsx scripts/ops/inspect-jobs.ts",
+    "ops:generations": "tsx scripts/ops/diagnose-generations.ts",
     "ops:credits": "tsx scripts/ops/reconcile-credits.ts",
     "ops:storage": "tsx scripts/ops/reconcile-storage.ts",
     "ops:billing": "tsx scripts/ops/inspect-billing.ts",
