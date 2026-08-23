@@ -415,7 +415,6 @@ async function processGeneration(job: JobRecord, startedAt: number) {
     try {
       thumbnailPlan = await planThumbnail(input, observeProviderCall);
     } catch (planError) {
-      thumbnailPlan = buildFallbackThumbnailPlan(input);
       logger.warn("generation.thumbnail_plan_fallback", {
         jobId: job.id,
         resourceId: generation.id,
@@ -434,6 +433,23 @@ async function processGeneration(job: JobRecord, startedAt: number) {
         providerMessage:
           planError instanceof Error ? planError.message.slice(0, 240) : "unknown",
       });
+      try {
+        thumbnailPlan = buildFallbackThumbnailPlan(input);
+      } catch (fallbackError) {
+        // Planning is an enhancement, never a prerequisite for charging and
+        // delivering the user's image. The canonical product prompt remains a
+        // safe final fallback when either the Responses API or local planner
+        // cannot be used.
+        thumbnailPlan = null;
+        logger.error("generation.thumbnail_plan_fallback_failed", {
+          jobId: job.id,
+          resourceId: generation.id,
+          errorCode:
+            fallbackError instanceof Error
+              ? fallbackError.message.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80)
+              : "thumbnail_fallback_unknown",
+        });
+      }
     }
   }
   const recreatePrompt = buildRecreatePrompt(input);

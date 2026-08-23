@@ -17,6 +17,18 @@ test("invalid domain failures are definitive", () => {
   assert.equal(result.errorCode, "invalid_source_image");
 });
 
+test("provider permission failures are explicit and are not retried", () => {
+  const result = classifyJobError(
+    new Error(
+      "401 You have insufficient permissions. Missing scopes: api.responses.write",
+    ),
+    1,
+  );
+  assert.equal(result.retryable, false);
+  assert.equal(result.errorCode, "provider_permissions");
+  assert.equal(result.delaySeconds, 0);
+});
+
 test("mapped generation provider failures preserve retry semantics", () => {
   const result = classifyJobError(
     Object.assign(new Error("Servicio ocupado"), {

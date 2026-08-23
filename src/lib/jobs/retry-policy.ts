@@ -55,6 +55,17 @@ export function classifyJobError(
 
   const message = error instanceof Error ? error.message : "unknown_error";
   if (
+    /insufficient permissions/i.test(message) ||
+    /missing scopes?/i.test(message) ||
+    /api\.responses\.write/i.test(message)
+  ) {
+    return {
+      retryable: false,
+      errorCode: "provider_permissions",
+      delaySeconds: 0,
+    };
+  }
+  if (
     message.includes("fetch failed") ||
     message.includes("ECONNRESET") ||
     message.includes("ETIMEDOUT") ||
