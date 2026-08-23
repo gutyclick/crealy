@@ -14,6 +14,7 @@ import Link from "next/link";
 
 import { CREATION_QUEUED_EVENT } from "@/components/dashboard/creation-notification-center";
 import type { ReferenceDraft } from "@/components/generation/reference-image-picker";
+import { VisibleTextControl } from "@/components/generation/visible-text-control";
 import {
   RecreatePanel,
   type RecreateState,
@@ -44,6 +45,7 @@ import type {
   GenerationFormat,
   GenerationPlatform,
   GenerationQuality,
+  GenerationTextMode,
 } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
 import type { PlanKey } from "@/types/billing";
@@ -111,6 +113,7 @@ export function RecreateForm({
   );
   const [description, setDescription] = useState("");
   const [primaryText, setPrimaryText] = useState("");
+  const [textMode, setTextMode] = useState<GenerationTextMode | null>(null);
   const [brandStyleId, setBrandStyleId] = useState(() =>
     brandStyles.some(
       (item) =>
@@ -259,7 +262,9 @@ export function RecreateForm({
           contentType,
           platform,
           description,
-          primaryText: primaryText.trim() || undefined,
+          primaryText: textMode === "custom" ? primaryText.trim() || undefined : undefined,
+          textMode,
+          thumbnailTextMode: contentType === "thumbnail" ? textMode : undefined,
           style: "automatic",
           colorPreference: "auto",
           variant,
@@ -533,20 +538,16 @@ export function RecreateForm({
               {fieldErrors.description}
             </p>
           ) : null}
-          <label
-            htmlFor="recreate-text"
-            className="mt-5 block text-sm font-semibold text-foreground"
-          >
-            Texto principal{" "}
-            <span className="font-normal text-muted">(opcional)</span>
-          </label>
-          <input
-            id="recreate-text"
-            maxLength={120}
+          <VisibleTextControl
+            idPrefix="recreate"
+            mode={textMode}
             value={primaryText}
-            onChange={(event) => setPrimaryText(event.target.value)}
-            placeholder="Ej. POR FIN FUNCIONÓ"
-            className="mt-3 h-12 w-full rounded-xl bg-background px-4 text-base text-foreground outline-none ring-1 ring-white/10 focus:ring-brand/65"
+            onModeChange={setTextMode}
+            onValueChange={setPrimaryText}
+            exactTextPlaceholder={contentType === "thumbnail" ? "Ej. POR FIN FUNCIONÓ" : undefined}
+            exactTextHint={contentType === "thumbnail" ? "Máximo cinco palabras." : undefined}
+            modeError={fieldErrors.textMode ?? fieldErrors.thumbnailTextMode}
+            textError={fieldErrors.primaryText}
           />
           {compatibleStyles.length ? (
             <label className="mt-5 block text-sm font-semibold text-foreground">

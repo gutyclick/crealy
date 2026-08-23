@@ -85,7 +85,8 @@ export type ThumbnailPreset =
   | "comparison"
   | "minimal"
   | "cinematic";
-export type ThumbnailTextMode = "automatic" | "custom" | "none";
+export type GenerationTextMode = "automatic" | "custom" | "none";
+export type ThumbnailTextMode = GenerationTextMode;
 export type StyleConsistency = "flexible" | "balanced" | "strict";
 export type ThumbnailNiche =
   | "technology_ai"
@@ -177,6 +178,7 @@ export type GenerationInput = {
   coverPlatform?: CoverPlatform;
   description: string;
   primaryText?: string;
+  textMode?: GenerationTextMode;
   style: GenerationStyle;
   colorPreference: ColorPreference;
   customColors?: string[];

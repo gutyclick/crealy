@@ -63,7 +63,11 @@ export function buildRecreatePrompt(input: GenerationInput) {
     "La primera imagen adjunta es el plano visual obligatorio. Conserva su idea, distribución, jerarquía, escala relativa, dirección de lectura, zonas de texto, profundidad y tensión visual.",
     "Antes de generar, identifica los espacios funcionales de la referencia base. Sustituye cada espacio solo por un elemento propio compatible: persona por persona, producto por producto, fondo por fondo y apoyo por apoyo.",
     `Objetivo nuevo del usuario: ${input.description}`,
-    input.primaryText ? `Texto nuevo permitido: ${input.primaryText}` : "No reproduzcas el texto visible de la referencia.",
+    input.textMode === "custom" && input.primaryText
+      ? `Texto nuevo permitido: ${input.primaryText}. No añadas ninguna otra palabra.`
+      : input.textMode === "automatic"
+        ? "Sustituye el texto de la referencia por una frase breve extraída del nuevo brief; nunca copies el texto original."
+        : "El resultado no debe contener texto visible. Elimina también el texto de la referencia sin reemplazarlo por letras o caracteres.",
     `Categoría y formato de destino: ${input.contentType}, ${input.variant}.`,
     `Composición: ${blueprint.composition}`,
     `Jerarquía: ${blueprint.hierarchy}`,

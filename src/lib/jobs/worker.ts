@@ -356,6 +356,10 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       (generationMetadata.thumbnailPreset as GenerationInput["thumbnailPreset"]) ?? undefined,
     thumbnailTextMode:
       (generationMetadata.thumbnailTextMode as GenerationInput["thumbnailTextMode"]) ?? undefined,
+    textMode:
+      (generationMetadata.textMode as GenerationInput["textMode"]) ??
+      (generationMetadata.thumbnailTextMode as GenerationInput["textMode"]) ??
+      (generation.primary_text ? "custom" : "none"),
     brandStyleId: generation.brand_style_id ?? undefined,
     styleConsistency: (generation.style_consistency as GenerationInput["styleConsistency"]) ?? undefined,
     creationMode: generationMetadata.creationMode === "recreate" ? "recreate" : "create",

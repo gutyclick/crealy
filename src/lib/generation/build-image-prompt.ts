@@ -75,10 +75,18 @@ export function buildImagePrompt(input: GenerationInput) {
       ? resolveAutomaticStyle(input)
       : input.style;
   const style = getVisualStyle(resolvedStyle);
-  const visibleText =
-    product.acceptsText && input.primaryText
-      ? `Incluye únicamente este texto visible y prioriza su legibilidad: "${input.primaryText}".`
-      : "No añadas titulares, palabras, logotipos ni marcas de agua no solicitados.";
+  const textMode = product.acceptsText
+    ? input.textMode ?? input.thumbnailTextMode ?? "none"
+    : "none";
+  const visibleText = textMode === "custom" && input.primaryText
+    ? `Incluye únicamente este texto visible y prioriza su legibilidad: "${input.primaryText}". No añadas ninguna otra palabra.`
+    : textMode === "automatic"
+      ? [
+          "Crea un único texto visible breve a partir del brief.",
+          "Resume la idea concreta; no inventes un gancho genérico ni repitas todo el brief.",
+          "Hazlo legible en el formato final y no añadas texto secundario, logos ni marcas de agua.",
+        ].join(" ")
+      : "SALIDA SIN TEXTO: no dibujes letras, palabras, números, titulares, etiquetas, logotipos, marcas de agua ni caracteres decorativos. Comunica el brief únicamente con la imagen.";
 
   return [
     recreatePrompt,

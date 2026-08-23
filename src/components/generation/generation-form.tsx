@@ -16,7 +16,6 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,6 +23,7 @@ import {
   ReferenceImagePicker,
   type ReferenceDraft,
 } from "@/components/generation/reference-image-picker";
+import { VisibleTextControl } from "@/components/generation/visible-text-control";
 import { CREATION_QUEUED_EVENT } from "@/components/dashboard/creation-notification-center";
 import {
   GENERATION_PRODUCTS,
@@ -38,10 +38,7 @@ import {
   getVariantForPlatform,
 } from "@/config/generation-products";
 import { GENERATION_COLORS, GENERATION_STYLES } from "@/config/generation";
-import {
-  THUMBNAIL_PRESETS,
-  THUMBNAIL_TEXT_MODES,
-} from "@/config/thumbnail-creation";
+import { THUMBNAIL_PRESETS } from "@/config/thumbnail-creation";
 import { isVisualStyleCompatible } from "@/config/visual-styles";
 import { trackConversion } from "@/lib/analytics/events";
 import { normalizeHexColor } from "@/lib/colors/normalize-hex-color";
@@ -62,11 +59,11 @@ import type {
   GenerationPlatform,
   GenerationQuality,
   GenerationStyle,
+  GenerationTextMode,
   ProfileBackground,
   ProfileIntensity,
   ProfileMode,
   ThumbnailPreset,
-  ThumbnailTextMode,
 } from "@/types/generation";
 import type { QueuedGenerationResponse } from "@/types/jobs";
 import type { BrandStyle, StyleConsistency } from "@/types/brand-style";
@@ -152,8 +149,7 @@ export function GenerationForm({
   );
   const [thumbnailPreset, setThumbnailPreset] =
     useState<ThumbnailPreset>(initialOnboardingObjective?.thumbnailPreset ?? "impactful");
-  const [thumbnailTextMode, setThumbnailTextMode] =
-    useState<ThumbnailTextMode>("automatic");
+  const [textMode, setTextMode] = useState<GenerationTextMode | null>(null);
   const [brandStyleId, setBrandStyleId] = useState(() =>
     brandStyles.some((item) => item.id === initialBrandStyleId)
       ? initialBrandStyleId
@@ -316,9 +312,10 @@ export function GenerationForm({
           contentType,
           platform,
           description,
-          primaryText: product.acceptsText
+          primaryText: product.acceptsText && textMode === "custom"
             ? primaryText.trim() || undefined
             : undefined,
+          textMode: product.acceptsText ? textMode : "none",
           style,
           colorPreference,
           customColors: colorPreference === "custom" ? customColors : undefined,
@@ -342,7 +339,7 @@ export function GenerationForm({
           thumbnailPreset:
             contentType === "thumbnail" ? thumbnailPreset : undefined,
           thumbnailTextMode:
-            contentType === "thumbnail" ? thumbnailTextMode : undefined,
+            contentType === "thumbnail" ? textMode : undefined,
           brandStyleId,
           styleConsistency: brandStyleId ? styleConsistency : undefined,
         }),
@@ -852,81 +849,18 @@ export function GenerationForm({
           </fieldset>
         ) : null}
 
-        {contentType === "thumbnail" ? (
-          <fieldset className="mt-7">
-            <legend className="text-sm font-semibold text-foreground">
-              Texto de la miniatura
-            </legend>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {THUMBNAIL_TEXT_MODES.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  aria-pressed={thumbnailTextMode === item.id}
-                  onClick={() => setThumbnailTextMode(item.id)}
-                  className={cn(
-                    "rounded-xl p-4 text-left transition-colors",
-                    thumbnailTextMode === item.id
-                      ? "bg-brand/[0.09] ring-1 ring-brand/65"
-                      : "bg-background hover:bg-white/[0.055]",
-                  )}
-                >
-                  <span className="text-sm font-semibold text-foreground">
-                    {item.label}
-                  </span>
-                  <span className="mt-1.5 block text-xs leading-5 text-muted">
-                    {item.description}
-                  </span>
-                </button>
-              ))}
-            </div>
-            {thumbnailTextMode === "custom" ? (
-              <div className="mt-3">
-                <label htmlFor="primaryText" className="sr-only">
-                  Texto exacto
-                </label>
-                <input
-                  id="primaryText"
-                  value={primaryText}
-                  onChange={(event) => setPrimaryText(event.target.value)}
-                  maxLength={80}
-                  placeholder="Ej. SOLO UNA SIRVE"
-                  className="h-12 w-full rounded-xl bg-background px-4 text-sm text-foreground outline-none ring-1 ring-white/10 placeholder:text-white/35 focus:ring-brand/65"
-                />
-                <p className="mt-2 text-xs text-muted">
-                  Máximo cinco palabras.
-                </p>
-              </div>
-            ) : null}
-            {fieldErrors.thumbnailTextMode ? (
-              <FieldError message={fieldErrors.thumbnailTextMode} />
-            ) : null}
-            {fieldErrors.primaryText ? (
-              <FieldError message={fieldErrors.primaryText} />
-            ) : null}
-          </fieldset>
-        ) : product.acceptsText ? (
-          <div className="mt-6">
-            <label
-              htmlFor="primaryText"
-              className="text-sm font-semibold text-foreground"
-            >
-              Texto visible{" "}
-              <span className="font-normal text-muted">(opcional)</span>
-            </label>
-            <input
-              id="primaryText"
-              value={primaryText}
-              onChange={(event) => setPrimaryText(event.target.value)}
-              maxLength={120}
-              placeholder="Ej. Crea más. Publica mejor."
-              className="mt-3 h-12 w-full rounded-xl bg-background px-4 text-sm text-foreground outline-none ring-1 ring-white/10 placeholder:text-white/35 focus:ring-brand/65"
-            />
-            <p className="mt-2 text-xs leading-5 text-muted">
-              Usa una frase breve. La tipografía generada puede variar
-              ligeramente.
-            </p>
-          </div>
+        {product.acceptsText ? (
+          <VisibleTextControl
+            idPrefix="creation"
+            mode={textMode}
+            value={primaryText}
+            onModeChange={setTextMode}
+            onValueChange={setPrimaryText}
+            exactTextPlaceholder={contentType === "thumbnail" ? "Ej. SOLO UNA SIRVE" : undefined}
+            exactTextHint={contentType === "thumbnail" ? "Máximo cinco palabras." : undefined}
+            modeError={fieldErrors.textMode ?? fieldErrors.thumbnailTextMode}
+            textError={fieldErrors.primaryText}
+          />
         ) : null}
 
         <div id="creation-direction" className="scroll-mt-40 mt-6">
@@ -955,7 +889,7 @@ export function GenerationForm({
             <legend className="text-sm font-semibold text-foreground">
               Estilo visual
             </legend>
-            <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {styles.map((item) => (
                 <button
                   type="button"
@@ -963,34 +897,14 @@ export function GenerationForm({
                   aria-pressed={style === item.id}
                   onClick={() => setStyle(item.id)}
                   className={cn(
-                    "group relative min-w-40 snap-start overflow-hidden rounded-xl bg-background text-left outline-none ring-1 focus-visible:ring-2 focus-visible:ring-brand sm:min-w-0",
-                    style === item.id ? "ring-brand/70" : "ring-white/10",
+                    "flex min-h-12 items-center justify-between gap-2 rounded-xl px-3.5 py-3 text-left text-sm font-semibold outline-none ring-1 transition-colors focus-visible:ring-2 focus-visible:ring-brand",
+                    style === item.id
+                      ? "bg-brand/[0.09] text-foreground ring-brand/70"
+                      : "bg-background text-muted ring-white/10 hover:bg-white/[0.055] hover:text-foreground",
                   )}
                 >
-                  <span className="relative block aspect-[16/9] overflow-hidden bg-[#171812]">
-                    {item.previewAsset ? (
-                      <Image
-                        src={item.previewAsset}
-                        alt={`Ejemplo de estilo ${item.label}`}
-                        fill
-                        sizes="180px"
-                        className="object-cover opacity-80 transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                      />
-                    ) : (
-                      <span className="absolute inset-0 grid place-items-center text-2xl text-brand">
-                        ✦
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex items-center justify-between gap-2 px-3 py-3 text-xs font-semibold text-foreground">
-                    {item.label}
-                    {style === item.id ? (
-                      <Check
-                        aria-hidden="true"
-                        className="size-3.5 text-brand"
-                      />
-                    ) : null}
-                  </span>
+                  {item.label}
+                  {style === item.id ? <Check aria-hidden="true" className="size-4 shrink-0 text-brand" /> : null}
                 </button>
               ))}
             </div>

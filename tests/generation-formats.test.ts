@@ -45,6 +45,7 @@ const validInput = {
   variant: "thumbnail-standard",
   format: "thumbnail-standard",
   quality: "standard",
+  textMode: "automatic",
 };
 
 test("thumbnail has one canonical creation format, dimensions and cost", () => {
@@ -62,7 +63,30 @@ test("thumbnail has one canonical creation format, dimensions and cost", () => {
   assert.equal(validated.success, true);
   if (validated.success) {
     assert.equal(validated.data.thumbnailPreset, "impactful");
+    assert.equal(validated.data.textMode, "automatic");
     assert.equal(validated.data.thumbnailTextMode, "automatic");
+  }
+});
+
+test("text choice is explicit for every text-capable format", () => {
+  const missingChoice = validateGenerationInput({
+    ...validInput,
+    textMode: undefined,
+  });
+  assert.equal(missingChoice.success, false);
+  if (!missingChoice.success) {
+    assert.equal(missingChoice.fields.textMode, "Indica si quieres texto visible en el diseño.");
+  }
+
+  const withoutVisibleText = validateGenerationInput({
+    ...validInput,
+    textMode: "none",
+    primaryText: "NO DEBE APARECER",
+  });
+  assert.equal(withoutVisibleText.success, true);
+  if (withoutVisibleText.success) {
+    assert.equal(withoutVisibleText.data.textMode, "none");
+    assert.equal(withoutVisibleText.data.primaryText, undefined);
   }
 });
 
@@ -74,6 +98,7 @@ test("thumbnail creation exposes presets and explicit text modes", () => {
   assert.equal(validateGenerationInput({
     ...validInput,
     thumbnailPreset: "curiosity",
+    textMode: "custom",
     thumbnailTextMode: "custom",
   }).success, false);
 });

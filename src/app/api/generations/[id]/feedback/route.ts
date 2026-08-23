@@ -102,6 +102,7 @@ export async function PUT(
     generationIntent: metadata.generationIntent ?? "initial",
     thumbnailPreset: metadata.thumbnailPreset ?? null,
     thumbnailTextMode: metadata.thumbnailTextMode ?? null,
+    textMode: metadata.textMode ?? metadata.thumbnailTextMode ?? null,
     recreateSimilarity: metadata.recreateSimilarity ?? null,
     recreateFocus: metadata.recreateFocus ?? null,
     recreateGoal: metadata.recreateGoal ?? null,

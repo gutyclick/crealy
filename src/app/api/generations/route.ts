@@ -399,6 +399,7 @@ export async function POST(request: Request) {
           videoTitle: input.videoTitle ?? null,
           thumbnailPreset: input.thumbnailPreset ?? null,
           thumbnailTextMode: input.thumbnailTextMode ?? null,
+          textMode: input.textMode ?? "none",
           generationCount: 1,
           downloaded: false,
           variationRequested: false,

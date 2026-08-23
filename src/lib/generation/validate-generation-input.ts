@@ -28,6 +28,7 @@ import type {
   GenerationPlatform,
   GenerationQuality,
   GenerationStyle,
+  GenerationTextMode,
   ProfileBackground,
   ProfileIntensity,
   ProfileMode,
@@ -346,6 +347,23 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     if (!profileBackground) fields.profileBackground = "Elige un fondo.";
   }
 
+  const rawTextMode = typeof rawInput.textMode === "string"
+    ? rawInput.textMode
+    : typeof rawInput.thumbnailTextMode === "string"
+      ? rawInput.thumbnailTextMode
+      : undefined;
+  let textMode: GenerationTextMode = "none";
+  if (product?.acceptsText) {
+    if (!rawTextMode || !THUMBNAIL_TEXT_MODE_IDS.has(rawTextMode as ThumbnailTextMode)) {
+      fields.textMode = "Indica si quieres texto visible en el diseño.";
+    } else {
+      textMode = rawTextMode as GenerationTextMode;
+    }
+    if (textMode === "custom" && !primaryText) {
+      fields.primaryText = "Escribe el texto exacto que debe aparecer en el diseño.";
+    }
+  }
+
   let videoTitle: string | undefined;
   let thumbnailPreset: ThumbnailPreset | undefined;
   let thumbnailTextMode: ThumbnailTextMode | undefined;
@@ -361,14 +379,7 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       THUMBNAIL_PRESET_IDS.has(rawInput.thumbnailPreset as ThumbnailPreset)
         ? rawInput.thumbnailPreset as ThumbnailPreset
         : "impactful";
-    thumbnailTextMode =
-      typeof rawInput.thumbnailTextMode === "string" &&
-      THUMBNAIL_TEXT_MODE_IDS.has(rawInput.thumbnailTextMode as ThumbnailTextMode)
-        ? rawInput.thumbnailTextMode as ThumbnailTextMode
-        : "automatic";
-    if (thumbnailTextMode === "custom" && !primaryText) {
-      fields.primaryText = "Escribe el texto que debe aparecer en la miniatura.";
-    }
+    thumbnailTextMode = textMode;
     if (thumbnailTextMode === "custom" && primaryText.trim().split(/\s+/).length > 5) {
       fields.primaryText = "Usa un máximo de cinco palabras.";
     }
@@ -387,7 +398,8 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       ...(platform ? { platform } : {}),
       ...(contentType === "social-cover" ? { coverPlatform: platform as GenerationInput["coverPlatform"] } : {}),
       description,
-      ...(primaryText && product?.acceptsText ? { primaryText } : {}),
+      ...(primaryText && product?.acceptsText && textMode === "custom" ? { primaryText } : {}),
+      textMode,
       style: style as GenerationStyle,
       colorPreference: colorPreference as ColorPreference,
       ...(customColors ? { customColors } : {}),
