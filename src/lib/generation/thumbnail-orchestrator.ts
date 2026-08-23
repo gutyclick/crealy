@@ -17,9 +17,11 @@ const conceptSchema = {
     archetype: { type: "string", enum: THUMBNAIL_ARCHETYPES.map((item) => item.id) },
     concept: { type: "string" }, thumbnailText: { type: "string" },
     mainSubject: { type: "string" }, composition: { type: "string" },
+    textPlacement: { type: "string" }, textScale: { type: "string" },
+    textIntegration: { type: "string" },
     score: { type: "integer", minimum: 0, maximum: 100 },
   },
-  required: ["strategy", "archetype", "concept", "thumbnailText", "mainSubject", "composition", "score"],
+  required: ["strategy", "archetype", "concept", "thumbnailText", "mainSubject", "composition", "textPlacement", "textScale", "textIntegration", "score"],
 } as const;
 
 const planSchema = {
@@ -37,6 +39,10 @@ const planSchema = {
         eventSummary: { type: "string" }, ordinaryBaseline: { type: "string" },
         anomaly: { type: "string" }, viewerQuestion: { type: "string" },
         causalChain: { type: "string" },
+        explicitVisualFacts: { type: "array", items: { type: "string" }, maxItems: 8 },
+        unknownVisualDetails: { type: "array", items: { type: "string" }, maxItems: 8 },
+        forbiddenInventions: { type: "array", items: { type: "string" }, maxItems: 8 },
+        controlledAmbiguity: { type: "string" }, brandMarkDirection: { type: "string" },
         curiosityGap: { type: "string" }, revealDevice: { type: "string" },
         revealPayoff: { type: "string" }, revealJustification: { type: "string" },
         impactCore: { type: "string" }, stakes: { type: "string" },
@@ -50,7 +56,7 @@ const planSchema = {
         visualPriority: { type: "string" },
         avoid: { type: "array", items: { type: "string" }, maxItems: 8 },
       },
-      required: ["topic", "videoTitle", "niche", "contentType", "audience", "mainPromise", "narrativeContext", "eventSummary", "ordinaryBaseline", "anomaly", "viewerQuestion", "causalChain", "curiosityGap", "revealDevice", "revealPayoff", "revealJustification", "impactCore", "stakes", "emotionalMechanism", "emotionalReasoning", "visualProof", "reactionDirection", "primaryEmotion", "secondaryEmotion", "mainSubject", "supportingObject", "recommendedText", "textPrimaryColor", "textAccentColor", "textColorReason", "visualPriority", "avoid"],
+      required: ["topic", "videoTitle", "niche", "contentType", "audience", "mainPromise", "narrativeContext", "eventSummary", "ordinaryBaseline", "anomaly", "viewerQuestion", "causalChain", "explicitVisualFacts", "unknownVisualDetails", "forbiddenInventions", "controlledAmbiguity", "brandMarkDirection", "curiosityGap", "revealDevice", "revealPayoff", "revealJustification", "impactCore", "stakes", "emotionalMechanism", "emotionalReasoning", "visualProof", "reactionDirection", "primaryEmotion", "secondaryEmotion", "mainSubject", "supportingObject", "recommendedText", "textPrimaryColor", "textAccentColor", "textColorReason", "visualPriority", "avoid"],
     },
     concepts: { type: "array", items: conceptSchema, minItems: 3, maxItems: 3 },
     selectedConceptIndex: { type: "integer", minimum: 0, maximum: 2 },
@@ -126,6 +132,9 @@ const TYPE_TREATMENTS = [
   "texto de gran escala parcialmente detrás del protagonista sin perder legibilidad",
   "titular corto dentro de una forma editorial de alto contraste",
   "tipografía inclinada siguiendo la tensión de la composición",
+  "etiqueta breve y sutil integrada en una pantalla u objeto narrativo",
+  "titular central contenido que conecta sujeto y evidencia sin taparlos",
+  "texto pequeño anclado a un borde como detalle editorial intencional",
 ] as const;
 
 export function thumbnailCreativeSignature(input: GenerationInput) {
@@ -154,6 +163,11 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     `Meaningful anomaly: ${plan.brief.anomaly}`,
     `Viewer's open question: ${plan.brief.viewerQuestion}`,
     `Causal chain: ${plan.brief.causalChain}`,
+    `Confirmed visual facts: ${plan.brief.explicitVisualFacts.join("; ") || "none beyond the supplied brief"}.`,
+    `Unknown visual details: ${plan.brief.unknownVisualDetails.join("; ") || "none"}.`,
+    `Forbidden inventions: ${plan.brief.forbiddenInventions.join("; ") || "none"}. Do not depict these as concrete facts.`,
+    `Controlled ambiguity: ${plan.brief.controlledAmbiguity}.`,
+    `Brand direction: ${plan.brief.brandMarkDirection}.`,
     `Curiosity gap: ${plan.brief.curiosityGap}`,
     `Reveal device: ${plan.brief.revealDevice}. Expected payoff: ${plan.brief.revealPayoff}. Why it fits: ${plan.brief.revealJustification}`,
     `Click-driving impact core: ${plan.brief.impactCore}. This must be the most immediate visual fact after the face, not background decoration.`,
@@ -162,14 +176,15 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     `Primary emotion: ${plan.brief.primaryEmotion}`, `Natural reaction direction: ${plan.brief.reactionDirection}`,
     `Main concept: ${plan.selectedConcept.concept}`,
     `Composition: ${plan.selectedConcept.composition}`, `Main subject: ${plan.selectedConcept.mainSubject}`,
+    `Text placement: ${plan.selectedConcept.textPlacement}. Text scale: ${plan.selectedConcept.textScale}. Text integration: ${plan.selectedConcept.textIntegration}. These are deliberate composition decisions, not defaults.`,
     `Supporting element: ${plan.brief.supportingObject || "none"}`, "",
     input.peopleMode === "none"
       ? "People: render no people, faces, hands, human silhouettes or background figures."
       : input.peopleMode === "uploaded"
         ? `People: show exactly ${input.peopleCount} distinct uploaded ${input.peopleCount === 1 ? "person" : "people"}. Every uploaded face is mandatory. Preserve each identity; never merge, duplicate or add people.`
         : `People: generate exactly ${input.peopleCount} narratively necessary ${input.peopleCount === 1 ? "person" : "people"}. No stock posing, crowds or background faces.`,
-    text ? `Thumbnail text: Render exactly "${text}". Do not add any other words, letters, logos, labels, or interface text.` : "Thumbnail text: Do not render any text, letters, logos, labels, or interface elements.",
-    "Typography: large, bold, highly readable YouTube thumbnail typography with strong contrast and clean separation from the background.",
+    text ? `Thumbnail text: Render exactly "${text}". Do not add any other words, letters, labels or interface text. A brand mark is allowed only when brandMarkDirection explicitly authorizes it; it remains small and secondary.` : "Thumbnail text: Do not render editorial text, labels or interface copy. A brand mark is allowed only when brandMarkDirection explicitly authorizes it; otherwise render no letters or logos.",
+    "Typography: highly readable at mobile size, but not automatically huge, right-aligned, extruded or detached from the scene. Follow the selected placement, scale and integration. It may be centered, compact, subtle, overlap a subject safely, follow an object, or live inside a real compositional surface when that improves the idea.",
     text ? `Text color direction: primary ${plan.brief.textPrimaryColor}; accent ${plan.brief.textAccentColor}. Reason: ${plan.brief.textColorReason}. Use one dominant text color and at most one accent; add a dark outline or shadow only when needed for mobile contrast.` : "",
     text ? input.colorPreference === "custom" && input.customColors?.length
       ? `The text must use only colors from the user's palette: ${input.customColors.join(", ")}. Choose the most legible roles within it.`
@@ -214,7 +229,12 @@ function fallbackImpactDirection(input: GenerationInput, impactCore: string) {
     viewerQuestion: "Qué ocurrió, qué cambió o cuál fue el resultado concreto de esta situación",
     causalChain: "Situación descrita → elemento extraordinario → consecuencia pendiente de descubrir",
     curiosityGap: "La consecuencia concreta que el espectador todavía no conoce",
-    revealDevice: "Revelación parcial localizada sobre la evidencia, sin ocultar el tema principal",
+    explicitVisualFacts: [eventSummary],
+    unknownVisualDetails: ["Cualquier apariencia, resultado o atributo que el título y el brief no describan"],
+    forbiddenInventions: ["Género, personajes, interfaz, escenario o resultado concreto no confirmado por el usuario"],
+    controlledAmbiguity: "No ocultar nada por defecto; si un dato visual esencial falta, representarlo solo como una zona localizada e inequívocamente no revelada",
+    brandMarkDirection: "Usar una marca solo si fue nombrada explícitamente y aporta contexto; si no puede representarse con precisión, omitirla o escribir el nombre sin imitar el logotipo",
+    revealDevice: "Ninguno por defecto; usar ocultación localizada solo cuando exista un resultado realmente desconocido",
     revealPayoff: "Entender el resultado o consecuencia al ver el video",
     revealJustification: "La ocultación conserva una pregunta específica sin volver genérica la miniatura",
     impactCore,
@@ -250,7 +270,10 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
       concept: `Hacer visible ${impact.impactCore} de forma inmediata y sin elementos innecesarios.`,
       thumbnailText: requestedText,
       mainSubject: input.peopleMode === "uploaded" ? "Cada persona de referencia con identidad distinguible" : "El resultado principal del tema",
-      composition: `Protagonista reaccionando en primer plano y ${impact.impactCore} como evidencia visual dominante al lado opuesto.`,
+      composition: `Protagonista reaccionando en primer plano y ${impact.impactCore} como evidencia visual dominante, ubicados según la mirada, el peso óptico y el espacio disponible; no asumir izquierda o derecha.`,
+      textPlacement: "En el espacio negativo que deje libre la evidencia; no asumir el lado derecho",
+      textScale: "Media o dominante según la carga visual, sin cubrir el payoff",
+      textIntegration: "Anclado a la geometría real de la escena, sin bloque flotante genérico",
       score: 88,
     },
     {
@@ -260,6 +283,9 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
       thumbnailText: requestedText,
       mainSubject: input.peopleMode === "uploaded" ? "Las personas de referencia con expresiones legibles y diferenciadas" : "Un momento narrativo reconocible",
       composition: "Primer plano emocional con un único elemento secundario que explique la situación.",
+      textPlacement: "Centrado, lateral o superpuesto parcialmente según mirada y espacio negativo",
+      textScale: "Secundaria frente a la expresión y la evidencia",
+      textIntegration: "Como acento editorial conectado al gesto, no como póster 3D",
       score: 82,
     },
     {
@@ -269,6 +295,9 @@ export function buildFallbackThumbnailPlan(input: GenerationInput): ThumbnailCre
       thumbnailText: requestedText,
       mainSubject: input.peopleMode === "uploaded" ? "Las personas de referencia relacionadas con el elemento clave" : "El elemento inesperado del tema",
       composition: "Foco principal grande, elemento parcialmente revelado y espacio limpio para el texto.",
+      textPlacement: "Junto a la pista visual o integrado en el objeto que contiene el misterio",
+      textScale: "Compacta; solo dominante si la frase es el concepto",
+      textIntegration: "Debe señalar la pregunta visual sin explicar ni tapar el resultado",
       score: 80,
     },
   ];
@@ -327,6 +356,9 @@ export async function planThumbnail(
       "Detecta el nicho. Si la confianza es baja usa general. Crea exactamente tres conceptos textuales realmente distintos: claridad, emoción y curiosidad.",
       "Usa un análisis semántico abierto, no una tabla de palabras, temas, nichos, emociones ni ejemplos memorizados. Debe funcionar también con situaciones que nunca hayas visto.",
       "Antes de proponer conceptos, ejecuta esta cadena: (1) resume literalmente qué sucede; (2) establece qué sería lo ordinario en ese contexto; (3) identifica la desviación que vuelve particular la historia; (4) determina qué se puede ganar, perder, descubrir o transformar; (5) formula la pregunta concreta que queda abierta para el espectador; (6) deriva la emoción de esa relación causal; (7) define la evidencia visual que permite entenderla sin leer el título.",
+      "AUDITORÍA DE ESPECIFICIDAD OBLIGATORIA: separa explicitVisualFacts de unknownVisualDetails. Todo objeto, marca, persona, lugar, apariencia y resultado concreto debe estar respaldado por el título, brief o una referencia. Convierte cada dato desconocido relevante en forbiddenInventions; no completes vacíos con una fantasía plausible.",
+      "Si el usuario dice que creó un juego pero no describe cuál, NO inventes género, pixel art, personajes, enemigos, castillos, interfaz ni escenario. Puedes mostrar una pantalla reconocible como proceso o resultado de juego, pero el contenido desconocido debe permanecer fuera de cuadro, tapado por reflejo, recortado o con blur localizado. La ausencia de información se convierte en intriga controlada, no en una afirmación falsa.",
+      "Las marcas solo pueden aparecer cuando el usuario las nombró expresamente o son indispensables para entender la historia. Usa como máximo una o dos, pequeñas y secundarias; no inventes logotipos, no alteres su apariencia y no insinúes patrocinio, alianza o aval. Si no puedes representar una marca con precisión, omítela o usa su nombre en texto plano.",
       "RAZONA LA EMOCIÓN, NO LA ASIGNES POR LA FORMA DEL TÍTULO NI POR UNA PALABRA AISLADA. Interpreta conjuntamente acción, sujeto, objeto, modificadores, duración, escala, restricción, contraste, incertidumbre y consecuencia. Explica la cadena causal antes de elegir emoción, reacción o atmósfera.",
       "No uses una taxonomía cerrada. Puedes devolver emociones precisas o combinadas cuando estén justificadas. Si el título es ambiguo, usa el brief; si ambos son ambiguos, conserva incertidumbre o curiosidad honesta en vez de inventar peligro, éxito, escándalo o sorpresa.",
       "Aplica una prueba contrafactual: imagina que cambia el objeto, la acción o la consecuencia manteniendo la misma sintaxis. Si mantendrías automáticamente la misma emoción o composición, tu razonamiento es genérico y debes rehacerlo.",
@@ -343,6 +375,7 @@ export async function planThumbnail(
         : "Elige los colores del texto después de razonar sobre fondo, emoción y semántica. Prioriza blanco, amarillo, rojo o verde; usa celeste u otro color solo si supera claramente el contraste. Devuelve color principal, acento y motivo. No elijas siempre blanco y amarillo.",
       "Prohibido devolver ganchos intercambiables como ¿QUÉ PASÓ?, NO LO CREERÁS, INCREÍBLE, IMPACTANTE o TIENES QUE VERLO.",
       "Los tres conceptos deben diferir en metáfora, encuadre, jerarquía, texto y emoción; no son variaciones cosméticas de una plantilla.",
+      "Para cada concepto decide textPlacement, textScale y textIntegration DESPUÉS de decidir sujeto, mirada, evidencia y espacio negativo. No uses por defecto el lado derecho ni texto enorme con extrusión 3D. Entre los tres conceptos debe existir variedad material: central o integrado, lateral o superpuesto, y una solución compacta o sutil cuando corresponda.",
       `Cumple de forma visible el preset ${preset.label}:`,
       ...THUMBNAIL_PRESET_CRAFT[preset.id],
       `Cumple también el estilo ${visualStyle.label}:`,

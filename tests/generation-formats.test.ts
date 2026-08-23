@@ -172,12 +172,24 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
     }),
     "SERPIENTES VENENOSAS",
   );
+  assert.equal(
+    deriveAutomaticThumbnailText({
+      videoTitle: "Programé un juego usando CODEX sin saber programar en 24 horas",
+      description: "Documenté todo el proceso y el resultado.",
+    }),
+    "JUEGO CON CODEX",
+  );
   assert.match(orchestrator, /núcleo de impacto/i);
   assert.match(orchestrator, /RAZONA LA EMOCIÓN/i);
   assert.match(orchestrator, /análisis semántico abierto/i);
   assert.match(orchestrator, /prueba contrafactual/i);
   assert.match(orchestrator, /desenfoque localizado/i);
   assert.match(orchestrator, /revealJustification/);
+  assert.match(orchestrator, /AUDITORÍA DE ESPECIFICIDAD OBLIGATORIA/);
+  assert.match(orchestrator, /unknownVisualDetails/);
+  assert.match(orchestrator, /no inventes género, pixel art, personajes/i);
+  assert.match(orchestrator, /textPlacement, textScale y textIntegration/);
+  assert.match(orchestrator, /no uses por defecto el lado derecho/i);
   assert.match(orchestrator, /evento → anomalía → consecuencia/i);
   assert.match(orchestrator, /viewerQuestion/);
   assert.doesNotMatch(orchestrator, /72 horas comiendo comida rápida/i);

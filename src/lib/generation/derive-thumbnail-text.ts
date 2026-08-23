@@ -43,7 +43,13 @@ function explicitlyEmphasizedPhrase(source: string) {
   const last = emphasized.at(-1)!;
   let start = last.index;
   while (start > 0 && emphasized.some(({ index }) => index === start - 1)) start -= 1;
-  if (start === last.index && start > 0) start -= 1;
+  if (start === last.index && start > 0) {
+    const connector = normalizeForComparison(sourceTokens[start - 1]);
+    if (["USANDO", "MEDIANTE", "CON"].includes(connector) && start > 1) {
+      return `${sourceTokens[start - 2]} CON ${last.token}`.toLocaleUpperCase("es");
+    }
+    start -= 1;
+  }
   return sourceTokens.slice(start, last.index + 1).join(" ").toLocaleUpperCase("es");
 }
 

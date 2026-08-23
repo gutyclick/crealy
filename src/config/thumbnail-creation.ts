@@ -66,6 +66,10 @@ export const THUMBNAIL_DISTINCTIVENESS_RULES = [
   "Cada nueva generación debe cambiar encuadre, ritmo, relación de escala o metáfora visual",
   "No recurras siempre a texto blanco y amarillo: decide el color por contraste, emoción y escena",
   "El acabado debe ser específico del nicho y del relato, nunca una plantilla de miniatura genérica",
+  "No coloques sistemáticamente un titular enorme a la derecha: decide posición, escala y alineación a partir de la mirada, la evidencia y el espacio negativo",
+  "El texto puede ser central, compacto, sutil, superpuesto o integrado en una superficie; evita que todas las piezas parezcan el mismo póster 3D",
+  "No inventes una representación concreta de un resultado que el usuario no describió; usa ambigüedad localizada y legible cuando ese vacío sostenga una curiosidad honesta",
+  "Las expresiones deben sentirse capturadas durante la acción, con piel y luz naturales; evita el rostro sintético de asombro usado como plantilla",
 ] as const;
 
 export const THUMBNAIL_IDENTITY_RULES = [
@@ -125,6 +129,8 @@ export const THUMBNAIL_AVOID = [
   "texto adicional inventado",
   "marcas de agua o logos aleatorios",
   "interfaces sin sentido",
+  "resultados concretos inventados para detalles que el brief deja desconocidos",
+  "logotipos aproximados, deformados o que impliquen patrocinio",
   "rostros, manos u ojos deformados",
   "objetos duplicados",
   "apariencia genérica de stock",

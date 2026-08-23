@@ -116,6 +116,9 @@ export type ThumbnailConcept = {
   thumbnailText: string;
   mainSubject: string;
   composition: string;
+  textPlacement: string;
+  textScale: string;
+  textIntegration: string;
   score: number;
 };
 
@@ -135,6 +138,11 @@ export type ThumbnailCreativePlan = {
     anomaly: string;
     viewerQuestion: string;
     causalChain: string;
+    explicitVisualFacts: string[];
+    unknownVisualDetails: string[];
+    forbiddenInventions: string[];
+    controlledAmbiguity: string;
+    brandMarkDirection: string;
     curiosityGap: string;
     revealDevice: string;
     revealPayoff: string;
