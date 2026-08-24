@@ -178,6 +178,7 @@ export function GenerationForm({
   const [personReferences, setPersonReferences] = useState<ReferenceDraft[]>([]);
   const [peopleMode, setPeopleMode] = useState<GenerationPeopleMode | null>(null);
   const [peopleCount, setPeopleCount] = useState(1);
+  const [includeElements, setIncludeElements] = useState<boolean | null>(null);
   const referencesRef = useRef(references);
   const personReferencesRef = useRef(personReferences);
 
@@ -211,8 +212,8 @@ export function GenerationForm({
   });
   const hasEnoughCredits =
     currentAvailableCredits === null || currentAvailableCredits >= creditCost;
-  const activeReferences = peopleMode === "uploaded" ? personReferences : references;
-  const setActiveReferences = peopleMode === "uploaded" ? setPersonReferences : setReferences;
+  const personReferenceSlots = peopleMode === "uploaded" ? peopleCount : 0;
+  const elementReferenceSlots = Math.max(0, 4 - personReferenceSlots);
   const styles = useMemo(
     () =>
       GENERATION_STYLES.filter((item) =>
@@ -288,14 +289,32 @@ export function GenerationForm({
       document.getElementById("creation-people")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+    if (includeElements === null) {
+      setFieldErrors({ includeElements: "Indica si quieres añadir logos, objetos, productos o fondos." });
+      document.getElementById("creation-elements")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (includeElements && !references.length) {
+      setFieldErrors({ referenceUploadIds: "Añade al menos un elemento o selecciona que no quieres usarlos." });
+      document.getElementById("creation-elements")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (includeElements && references.some((reference) => !reference.identifier?.trim())) {
+      setFieldErrors({ referenceDescriptors: "Escribe un identificador para cada elemento." });
+      document.getElementById("creation-elements")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     setResult({ status: "loading" });
     setFieldErrors({});
 
     try {
-      const referenceUploadIds = await Promise.all(
-        activeReferences.map(async (reference) => {
+      const uploadGroup = async (
+        group: ReferenceDraft[],
+        setGroup: typeof setReferences,
+      ) => Promise.all(
+        group.map(async (reference) => {
           if (reference.uploadId) return reference.uploadId;
-          setActiveReferences((current) =>
+          setGroup((current) =>
             current.map((item) =>
               item.key === reference.key
                 ? { ...item, status: "uploading" }
@@ -307,7 +326,7 @@ export function GenerationForm({
               reference.file,
               "reference",
             );
-            setActiveReferences((current) =>
+            setGroup((current) =>
               current.map((item) =>
                 item.key === reference.key
                   ? { ...item, uploadId: upload.uploadId, status: "uploaded" }
@@ -316,7 +335,7 @@ export function GenerationForm({
             );
             return upload.uploadId;
           } catch (error) {
-            setActiveReferences((current) =>
+            setGroup((current) =>
               current.map((item) =>
                 item.key === reference.key
                   ? { ...item, status: "error" }
@@ -327,6 +346,23 @@ export function GenerationForm({
           }
         }),
       );
+      const personUploadIds = peopleMode === "uploaded"
+        ? await uploadGroup(personReferences, setPersonReferences)
+        : [];
+      const elementUploadIds = includeElements
+        ? await uploadGroup(references, setReferences)
+        : [];
+      const referenceUploadIds = [...personUploadIds, ...elementUploadIds];
+      const referenceDescriptors = [
+        ...personUploadIds.map((_, index) => ({
+          kind: "person" as const,
+          identifier: `Persona ${index + 1}`,
+        })),
+        ...references.slice(0, elementUploadIds.length).map((reference) => ({
+          kind: reference.referenceKind ?? "object",
+          identifier: reference.identifier?.trim() ?? "",
+        })),
+      ];
 
       const response = await fetch("/api/generations", {
         method: "POST",
@@ -349,8 +385,12 @@ export function GenerationForm({
           quality,
           peopleMode,
           peopleCount: peopleMode === "none" ? 0 : peopleCount,
+          includeElements,
           referenceUploadIds: referenceUploadIds.length
             ? referenceUploadIds
+            : undefined,
+          referenceDescriptors: referenceDescriptors.length
+            ? referenceDescriptors
             : undefined,
           profileMode:
             contentType === "profile-image" ? profileMode : undefined,
@@ -916,6 +956,9 @@ export function GenerationForm({
                 aria-pressed={peopleMode === value}
                 onClick={() => {
                   setPeopleMode(value);
+                  if (value === "uploaded" && includeElements === true && peopleCount === 4) {
+                    setPeopleCount(3);
+                  }
                   setFieldErrors((current) => ({ ...current, peopleMode: "", referenceUploadIds: "" }));
                 }}
                 className={cn(
@@ -946,11 +989,12 @@ export function GenerationForm({
                   <button
                     key={count}
                     type="button"
+                    disabled={peopleMode === "uploaded" && (count + references.length > 4 || includeElements === true && count === 4)}
                     aria-label={`${count} ${count === 1 ? "persona" : "personas"}`}
                     aria-pressed={peopleCount === count}
                     onClick={() => setPeopleCount(count)}
                     className={cn(
-                      "grid size-11 place-items-center rounded-lg text-sm font-semibold outline-none ring-1 transition-colors focus-visible:ring-2 focus-visible:ring-brand",
+                      "grid size-11 place-items-center rounded-lg text-sm font-semibold outline-none ring-1 transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-35",
                       peopleCount === count
                         ? "bg-brand text-brand-ink ring-brand"
                         : "bg-surface text-foreground ring-white/10 hover:bg-white/[0.06]",
@@ -964,31 +1008,84 @@ export function GenerationForm({
           ) : null}
         </fieldset>
 
-        <div id="creation-direction" className="scroll-mt-40 mt-6">
-          <ReferenceImagePicker
-            references={activeReferences}
-            setReferences={setActiveReferences}
-            maxFileMb={maxReferenceFileMb}
-            maxFiles={peopleMode === "uploaded" ? peopleCount : 4}
-            disabled={result.status === "loading"}
-            title={peopleMode === "uploaded" ? "Fotos de las personas" : "Productos, objetos o referencias"}
-            description={peopleMode === "uploaded"
-              ? `Sube ${peopleCount === 1 ? "una foto clara" : "una foto clara por persona"}. Cada rostro se conservará como una identidad distinta.`
-              : "Añade objetos, productos o referencias visuales que deban formar parte de la idea."}
-          />
-          {fieldErrors.referenceUploadIds ? <FieldError message={fieldErrors.referenceUploadIds} /> : null}
-          {contentType === "profile-image" ? (
-            <p className="mt-3 flex gap-2 text-xs leading-5 text-muted">
-              <ShieldCheck
-                aria-hidden="true"
-                className="mt-0.5 size-4 shrink-0 text-brand"
-              />
-              Sube una foto, logo u objeto si necesitas fidelidad. Conservaremos
-              sus rasgos y geometría, aunque toda generación puede presentar
-              variaciones.
+        {peopleMode === "uploaded" ? (
+          <div className="mt-6">
+            <ReferenceImagePicker
+              references={personReferences}
+              setReferences={setPersonReferences}
+              maxFileMb={maxReferenceFileMb}
+              maxFiles={peopleCount}
+              disabled={result.status === "loading"}
+              title="Fotos de las personas"
+              description={`${peopleCount === 1 ? "Sube una foto clara" : "Sube una foto clara por persona"}. Cada rostro se conservará como una identidad distinta.`}
+              required
+            />
+          </div>
+        ) : null}
+
+        <fieldset id="creation-elements" className="scroll-mt-40 mt-7">
+          <legend className="text-sm font-semibold text-foreground">
+            ¿Quieres añadir elementos propios?
+          </legend>
+          <p className="mt-2 text-xs leading-5 text-muted">
+            Puedes aportar logos, productos, objetos o fondos y decirle a Crealy qué representa cada imagen.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {([
+              [true, "Sí, añadir elementos"],
+              [false, "No, crear desde el brief"],
+            ] as const).map(([value, label]) => (
+              <button
+                key={String(value)}
+                type="button"
+                disabled={value && elementReferenceSlots === 0}
+                aria-pressed={includeElements === value}
+                onClick={() => {
+                  setIncludeElements(value);
+                  setFieldErrors((current) => ({ ...current, includeElements: "", referenceUploadIds: "", referenceDescriptors: "" }));
+                }}
+                className={cn(
+                  "min-h-12 rounded-xl px-4 text-left text-sm font-semibold outline-none ring-1 transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-40",
+                  includeElements === value
+                    ? "bg-brand/[0.09] text-foreground ring-brand/65"
+                    : "bg-background text-muted ring-white/10 hover:bg-white/[0.045]",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {elementReferenceSlots === 0 ? (
+            <p className="mt-2 text-xs leading-5 text-muted">
+              Las cuatro referencias están reservadas para personas. Reduce su cantidad para añadir elementos.
             </p>
           ) : null}
-        </div>
+          {fieldErrors.includeElements ? <FieldError message={fieldErrors.includeElements} /> : null}
+        </fieldset>
+
+        {includeElements ? (
+          <div className="mt-1">
+            <ReferenceImagePicker
+              references={references}
+              setReferences={setReferences}
+              maxFileMb={maxReferenceFileMb}
+              maxFiles={elementReferenceSlots}
+              disabled={result.status === "loading"}
+              title="Elementos que deben aparecer"
+              description={`Puedes añadir ${elementReferenceSlots === 1 ? "una imagen" : `hasta ${elementReferenceSlots} imágenes`}. Usa un identificador distinto para cada una.`}
+              collectDescriptors
+              required
+            />
+            {fieldErrors.referenceUploadIds ? <FieldError message={fieldErrors.referenceUploadIds} /> : null}
+            {fieldErrors.referenceDescriptors ? <FieldError message={fieldErrors.referenceDescriptors} /> : null}
+            {contentType === "profile-image" ? (
+              <p className="mt-3 flex gap-2 text-xs leading-5 text-muted">
+                <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
+                Conservaremos los rasgos y la geometría del material, aunque toda generación puede presentar variaciones.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {contentType !== "thumbnail" ? (
           <fieldset className="mt-7">

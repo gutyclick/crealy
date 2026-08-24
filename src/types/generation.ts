@@ -187,6 +187,17 @@ export type ProfileMode =
   | "brand";
 export type ProfileIntensity = "subtle" | "balanced" | "creative";
 export type GenerationPeopleMode = "none" | "generated" | "uploaded";
+export type GenerationReferenceKind =
+  | "person"
+  | "logo"
+  | "product"
+  | "object"
+  | "background"
+  | "other";
+export type GenerationReferenceDescriptor = {
+  kind: GenerationReferenceKind;
+  identifier: string;
+};
 export type ProfileBackground =
   | "auto"
   | "white"
@@ -212,7 +223,9 @@ export type GenerationInput = {
   quality: GenerationQuality;
   peopleMode: GenerationPeopleMode;
   peopleCount: number;
+  includeElements?: boolean;
   referenceUploadIds?: string[];
+  referenceDescriptors?: GenerationReferenceDescriptor[];
   profileMode?: ProfileMode;
   profileIntensity?: ProfileIntensity;
   profileBackground?: ProfileBackground;

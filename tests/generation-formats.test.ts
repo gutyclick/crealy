@@ -169,6 +169,39 @@ test("creation supports zero to four generated or uploaded people", () => {
   if (!tooMany.success) assert.match(tooMany.fields.peopleCount, /una y cuatro/i);
 });
 
+test("creation maps uploaded people and identified visual elements without mixing their roles", () => {
+  const referenceUploadIds = [
+    "eaf1a9f6-e37d-4fe4-b17e-000000000001",
+    "eaf1a9f6-e37d-4fe4-b17e-000000000002",
+    "eaf1a9f6-e37d-4fe4-b17e-000000000003",
+  ];
+  const combined = validateGenerationInput({
+    ...validInput,
+    peopleMode: "uploaded",
+    peopleCount: 1,
+    includeElements: true,
+    referenceUploadIds,
+    referenceDescriptors: [
+      { kind: "person", identifier: "Persona 1" },
+      { kind: "logo", identifier: "Logo de Crealy" },
+      { kind: "product", identifier: "Botella principal" },
+    ],
+  });
+  assert.equal(combined.success, true);
+  if (combined.success) {
+    assert.equal(combined.data.referenceDescriptors?.[1]?.identifier, "Logo de Crealy");
+  }
+
+  const unidentified = validateGenerationInput({
+    ...validInput,
+    includeElements: true,
+    referenceUploadIds: [referenceUploadIds[1]],
+    referenceDescriptors: [{ kind: "logo", identifier: "" }],
+  });
+  assert.equal(unidentified.success, false);
+  if (!unidentified.success) assert.ok(unidentified.fields.referenceDescriptors);
+});
+
 test("automatic thumbnail copy is contextual and presets have enforceable craft", () => {
   const orchestrator = readFileSync(
     new URL("../src/lib/generation/thumbnail-orchestrator.ts", import.meta.url),

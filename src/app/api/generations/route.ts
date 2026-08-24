@@ -402,6 +402,8 @@ export async function POST(request: Request) {
           textMode: input.textMode ?? "none",
           peopleMode: input.peopleMode,
           peopleCount: input.peopleCount,
+          includeElements: input.includeElements ?? null,
+          referenceDescriptors: input.referenceDescriptors ?? null,
           generationCount: 1,
           downloaded: false,
           variationRequested: false,

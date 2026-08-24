@@ -72,7 +72,7 @@ function peoplePrompt(input: GenerationInput) {
   if (input.peopleMode === "uploaded") {
     return [
       `PERSONAS PROPIAS: deben aparecer exactamente ${input.peopleCount}.`,
-      "Cada imagen de referencia corresponde a una persona distinta y obligatoria.",
+      `Las primeras ${input.peopleCount} ${input.peopleCount === 1 ? "imagen corresponde" : "imágenes corresponden"} a personas distintas y obligatorias. Las referencias posteriores son elementos, no personas adicionales.`,
       "Conserva identidad, geometría facial, edad aparente, tono y rasgos reconocibles; puedes ajustar expresión, pose e iluminación sin convertirla en otra persona.",
       "No mezcles identidades, no dupliques sujetos y no añadas personas de relleno.",
     ].join(" ");
@@ -82,6 +82,27 @@ function peoplePrompt(input: GenerationInput) {
     "Dales una función narrativa concreta, expresiones distintas y posiciones legibles; no uses modelos de stock posando.",
     "No añadas rostros, multitudes ni siluetas humanas adicionales en el fondo.",
   ].join(" ");
+}
+
+function referenceDescriptorPrompt(input: GenerationInput) {
+  if (!input.referenceDescriptors?.length) return [];
+  const kindLabels = {
+    person: "persona",
+    logo: "logo",
+    product: "producto",
+    object: "objeto",
+    background: "fondo",
+    other: "elemento",
+  } as const;
+  return [
+    "Mapa obligatorio de referencias, siguiendo exactamente el orden de las imágenes adjuntas:",
+    ...input.referenceDescriptors.map((descriptor, index) =>
+      `- Imagen ${index + 1}: ${kindLabels[descriptor.kind]} identificado como “${descriptor.identifier}”.`,
+    ),
+    "Usa cada identificador para distinguir su función. No intercambies, mezcles, dupliques ni atribuyas características de una referencia a otra.",
+    "Los logos deben conservar grafía, símbolo, proporciones y colores; los productos y objetos, su geometría y detalles reconocibles; los fondos, su ambiente y estructura sin convertirlos en un objeto de primer plano.",
+    "Integra únicamente los elementos identificados que fueron adjuntados. No sustituyas un elemento por otro parecido ni añadas objetos aleatorios.",
+  ];
 }
 
 const visibleTextLanguageRules = [
@@ -164,6 +185,7 @@ export function buildImagePrompt(input: GenerationInput) {
       ? [
           "",
           "Material de referencia:",
+          ...referenceDescriptorPrompt(input),
           "- Integra solo lo relevante para el brief.",
           "- La referencia tiene prioridad sobre cualquier inferencia estética.",
           "- No modifiques personas, objetos, logotipos ni rasgos salvo petición explícita del usuario.",

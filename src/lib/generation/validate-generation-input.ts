@@ -27,6 +27,8 @@ import type {
   GenerationInput,
   GenerationPlatform,
   GenerationPeopleMode,
+  GenerationReferenceDescriptor,
+  GenerationReferenceKind,
   GenerationQuality,
   GenerationStyle,
   GenerationTextMode,
@@ -67,6 +69,9 @@ const RECREATE_ELEMENT_KINDS = new Set<RecreateElementKind>([
   "object",
   "background",
   "mixed",
+]);
+const GENERATION_REFERENCE_KINDS = new Set<GenerationReferenceKind>([
+  "person", "logo", "product", "object", "background", "other",
 ]);
 
 type ValidationResult =
@@ -233,8 +238,63 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
     }
   }
   if (creationMode === "recreate" && !referenceUploadIds?.length) fields.referenceUploadIds = "Añade una referencia para recrear.";
-  if (creationMode === "create" && peopleMode === "uploaded" && referenceUploadIds?.length !== peopleCount) {
-    fields.referenceUploadIds = `Añade exactamente ${peopleCount} ${peopleCount === 1 ? "foto" : "fotos"} de personas.`;
+  const includeElements = typeof rawInput.includeElements === "boolean"
+    ? rawInput.includeElements
+    : undefined;
+  if (rawInput.includeElements !== undefined && includeElements === undefined) {
+    fields.includeElements = "Indica si quieres añadir elementos propios.";
+  }
+  let referenceDescriptors: GenerationReferenceDescriptor[] | undefined;
+  if (rawInput.referenceDescriptors !== undefined) {
+    if (
+      !Array.isArray(rawInput.referenceDescriptors) ||
+      rawInput.referenceDescriptors.length !== (referenceUploadIds?.length ?? 0) ||
+      rawInput.referenceDescriptors.some((descriptor) =>
+        !isRecord(descriptor) ||
+        typeof descriptor.kind !== "string" ||
+        !GENERATION_REFERENCE_KINDS.has(descriptor.kind as GenerationReferenceKind) ||
+        typeof descriptor.identifier !== "string" ||
+        descriptor.identifier.trim().length < 2 ||
+        descriptor.identifier.trim().length > 60 ||
+        /[\r\n\t]/.test(descriptor.identifier)
+      )
+    ) {
+      fields.referenceDescriptors = "Asigna un tipo y un identificador de 2 a 60 caracteres a cada referencia.";
+    } else {
+      referenceDescriptors = rawInput.referenceDescriptors.map((descriptor) => ({
+        kind: (descriptor as Record<string, unknown>).kind as GenerationReferenceKind,
+        identifier: String((descriptor as Record<string, unknown>).identifier).trim(),
+      }));
+      const identifiers = referenceDescriptors.map((descriptor) => descriptor.identifier.toLocaleLowerCase("es"));
+      if (new Set(identifiers).size !== identifiers.length) {
+        fields.referenceDescriptors = "Usa un identificador diferente para cada referencia.";
+      }
+    }
+  }
+  if (creationMode === "create") {
+    const personReferenceCount = peopleMode === "uploaded" ? (peopleCount ?? 0) : 0;
+    const totalReferenceCount = referenceUploadIds?.length ?? 0;
+    const elementReferenceCount = Math.max(0, totalReferenceCount - personReferenceCount);
+    if (peopleMode === "uploaded" && totalReferenceCount < personReferenceCount) {
+      fields.referenceUploadIds = `Añade exactamente ${peopleCount} ${peopleCount === 1 ? "foto" : "fotos"} de personas antes de agregar otros elementos.`;
+    }
+    if (referenceDescriptors) {
+      if (referenceDescriptors.slice(0, personReferenceCount).some((descriptor) => descriptor.kind !== "person")) {
+        fields.referenceDescriptors = "Las primeras referencias deben corresponder a las personas seleccionadas.";
+      }
+      if (referenceDescriptors.slice(personReferenceCount).some((descriptor) => descriptor.kind === "person")) {
+        fields.referenceDescriptors = "Clasifica las personas en el paso de sujetos, no como elementos.";
+      }
+    }
+    if (includeElements === true && elementReferenceCount === 0) {
+      fields.referenceUploadIds = "Añade al menos un logo, producto, objeto o fondo.";
+    }
+    if (includeElements === true && !referenceDescriptors) {
+      fields.referenceDescriptors = "Identifica cada elemento para que Crealy sepa cómo usarlo.";
+    }
+    if (includeElements === false && elementReferenceCount > 0) {
+      fields.referenceUploadIds = "Quita los elementos adicionales o indica que quieres utilizarlos.";
+    }
   }
 
   let recreateReferenceRoles: RecreateReferenceRole[] | undefined;
@@ -430,7 +490,9 @@ export function validateGenerationInput(rawInput: unknown): ValidationResult {
       quality: quality as GenerationQuality,
       peopleMode: peopleMode as GenerationPeopleMode,
       peopleCount: peopleCount as number,
+      ...(includeElements !== undefined ? { includeElements } : {}),
       ...(referenceUploadIds ? { referenceUploadIds } : {}),
+      ...(referenceDescriptors ? { referenceDescriptors } : {}),
       ...(profileMode ? { profileMode } : {}),
       ...(profileIntensity ? { profileIntensity } : {}),
       ...(profileBackground ? { profileBackground } : {}),

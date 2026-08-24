@@ -366,6 +366,12 @@ async function processGeneration(job: JobRecord, startedAt: number) {
       typeof generationMetadata.peopleCount === "number"
         ? generationMetadata.peopleCount
         : 0,
+    includeElements:
+      typeof generationMetadata.includeElements === "boolean"
+        ? generationMetadata.includeElements
+        : undefined,
+    referenceDescriptors:
+      (generationMetadata.referenceDescriptors as GenerationInput["referenceDescriptors"]) ?? undefined,
     brandStyleId: generation.brand_style_id ?? undefined,
     styleConsistency: (generation.style_consistency as GenerationInput["styleConsistency"]) ?? undefined,
     creationMode: generationMetadata.creationMode === "recreate" ? "recreate" : "create",

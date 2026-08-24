@@ -210,7 +210,7 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     input.peopleMode === "none"
       ? "People: render no people, faces, hands, human silhouettes or background figures."
       : input.peopleMode === "uploaded"
-        ? `People: show exactly ${input.peopleCount} distinct uploaded ${input.peopleCount === 1 ? "person" : "people"}. Every uploaded face is mandatory. Preserve each identity; never merge, duplicate or add people.`
+        ? `People: show exactly ${input.peopleCount} distinct uploaded ${input.peopleCount === 1 ? "person" : "people"}. The first ${input.peopleCount} reference ${input.peopleCount === 1 ? "image is" : "images are"} the mandatory people; later references are labeled non-person elements. Preserve each identity; never merge, duplicate or add people.`
         : `People: generate exactly ${input.peopleCount} narratively necessary ${input.peopleCount === 1 ? "person" : "people"}. No stock posing, crowds or background faces.`,
     text ? `Thumbnail text: Render exactly "${text}". Do not add any other words, letters, labels or interface text. A brand mark is allowed only when brandMarkDirection explicitly authorizes it; it remains small and secondary.` : "Thumbnail text: Do not render editorial text, labels or interface copy. A brand mark is allowed only when brandMarkDirection explicitly authorizes it; otherwise render no letters or logos.",
     `Typography: highly readable at mobile size. Execute this request-specific layout exactly: ${resolvedTypographyLayout(input)}. The text may sit behind the person, above, below, centered, integrated into the scene or partially occluded as directed. Do not move it into a detached right-side block merely because a person occupies the left. Preserve natural depth with deliberate front/back layering.`,
@@ -228,7 +228,12 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
     "", "Mobile readability and global rules:", ...THUMBNAIL_GLOBAL_RULES.map((rule) => `- ${rule}`),
     ...THUMBNAIL_DISTINCTIVENESS_RULES.map((rule) => `- ${rule}`),
     ...(input.peopleMode === "uploaded" ? ["", "Non-negotiable identities for every uploaded person:", ...THUMBNAIL_IDENTITY_RULES.map((rule) => `- ${rule}.`)] : []),
-    ...(input.peopleMode !== "uploaded" && input.referenceUploadIds?.length ? ["", "Non-person references are mandatory: preserve each product or object's recognizable geometry, materials, colors and distinguishing details."] : []),
+    ...(input.referenceDescriptors?.length ? [
+      "",
+      "Mandatory reference map in attached-image order:",
+      ...input.referenceDescriptors.map((descriptor, index) => `- Image ${index + 1}: ${descriptor.kind} identified as “${descriptor.identifier}”. Keep this exact role and identity.`),
+      "Never swap, merge, duplicate or replace these references. Preserve logos exactly; preserve products and objects by geometry, materials, colors and distinctive details; use a background as the setting rather than a foreground prop.",
+    ] : input.peopleMode !== "uploaded" && input.referenceUploadIds?.length ? ["", "Non-person references are mandatory: preserve each product or object's recognizable geometry, materials, colors and distinguishing details."] : []),
     "", "The entire thumbnail must be generated as one complete image, ready to publish. Do not create a mockup or separate layers.",
     `Avoid: ${[...THUMBNAIL_AVOID, ...plan.brief.avoid].join(", ")}.`,
   ].join("\n");
