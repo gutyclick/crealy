@@ -18,6 +18,8 @@ export type ConversionEvent =
   | "tool_opened"
   | "tool_completed"
   | "pricing_viewed"
+  | "seo_landing_viewed"
+  | "seo_cta_clicked"
   | "checkout_started"
   | "subscription_activated"
   | "support_request_created"
@@ -38,6 +40,7 @@ type SafeProperties = Partial<{
   style: string;
   plan: string;
   tool: string;
+  landing: string;
   status: string;
   source: string;
   duration_bucket: string;

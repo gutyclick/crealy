@@ -3,6 +3,15 @@ import { Logo } from "@/components/ui/logo";
 
 const footerGroups = [
   {
+    title: "Soluciones",
+    links: [
+      { label: "Miniaturas para YouTube", href: "/generador-miniaturas-youtube" },
+      { label: "Posts para redes", href: "/crear-posts-redes-sociales" },
+      { label: "Banners y portadas", href: "/generador-banners-portadas" },
+      { label: "Recreate", href: "/recreate-disenos" },
+    ],
+  },
+  {
     title: "Producto",
     links: [
       { label: "Cómo funciona", href: "/#how-it-works" },
@@ -34,7 +43,7 @@ const footerGroups = [
 export function Footer() {
   return (
     <footer className="border-t border-white/[0.07] bg-surface/45">
-      <Container className="grid gap-12 py-16 text-center sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:text-left">
+      <Container className="grid gap-12 py-16 text-center sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1fr_1fr] lg:text-left">
         <div className="flex flex-col items-center lg:items-start">
           <Logo />
           <p className="mt-5 max-w-xs text-sm leading-6 text-muted">

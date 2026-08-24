@@ -3,7 +3,11 @@ import type { MetadataRoute } from "next";
 import { tools } from "@/config/tools";
 import { getPublicSiteUrl } from "@/lib/seo/get-public-site-url";
 
-const lastModified = new Date("2026-07-29T00:00:00.000Z");
+// Evaluated when Next builds the static sitemap. This keeps lastmod aligned
+// with the deployment that actually published the current page content.
+const lastModified = new Date(
+  process.env.SITE_LAST_MODIFIED ?? process.env.VERCEL_BUILD_TIME ?? Date.now(),
+);
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = getPublicSiteUrl();
@@ -18,6 +22,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/help", changeFrequency: "monthly", priority: 0.6 },
     { path: "/contact", changeFrequency: "monthly", priority: 0.5 },
     { path: "/status", changeFrequency: "weekly", priority: 0.4 },
+    { path: "/generador-miniaturas-youtube", changeFrequency: "weekly", priority: 0.9 },
+    { path: "/crear-posts-redes-sociales", changeFrequency: "weekly", priority: 0.9 },
+    { path: "/generador-banners-portadas", changeFrequency: "weekly", priority: 0.9 },
+    { path: "/recreate-disenos", changeFrequency: "weekly", priority: 0.9 },
   ];
   if (process.env.NEXT_PUBLIC_LEGAL_PAGES_APPROVED === "true") {
     routes.push(

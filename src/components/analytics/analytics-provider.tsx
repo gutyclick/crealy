@@ -15,6 +15,13 @@ export function AnalyticsProvider() {
     if (pathname.startsWith("/tools/")) {
       trackConversion("tool_opened", { tool: pathname.slice("/tools/".length) });
     }
+    const seoLanding = {
+      "/generador-miniaturas-youtube": "youtube_thumbnails",
+      "/crear-posts-redes-sociales": "social_posts",
+      "/generador-banners-portadas": "banners_covers",
+      "/recreate-disenos": "recreate",
+    }[pathname];
+    if (seoLanding) trackConversion("seo_landing_viewed", { landing: seoLanding });
   }, [pathname]);
 
   return (
@@ -26,4 +33,3 @@ export function AnalyticsProvider() {
     </>
   );
 }
-

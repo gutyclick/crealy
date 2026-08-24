@@ -30,9 +30,11 @@ const secondRail: CreativePiece[] = [
 function CreativeRail({
   pieces,
   reverse = false,
+  prioritizeFirst = false,
 }: {
   pieces: CreativePiece[];
   reverse?: boolean;
+  prioritizeFirst?: boolean;
 }) {
   return (
     <div className={`hero-gallery-rail${reverse ? " hero-gallery-rail--reverse" : ""}`}>
@@ -46,8 +48,9 @@ function CreativeRail({
               src={piece.src}
               alt=""
               fill
-              loading="eager"
-              fetchPriority={index === 0 ? "high" : "auto"}
+              loading={prioritizeFirst && index === 0 ? "eager" : "lazy"}
+              fetchPriority={prioritizeFirst && index === 0 ? "high" : "auto"}
+              priority={prioritizeFirst && index === 0}
               sizes={
                 piece.format === "banner"
                   ? "(max-width: 640px) 64vw, 28vw"
@@ -69,7 +72,7 @@ export function HeroSection() {
   return (
     <section className="relative isolate min-h-[100dvh] overflow-hidden pt-16 sm:pt-[4.5rem]">
       <div aria-hidden="true" className="hero-gallery absolute inset-0">
-        <CreativeRail pieces={firstRail} />
+        <CreativeRail pieces={firstRail} prioritizeFirst />
         <CreativeRail pieces={secondRail} reverse />
         <div className="hero-gallery-wash absolute inset-0" />
         <div className="hero-focus-frame absolute left-1/2 top-1/2 h-[62%] w-[min(82vw,62rem)] -translate-x-1/2 -translate-y-1/2 rounded-[1.4rem]" />
