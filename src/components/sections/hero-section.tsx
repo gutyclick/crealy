@@ -82,11 +82,11 @@ export function HeroSection() {
         <div className="hero-copy flex flex-col items-center">
           <Badge className="border-white/15 bg-background/74 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
             <Sparkles aria-hidden="true" className="mr-2 size-3.5 text-brand" />
-            Tu mesa creativa con IA
+            Tu mesa creativa
           </Badge>
 
           <h1 className="mt-6 max-w-[13ch] text-balance text-[clamp(3rem,7.2vw,6rem)] font-semibold leading-[0.94] tracking-[-0.04em] text-foreground">
-            De la idea a la publicación.
+            Diseña sin saber diseñar.
           </h1>
 
           <p className="mt-6 max-w-[35rem] text-balance text-base leading-7 text-white/76 sm:text-lg sm:leading-8">

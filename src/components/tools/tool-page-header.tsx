@@ -30,7 +30,7 @@ export function ToolPageHeader({
           {usesAI ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-brand-ink">
               <Sparkles className="size-3.5" aria-hidden="true" />
-              Análisis con IA
+              Análisis avanzado
             </span>
           ) : (
             <span className="rounded-full border border-white/12 px-3 py-1 text-xs font-medium text-white/70">

@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.crealy.app"),
   title: {
-    default: "Crealy | Crea contenido visual con inteligencia artificial",
+    default: "Crealy | Diseña sin saber diseñar",
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_PA",
     siteName: siteConfig.name,
-    title: "Crealy | Crea contenido visual con inteligencia artificial",
+    title: "Crealy | Diseña sin saber diseñar",
     description: siteConfig.description,
     url: "/",
     images: [
@@ -47,13 +47,13 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Crealy: contenido visual asistido por inteligencia artificial",
+        alt: "Crealy: diseña miniaturas, posts y banners sin complicaciones",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Crealy | Crea contenido visual con inteligencia artificial",
+    title: "Crealy | Diseña sin saber diseñar",
     description: siteConfig.description,
     images: ["/opengraph-image"],
   },

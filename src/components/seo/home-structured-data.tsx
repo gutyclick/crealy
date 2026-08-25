@@ -20,7 +20,7 @@ export function HomeStructuredData() {
         applicationCategory: "DesignApplication",
         operatingSystem: "Web",
         description:
-          "Plataforma para crear miniaturas, publicaciones y portadas visuales con inteligencia artificial.",
+          "Plataforma para diseñar miniaturas, publicaciones y portadas visuales sin necesidad de dominar un editor profesional.",
         offers: {
           "@type": "Offer",
           price: "0",

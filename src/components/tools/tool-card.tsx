@@ -45,7 +45,7 @@ export function ToolCard({
         <div className="flex items-center gap-2">
           {tool.usesAI && (
             <span className="rounded-full border border-brand/30 px-2.5 py-1 text-xs font-semibold text-brand">
-              IA
+              Análisis
             </span>
           )}
           <ArrowUpRight

@@ -107,8 +107,8 @@ export const faqs = [
       "Sí. Puedes crear tu cuenta, generar, usar Recreate y administrar tus créditos desde el área privada. Los pagos aparecen únicamente cuando Stripe está habilitado.",
   },
   {
-    question: "¿Las imágenes se generan con inteligencia artificial?",
+    question: "¿Tengo que empezar desde una plantilla?",
     answer:
-      "Sí. Crealy utilizará modelos de generación de imágenes para convertir instrucciones en contenido visual.",
+      "No. Describe la pieza que necesitas y Crealy prepara una dirección visual adaptada al formato que elijas.",
   },
 ] as const;

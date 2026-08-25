@@ -11,14 +11,14 @@ export const seoProductPages = {
   thumbnails: {
     slug: "generador-miniaturas-youtube",
     analyticsKey: "youtube_thumbnails",
-    eyebrow: "Generador de miniaturas para YouTube con IA",
+    eyebrow: "Generador de miniaturas para YouTube",
     title: "Una miniatura que cuenta la historia antes del clic.",
     lead: "Convierte el título o la idea de tu video en una miniatura de YouTube con jerarquía clara, emoción contextual y texto pensado para leerse en el feed.",
     proofLabel: "Vista de miniatura",
     image: "/images/examples/gaming.webp",
     imageAlt: "Miniatura para YouTube de estilo gaming generada con Crealy",
     format: "1280 × 720",
-    intent: "“Programé un juego con IA en 24 horas sin saber programar.”",
+    intent: "“Programé un juego en 24 horas sin saber programar.”",
     result: "Una escena con intriga, protagonista reconocible y una promesa visual fácil de entender.",
     benefits: [
       { title: "Texto que interpreta la idea", text: "Crealy identifica el giro más interesante del título y propone una frase breve, sin repetir fórmulas genéricas." },
@@ -40,7 +40,7 @@ export const seoProductPages = {
   posts: {
     slug: "crear-posts-redes-sociales",
     analyticsKey: "social_posts",
-    eyebrow: "Creador de posts para redes sociales con IA",
+    eyebrow: "Creador de posts para redes sociales",
     title: "Tu mensaje, diseñado para detener el scroll.",
     lead: "Crea posts para Instagram, Facebook, LinkedIn y X a partir de un brief sencillo. Crealy organiza el mensaje, el formato y la dirección visual sin convertir el proceso en un editor complejo.",
     proofLabel: "Post para redes",
@@ -69,7 +69,7 @@ export const seoProductPages = {
   banners: {
     slug: "generador-banners-portadas",
     analyticsKey: "banners_covers",
-    eyebrow: "Generador de banners y portadas con IA",
+    eyebrow: "Generador de banners y portadas",
     title: "Una portada diseñada para el espacio donde vivirá.",
     lead: "Genera banners de YouTube y portadas para Facebook, X y LinkedIn con medidas, proporciones y zonas seguras definidas antes de crear.",
     proofLabel: "Banner multicanal",
@@ -98,7 +98,7 @@ export const seoProductPages = {
   recreate: {
     slug: "recreate-disenos",
     analyticsKey: "recreate",
-    eyebrow: "Recreate: recrear diseños con IA",
+    eyebrow: "Recreate: recrear diseños",
     title: "Conserva la fórmula. Cambia la historia.",
     lead: "Sube una referencia que funciona y reconstruye su lógica visual con tu propio contenido. Crealy analiza composición, pose, iluminación, colores y tipografía sin copiar marcas ni personajes ajenos.",
     proofLabel: "Referencia → resultado",

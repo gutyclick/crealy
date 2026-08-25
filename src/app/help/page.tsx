@@ -17,7 +17,7 @@ const topics = [
   ["Créditos", "Cada generación muestra su coste antes de comenzar. El saldo se reserva y se libera si el trabajo falla."],
   ["Facturación", "Stripe gestiona checkout, renovación, cancelación y el portal de facturación."],
   ["Archivos", "Los originales son privados, tienen cuota y pueden expirar según el plan. Descarga lo que quieras conservar."],
-  ["Herramientas", "Los previews y verificadores procesan imágenes localmente cuando es posible. Las herramientas con IA indican su uso."],
+  ["Herramientas", "Los previews y verificadores procesan imágenes localmente cuando es posible. Las herramientas de análisis indican cuándo requieren procesamiento externo."],
   ["Seguridad", "No compartas contraseñas ni claves. Usa la configuración de seguridad para cambiar contraseña o activar MFA."],
 ] as const;
 

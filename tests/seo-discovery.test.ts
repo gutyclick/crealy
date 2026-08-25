@@ -46,3 +46,20 @@ test("Google and Bing ownership tokens are configurable without hard-coded secre
   assert.match(example, /NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=/);
   assert.match(example, /NEXT_PUBLIC_BING_SITE_VERIFICATION=/);
 });
+
+test("public acquisition surfaces lead with design outcomes instead of AI terminology", () => {
+  const acquisitionFiles = [
+    "src/app/layout.tsx",
+    "src/config/site.ts",
+    "src/config/landing.ts",
+    "src/config/plans.ts",
+    "src/config/seo-product-pages.ts",
+    "src/components/sections/hero-section.tsx",
+    "src/components/layout/footer.tsx",
+    "src/components/seo/home-structured-data.tsx",
+  ];
+  const copy = acquisitionFiles.map(read).join("\n");
+
+  assert.match(copy, /Diseña sin saber diseñar/);
+  assert.doesNotMatch(copy, /inteligencia artificial|\bIA\b|con IA/i);
+});

@@ -25,7 +25,7 @@ const faq = [
 ] satisfies ToolFaqItem[];
 
 export const metadata = createToolMetadata({
-  title: "Analizador de miniaturas con IA",
+  title: "Analizador avanzado de miniaturas",
   description:
     "Obtén una crítica visual estructurada de tu miniatura con acciones concretas para mejorarla.",
   path: "/tools/thumbnail-analyzer",
@@ -49,7 +49,7 @@ export default function Page() {
       />
       <ToolFaq items={faq} />
       <ToolStructuredData
-        name="Analizador de miniaturas con IA"
+        name="Analizador avanzado de miniaturas"
         description={metadata.description as string}
         path="/tools/thumbnail-analyzer"
         faq={faq}

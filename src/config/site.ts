@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: "Crealy",
   description:
-    "Convierte una idea en miniaturas, posts y banners con una experiencia clara y asistida por inteligencia artificial.",
+    "Diseña miniaturas, posts y banners listos para publicar sin plantillas interminables ni un editor complicado.",
   navigation: [
     { label: "Producto", href: "/#product" },
     { label: "Ejemplos", href: "/#examples" },

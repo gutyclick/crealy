@@ -117,7 +117,7 @@ export function PricingTableClient({
               No pagas por funciones. Pagas por crear más.
             </p>
             <p className="mt-1 text-sm text-muted">
-              Todos los planes incluyen las herramientas de creación con IA de
+              Todos los planes incluyen las herramientas de creación de
               Crealy.
             </p>
           </div>

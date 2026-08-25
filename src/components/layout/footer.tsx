@@ -77,7 +77,7 @@ export function Footer() {
         <span>
           © {new Date().getFullYear()} Crealy. Todos los derechos reservados.
         </span>
-        <span>Creación visual con inteligencia artificial</span>
+        <span>Diseño visual sin complicaciones</span>
       </Container>
     </footer>
   );
