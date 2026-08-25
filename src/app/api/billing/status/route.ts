@@ -18,6 +18,7 @@ export async function GET() {
       plan: state.effectivePlan.key,
       status: state.subscription?.status ?? null,
       credits: state.credits.available,
+      reservedCredits: state.credits.reserved,
     });
   } catch {
     return NextResponse.json(

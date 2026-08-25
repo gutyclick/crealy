@@ -36,6 +36,7 @@ export default async function DashboardLayout({
       : "";
   const fallbackName = user.email?.split("@")[0] || "Tu cuenta";
   let credits: number | null = null;
+  let reservedCredits = 0;
   let plan: PlanKey = "free";
   const supabase = await createClient();
   const [{ data: activeJobs }, { data: profile }, { data: factors }] = await Promise.all([
@@ -66,6 +67,7 @@ export default async function DashboardLayout({
     await ensureWelcomeCredits(user.id);
     const billing = await getUserBillingState(user.id);
     credits = billing.credits.available;
+    reservedCredits = billing.credits.reserved;
     plan = billing.effectivePlan.key;
   } catch (error) {
     console.error("[Crealy Billing]", {
@@ -81,6 +83,7 @@ export default async function DashboardLayout({
         displayName={metadataName || fallbackName}
         email={user.email || "Cuenta de Crealy"}
         credits={credits}
+        reservedCredits={reservedCredits}
         initialNotifications={(activeJobs ?? []).map((job) => ({
           jobId: job.id,
           generationId: job.resource_id,

@@ -33,6 +33,7 @@ type DashboardHeaderProps = {
   displayName: string;
   email: string;
   credits: number | null;
+  reservedCredits: number;
   initialNotifications: CreationNotification[];
   plan: PlanKey;
 };
@@ -50,12 +51,14 @@ export function DashboardHeader({
   displayName,
   email,
   credits,
+  reservedCredits: initialReservedCredits,
   initialNotifications,
   plan,
 }: DashboardHeaderProps) {
   const initial = displayName.charAt(0).toUpperCase() || "C";
   const [openMenu, setOpenMenu] = useState<"account" | null>(null);
   const currentCredits = useCreditBalance(credits);
+  const [reservedCredits, setReservedCredits] = useState(initialReservedCredits);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const accountButtonRef = useRef<HTMLButtonElement>(null);
   const firstAccountLinkRef = useRef<HTMLAnchorElement>(null);
@@ -97,13 +100,23 @@ export function DashboardHeader({
           cache: "no-store",
         });
         if (!response.ok) return;
-        const payload = (await response.json()) as { credits?: unknown };
+        const payload = (await response.json()) as {
+          credits?: unknown;
+          reservedCredits?: unknown;
+        };
         if (
           active &&
           sequence === requestSequence &&
           typeof payload.credits === "number"
         ) {
           publishCreditBalance(payload.credits);
+          if (
+            typeof payload.reservedCredits === "number" &&
+            Number.isSafeInteger(payload.reservedCredits) &&
+            payload.reservedCredits >= 0
+          ) {
+            setReservedCredits(payload.reservedCredits);
+          }
         }
       } catch {
         // Keep the last known balance until the next automatic reconciliation.
@@ -168,7 +181,9 @@ export function DashboardHeader({
                 <span className="block truncate text-xs text-muted">
                   {currentCredits === null
                     ? "Saldo no disponible"
-                    : `${currentCredits} créditos`}
+                    : reservedCredits > 0
+                      ? `${currentCredits} disponibles · ${reservedCredits} en proceso`
+                      : `${currentCredits} créditos`}
                 </span>
               </span>
               <ChevronDown

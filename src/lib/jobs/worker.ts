@@ -1252,7 +1252,10 @@ export async function processQueuedJob(jobId: string) {
           properties: { errorCode: decision.errorCode, nextAttempt: job.attempt_count + 1 },
         });
       }
-      return { status: "retry_scheduled" as const };
+      return {
+        status: "retry_scheduled" as const,
+        retryAfterSeconds: decision.delaySeconds,
+      };
     }
     await admin.rpc("fail_job_internal", {
       p_job_id: job.id,

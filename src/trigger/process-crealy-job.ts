@@ -1,4 +1,4 @@
-import { logger, task } from "@trigger.dev/sdk";
+import { logger, task, wait } from "@trigger.dev/sdk";
 import WebSocket from "ws";
 
 // Trigger.dev 4.5 currently runs tasks on Node 21, while the current
@@ -51,7 +51,7 @@ async function persistBootstrapFailure(jobId: string, code: string) {
 export const processCrealyJob = task({
   id: "crealy-process-job",
   machine: "small-2x",
-  maxDuration: 900,
+  maxDuration: 1800,
   queue: {
     concurrencyLimit: 3,
   },
@@ -65,12 +65,22 @@ export const processCrealyJob = task({
       // This makes container-only bootstrap errors observable and keeps them
       // separate from a genuine generation failure.
       const { processQueuedJob } = await import("@/lib/jobs/worker");
-      const result = await processQueuedJob(jobId);
-      logger.info("Crealy job processing finished", {
-        jobId,
-        status: result.status,
-      });
-      return result;
+      for (let cycle = 1; cycle <= 4; cycle += 1) {
+        const result = await processQueuedJob(jobId);
+        logger.info("Crealy job processing cycle finished", {
+          jobId,
+          cycle,
+          status: result.status,
+        });
+        if (result.status !== "retry_scheduled") return result;
+
+        await wait.for({
+          seconds: result.retryAfterSeconds,
+          idempotencyKey: `crealy-job:${jobId}:retry:${cycle}`,
+          idempotencyKeyTTL: "1d",
+        });
+      }
+      return { status: "retry_exhausted" as const };
     } catch (error) {
       const code = safeFailureCode(error);
       logger.error("Crealy worker bootstrap failed", {

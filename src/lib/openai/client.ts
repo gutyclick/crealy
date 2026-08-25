@@ -12,7 +12,10 @@ export function getOpenAIClient() {
     client = new OpenAI({
       apiKey,
       maxRetries: 0,
-      timeout: 120_000,
+      // Image generation can legitimately exceed two minutes. A longer client
+      // window avoids launching another paid attempt while the provider is
+      // still producing the first result.
+      timeout: 240_000,
     });
   }
 

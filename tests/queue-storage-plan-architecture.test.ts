@@ -33,8 +33,21 @@ test("Trigger.dev dispatches durable jobs by id and the cron remains recovery-on
   assert.match(dispatcher, /recovery-cron/);
   assert.doesNotMatch(dispatcher, /OPENAI_API_KEY|R2_SECRET_ACCESS_KEY|SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(task, /processQueuedJob\(jobId\)/);
+  assert.match(task, /result\.status !== "retry_scheduled"/);
+  assert.match(task, /await wait\.for\(/);
+  assert.match(task, /retryAfterSeconds/);
   assert.match(task, /concurrencyLimit: 3/);
   assert.match(workflow, /cron: "\*\/5 \* \* \* \*"/);
+});
+
+test("reserved credits remain visible as in-process instead of looking consumed", () => {
+  const statusRoute = read("src/app/api/billing/status/route.ts");
+  const dashboardLayout = read("src/app/(dashboard)/layout.tsx");
+  const dashboardHeader = read("src/components/dashboard/dashboard-header.tsx");
+
+  assert.match(statusRoute, /reservedCredits: state\.credits\.reserved/);
+  assert.match(dashboardLayout, /reservedCredits=\{reservedCredits\}/);
+  assert.match(dashboardHeader, /disponibles · \$\{reservedCredits\} en proceso/);
 });
 
 test("storage usage is aggregated in SQL rather than from the recent-file list", () => {
