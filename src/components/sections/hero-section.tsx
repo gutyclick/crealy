@@ -1,4 +1,4 @@
-import { ArrowDownRight, Sparkles } from "lucide-react";
+import { ArrowDownRight, ArrowRight, Sparkles } from "lucide-react";
 import Image from "next/image";
 
 import { Container } from "@/components/layout/container";
@@ -95,14 +95,18 @@ export function HeroSection() {
           </p>
 
           <div className="mt-8 flex w-full flex-col justify-center gap-3 min-[420px]:w-auto min-[420px]:flex-row">
-            <Button href="#preview" size="lg">
+            <Button href="/signup" size="lg" className="hero-start-button">
+              Empezar gratis
+              <ArrowRight aria-hidden="true" className="size-4" />
+            </Button>
+            <Button href="#preview" variant="secondary" size="lg">
               Ver cómo funciona
               <ArrowDownRight aria-hidden="true" className="size-4" />
             </Button>
-            <Button href="/signup" variant="secondary" size="lg">
-              Crear cuenta
-            </Button>
           </div>
+          <p className="mt-4 text-sm text-white/58">
+            3 créditos incluidos. Sin tarjeta.
+          </p>
         </div>
       </Container>
     </section>

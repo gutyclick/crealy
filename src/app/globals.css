@@ -538,6 +538,30 @@ a {
   }
 }
 
+@keyframes start-free-signal {
+  from { left: 0; opacity: 0; }
+  12%, 82% { opacity: 1; }
+  to { left: calc(100% - 0.5rem); opacity: 0; }
+}
+
+@keyframes start-free-output-enter {
+  from {
+    opacity: 0.35;
+    transform: translate3d(0, 0.65rem, 0) scale(0.97);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes start-free-arrow {
+  0%, 70%, 100% { transform: translate3d(0, 0, 0); }
+  82% { transform: translate3d(0.2rem, 0, 0); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
@@ -585,6 +609,19 @@ a {
 
   .nav-new-badge {
     animation: nav-new-signal 3.8s var(--ease-in-out) infinite;
+  }
+
+  .start-free-stage:is(:hover, :focus-within) .start-free-signal {
+    animation: start-free-signal 2.2s var(--ease-in-out) 1;
+  }
+
+  .start-free-stage:is(:hover, :focus-within) .start-free-output {
+    animation: start-free-output-enter 620ms var(--ease-out) both;
+  }
+
+  .hero-start-button:is(:hover, :focus-visible) svg,
+  .start-free-action:is(:hover, :focus-visible) svg {
+    animation: start-free-arrow 680ms var(--ease-out) 1;
   }
 
   .dashboard-sheet--one {
@@ -642,7 +679,11 @@ a {
   .dashboard-sheet--one,
   .job-pulse,
   .dashboard-primary-action::after,
-  .job-progress-indeterminate {
+  .job-progress-indeterminate,
+  .start-free-signal,
+  .start-free-output,
+  .hero-start-button svg,
+  .start-free-action svg {
     animation: none !important;
   }
 

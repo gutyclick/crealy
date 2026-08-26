@@ -19,18 +19,18 @@ export function FinalCtaSection() {
 
           <div className="relative mx-auto max-w-3xl">
             <h2 className="text-balance text-4xl font-semibold leading-[1.02] tracking-[-0.04em] sm:text-6xl">
-              Tu próxima pieza puede empezar con una frase.
+              Tu próxima pieza empieza aquí.
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg">
-              Crea tu cuenta hoy y acompaña el desarrollo de una forma más
-              directa de producir contenido visual.
+              Trae una idea. Crealy te ayuda a darle dirección y convertirla en
+              contenido listo para compartir.
             </p>
             <div className="mt-9 flex flex-col justify-center gap-3 min-[420px]:flex-row">
               <Button
                 href="/signup"
                 size="lg"
               >
-                Crear cuenta
+                Empezar gratis
                 <ArrowRight aria-hidden="true" className="size-4" />
               </Button>
               <Button
@@ -41,6 +41,9 @@ export function FinalCtaSection() {
                 Ver la demo
               </Button>
             </div>
+            <p className="mt-4 text-sm text-white/52">
+              Incluye 3 créditos iniciales. No necesitas tarjeta.
+            </p>
           </div>
         </div>
       </Container>

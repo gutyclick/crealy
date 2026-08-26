@@ -32,9 +32,9 @@ export function Header() {
           >
             Iniciar sesión
           </a>
-          <Button href="/signup" size="sm" variant="secondary">
-            <span className="sm:hidden">Cuenta</span>
-            <span className="hidden sm:inline">Crear cuenta</span>
+          <Button href="/signup" size="sm">
+            <span className="sm:hidden">Empieza gratis</span>
+            <span className="hidden sm:inline">Empezar gratis</span>
           </Button>
           <MobileNavigation />
         </div>

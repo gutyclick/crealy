@@ -9,6 +9,7 @@ import { HeroSection } from "@/components/sections/hero-section";
 import { HowItWorksSection } from "@/components/sections/how-it-works-section";
 import { PricingSection } from "@/components/sections/pricing-section";
 import { ProductPreview } from "@/components/sections/product-preview";
+import { StartFreeSection } from "@/components/sections/start-free-section";
 import { HomeStructuredData } from "@/components/seo/home-structured-data";
 
 /*
@@ -29,6 +30,7 @@ export default function Home() {
         <PricingSection />
         <ContentTypesSection />
         <ExamplesSection />
+        <StartFreeSection />
         <HowItWorksSection />
         <ComparisonSection />
         <FaqSection />
