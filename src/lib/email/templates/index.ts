@@ -6,6 +6,7 @@ export type TransactionalEmailType =
   | "low_credits"
   | "subscription_active"
   | "payment_failed"
+  | "credit_gift"
   | "support_received"
   | "support_internal";
 
@@ -131,6 +132,18 @@ export function renderEmailTemplate(
           body: "<p>No pudimos completar el cobro. Tu historial y archivos permanecen disponibles.</p>",
           ctaLabel: "Revisar facturación",
           ctaUrl: `${siteUrl}/settings/billing`,
+        }),
+      };
+    case "credit_gift":
+      return {
+        subject: `Tienes ${escapeHtml(data.credits || 5)} créditos de regalo en Crealy`,
+        preheader: "Gracias por ser una de las primeras personas en formar parte de Crealy.",
+        ...layout({
+          preheader: "Gracias por ser una de las primeras personas en formar parte de Crealy.",
+          title: `Tienes ${escapeHtml(data.credits || 5)} créditos de regalo.`,
+          body: `<p>Gracias por ser una de las primeras personas en formar parte de Crealy.</p><p>Queremos que sigas probando sus funciones y convirtiendo tus ideas en diseños, así que añadimos <strong style="color:#F7F7F5">${escapeHtml(data.credits || 5)} créditos gratis</strong> a tu cuenta.</p><p>Ya están disponibles y puedes utilizarlos cuando quieras.</p>`,
+          ctaLabel: "Seguir creando",
+          ctaUrl: `${siteUrl}/create`,
         }),
       };
     case "support_received":
