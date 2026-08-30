@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     .lte("available_at", new Date().toISOString())
     .order("priority")
     .order("created_at")
-    .limit(3);
+    .limit(100);
   if (error) {
     logger.error("queue.tick_failed", { errorCode: "job_list_failed" });
     return NextResponse.json({ error: "Queue unavailable" }, { status: 503 });
@@ -41,6 +41,7 @@ export async function GET(request: Request) {
 
   const results = [];
   for (const job of data ?? []) {
+    if (results.length >= 3) break;
     const payload = job.payload as { ready?: boolean } | null;
     if (job.job_type !== "send_transactional_email" && payload?.ready !== true) {
       continue;
