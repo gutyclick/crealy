@@ -2164,6 +2164,39 @@ export type Database = {
           },
         ]
       }
+      user_announcements: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          credit_amount: number | null
+          id: string
+          kind: string
+          message: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          credit_amount?: number | null
+          id?: string
+          kind: string
+          message: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          credit_amount?: number | null
+          id?: string
+          kind?: string
+          message?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2176,6 +2209,10 @@ export type Database = {
       fail_open_job_stages_internal: {
         Args: { p_attempt_no: number; p_error_code: string; p_job_id: string }
         Returns: number
+      }
+      acknowledge_user_announcement: {
+        Args: { p_announcement_id: string }
+        Returns: boolean
       }
       finish_job_stage_internal: {
         Args: {

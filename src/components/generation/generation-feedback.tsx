@@ -10,12 +10,20 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { CREATION_QUEUED_EVENT } from "@/components/dashboard/creation-notification-center";
+import {
+  publishCreditBalance,
+  requestCreditBalanceRefresh,
+} from "@/lib/credits/client-credit-balance";
+import { readApiResponse } from "@/lib/uploads/read-api-response";
+import type { GenerationErrorResponse } from "@/types/generation";
 import {
   GENERATION_FEEDBACK_REASONS,
   type GenerationFeedbackReason,
   type GenerationFeedbackValue,
   type GenerationFeedbackVerdict,
 } from "@/types/generation-feedback";
+import type { QueuedGenerationResponse } from "@/types/jobs";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -74,6 +82,44 @@ export function GenerationFeedback({
       return true;
     }
 
+    if (!quick && payload.feedback.correctionRequested && payload.feedback.correctionRequest) {
+      const correctionResponse = await fetch(`/api/generations/${generationId}/correction`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ instruction: payload.feedback.correctionRequest }),
+      }).catch(() => null);
+      if (!correctionResponse) {
+        requestCreditBalanceRefresh();
+        setSaveState("error");
+        setMessage("Guardamos tu opinión, pero no pudimos poner la corrección en cola. Inténtalo otra vez.");
+        return false;
+      }
+      const correctionPayload = await readApiResponse<
+        QueuedGenerationResponse | GenerationErrorResponse
+      >(correctionResponse, "No pudimos preparar la corrección.");
+      if (!correctionResponse.ok || "error" in correctionPayload) {
+        requestCreditBalanceRefresh();
+        setSaveState("error");
+        setMessage(
+          "error" in correctionPayload
+            ? correctionPayload.error
+            : "No pudimos preparar la corrección.",
+        );
+        return false;
+      }
+      publishCreditBalance(correctionPayload.availableCredits);
+      window.dispatchEvent(new CustomEvent(CREATION_QUEUED_EVENT, {
+        detail: {
+          jobId: correctionPayload.jobId,
+          generationId: correctionPayload.generationId,
+          label: "Corrección de diseño",
+          status: correctionPayload.status,
+          createdAt: new Date().toISOString(),
+          unread: true,
+        },
+      }));
+    }
+
     setFeedback(payload.feedback);
     setHasVerdict(true);
     setSaveState("saved");
@@ -81,7 +127,7 @@ export function GenerationFeedback({
       quick
         ? "Opinión guardada. Puedes añadir detalles si quieres."
         : payload.feedback.correctionRequested
-          ? "Opinión guardada y corrección solicitada."
+          ? "Corrección en cola. Te avisaremos cuando esté lista."
           : "Gracias. Tu opinión quedó ligada a este resultado.",
     );
     return true;
@@ -251,7 +297,7 @@ export function GenerationFeedback({
                   className="size-5 accent-[var(--brand)]"
                 />
                 <Wrench aria-hidden="true" className="size-4 text-brand" />
-                Solicitar una corrección concreta
+                Crear una versión corregida
               </label>
               {feedback.correctionRequested ? (
                 <label className="feedback-details-enter mt-3 grid gap-2 text-sm font-semibold text-foreground">
@@ -291,7 +337,7 @@ export function GenerationFeedback({
                 <Check aria-hidden="true" className="size-4" />
               ) : null}
               {feedback.correctionRequested
-                ? "Guardar y solicitar corrección"
+                ? "Crear corrección"
                 : "Guardar detalles"}
             </button>
             {message ? (

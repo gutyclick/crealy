@@ -13,6 +13,7 @@ import type { PlanKey } from "@/types/billing";
 import { MobileAppNavigation } from "@/components/dashboard/mobile-app-navigation";
 import { MfaSecurityReminder } from "@/components/auth/mfa-security-reminder";
 import { ActivityPing } from "@/components/dashboard/activity-ping";
+import { CreditGiftDialog } from "@/components/dashboard/credit-gift-dialog";
 
 export const metadata: Metadata = {
   robots: {
@@ -39,7 +40,12 @@ export default async function DashboardLayout({
   let reservedCredits = 0;
   let plan: PlanKey = "free";
   const supabase = await createClient();
-  const [{ data: activeJobs }, { data: profile }, { data: factors }] = await Promise.all([
+  const [
+    { data: activeJobs },
+    { data: profile },
+    { data: factors },
+    { data: announcement },
+  ] = await Promise.all([
     supabase
       .from("jobs")
       .select("id, status, resource_id, created_at")
@@ -54,6 +60,14 @@ export default async function DashboardLayout({
       .eq("id", user.id)
       .maybeSingle(),
     supabase.auth.mfa.listFactors(),
+    supabase
+      .from("user_announcements")
+      .select("id, credit_amount")
+      .eq("user_id", user.id)
+      .is("acknowledged_at", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ]);
   const cookieStore = await cookies();
   const hasVerifiedMfa = Boolean(
@@ -96,6 +110,13 @@ export default async function DashboardLayout({
       />
       <ActivityPing userId={user.id} />
       {showMfaReminder ? <MfaSecurityReminder /> : null}
+      {announcement?.credit_amount ? (
+        <CreditGiftDialog
+          announcementId={announcement.id}
+          creditAmount={announcement.credit_amount}
+          availableCredits={credits}
+        />
+      ) : null}
       {children}
       <MobileAppNavigation plan={plan} />
       <FeedbackWidget />

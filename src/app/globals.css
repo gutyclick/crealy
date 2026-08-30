@@ -527,6 +527,19 @@ a {
   }
 }
 
+@keyframes credit-gift-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.75rem, 0) scale(0.98);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
 @keyframes nav-new-signal {
   0%, 72%, 100% {
     box-shadow: 0 4px 12px rgba(221, 245, 39, 0.12);
@@ -605,6 +618,10 @@ a {
 
   .feedback-details-enter {
     animation: feedback-details-enter 320ms var(--ease-out) both;
+  }
+
+  .credit-gift-enter {
+    animation: credit-gift-enter 420ms var(--ease-out) both;
   }
 
   .nav-new-badge {
@@ -693,6 +710,7 @@ a {
   .creation-heading-swap,
   .creation-toast,
   .feedback-details-enter,
+  .credit-gift-enter,
   .dashboard-hero-copy,
   .dashboard-quick-item,
   .reveal-rise,
