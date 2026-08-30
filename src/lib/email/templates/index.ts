@@ -34,12 +34,63 @@ function layout({
   ctaLabel?: string;
   ctaUrl?: string;
 }) {
+  let brandOrigin = "https://www.crealy.app";
+  try {
+    brandOrigin = new URL(ctaUrl || brandOrigin).origin;
+  } catch {
+    // Keep the production origin if a caller supplies an invalid URL.
+  }
+  const logoUrl = `${brandOrigin}/brand/logo_Crealy_w.png`;
   const action =
     ctaLabel && ctaUrl
-      ? `<p style="margin:28px 0"><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#DDF527;color:#111400;text-decoration:none;font-weight:700;padding:13px 20px;border-radius:10px">${escapeHtml(ctaLabel)}</a></p>`
+      ? `<table role="presentation" border="0" cellpadding="0" cellspacing="0" class="cta-table" style="margin:30px 0 0"><tr><td align="center" bgcolor="#DDF527" style="border-radius:12px"><a class="cta-link" href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:15px 24px;color:#111400;font-size:16px;font-weight:700;line-height:20px;text-decoration:none">${escapeHtml(ctaLabel)} &nbsp;&rarr;</a></td></tr></table>`
       : "";
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#080808;color:#F7F7F5;font-family:Arial,sans-serif"><span style="display:none;max-height:0;overflow:hidden">${escapeHtml(preheader)}</span><main style="max-width:600px;margin:0 auto;padding:40px 22px"><p style="color:#DDF527;font-weight:800;font-size:20px">Crealy</p><h1 style="font-size:30px;line-height:1.15;margin:30px 0 18px">${escapeHtml(title)}</h1><div style="color:#B0B1AA;font-size:16px;line-height:1.7">${body}</div>${action}<p style="border-top:1px solid #292A25;margin-top:36px;padding-top:20px;color:#7E8078;font-size:12px;line-height:1.6">Este es un correo transaccional de Crealy relacionado con tu cuenta o una solicitud. Consulta nuestra política de privacidad desde el sitio.</p></main></body></html>`;
-  const text = `${title}\n\n${body.replace(/<[^>]+>/g, "")}${ctaLabel && ctaUrl ? `\n\n${ctaLabel}: ${ctaUrl}` : ""}\n\nCrealy · Correo transaccional relacionado con tu cuenta.`;
+  const html = `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img { -ms-interpolation-mode:bicubic; border:0; display:block; height:auto; line-height:100%; outline:none; text-decoration:none; }
+    @media only screen and (max-width:620px) {
+      .email-shell { padding:16px 10px 28px !important; }
+      .email-card { border-radius:16px !important; }
+      .email-header { padding:24px 22px 20px !important; }
+      .email-content { padding:34px 22px 30px !important; }
+      .email-title { font-size:30px !important; line-height:34px !important; }
+      .email-copy { font-size:16px !important; line-height:25px !important; }
+      .cta-table, .cta-table tbody, .cta-table tr, .cta-table td { width:100% !important; }
+      .cta-link { box-sizing:border-box !important; display:block !important; text-align:center !important; width:100% !important; }
+      .email-footer { padding:22px 12px 0 !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#080808;color:#F7F7F5;font-family:Arial,Helvetica,sans-serif">
+  <div style="display:none;font-size:1px;color:#080808;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">${escapeHtml(preheader)}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="width:100%;background-color:#080808">
+    <tr><td align="center" class="email-shell" style="padding:42px 18px 34px">
+      <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" class="email-card" style="width:100%;max-width:600px;background-color:#11120E;border:1px solid #292A25;border-radius:18px;overflow:hidden">
+        <tr><td class="email-header" style="padding:28px 42px 24px;border-bottom:1px solid #292A25">
+          <a href="${escapeHtml(brandOrigin)}" aria-label="Crealy" style="display:inline-block;text-decoration:none"><img src="${escapeHtml(logoUrl)}" width="132" alt="Crealy" style="width:132px;max-width:132px;height:auto"></a>
+        </td></tr>
+        <tr><td class="email-content" style="padding:46px 42px 40px">
+          <div style="width:44px;height:4px;background-color:#DDF527;border-radius:4px;margin:0 0 26px"></div>
+          <h1 class="email-title" style="margin:0 0 20px;color:#F7F7F5;font-size:38px;font-weight:700;letter-spacing:-1.1px;line-height:42px">${escapeHtml(title)}</h1>
+          <div class="email-copy" style="color:#BFC0B9;font-size:17px;line-height:28px">${body}</div>
+          ${action}
+        </td></tr>
+      </table>
+      <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px"><tr><td align="center" class="email-footer" style="padding:24px 30px 0;color:#7E8078;font-size:12px;line-height:19px">Este es un correo transaccional relacionado con tu cuenta de Crealy.<br><a href="${escapeHtml(brandOrigin)}/privacy" style="color:#A9AAA3;text-decoration:underline">Política de privacidad</a></td></tr></table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+  const text = `${title}\n\n${body.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")}${ctaLabel && ctaUrl ? `\n\n${ctaLabel}: ${ctaUrl}` : ""}\n\nCrealy · Correo transaccional relacionado con tu cuenta.`;
   return { html, text };
 }
 
@@ -140,8 +191,8 @@ export function renderEmailTemplate(
         preheader: "Gracias por ser una de las primeras personas en formar parte de Crealy.",
         ...layout({
           preheader: "Gracias por ser una de las primeras personas en formar parte de Crealy.",
-          title: `Tienes ${escapeHtml(data.credits || 5)} créditos de regalo.`,
-          body: `<p>Gracias por ser una de las primeras personas en formar parte de Crealy.</p><p>Queremos que sigas probando sus funciones y convirtiendo tus ideas en diseños, así que añadimos <strong style="color:#F7F7F5">${escapeHtml(data.credits || 5)} créditos gratis</strong> a tu cuenta.</p><p>Ya están disponibles y puedes utilizarlos cuando quieras.</p>`,
+          title: `Te regalamos ${escapeHtml(data.credits || 5)} créditos para seguir creando.`,
+          body: `<p style="margin:0 0 18px">Gracias por ser una de las primeras personas en formar parte de Crealy.</p><p style="margin:0 0 22px">Queremos que sigas poniendo a prueba tus ideas, así que añadimos este regalo a tu cuenta:</p><table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 22px;background-color:#191A15;border:1px solid #34372A;border-radius:14px"><tr><td style="padding:22px 24px"><strong style="display:block;color:#DDF527;font-size:28px;line-height:32px">+${escapeHtml(data.credits || 5)} créditos</strong><span style="display:block;margin-top:5px;color:#F7F7F5;font-size:14px;line-height:20px">Ya están disponibles en tu saldo.</span></td></tr></table><p style="margin:0">Úsalos para crear una miniatura, un post o probar Recreate. Son tuyos y puedes utilizarlos cuando quieras.</p>`,
           ctaLabel: "Seguir creando",
           ctaUrl: `${siteUrl}/create`,
         }),

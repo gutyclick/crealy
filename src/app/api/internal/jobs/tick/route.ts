@@ -26,26 +26,39 @@ export async function GET(request: Request) {
   logger.info("queue.consumer_started");
   const maintenance = await maintainQueue();
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("jobs")
-    .select("id, job_type, payload")
-    .in("status", ["queued", "retry_scheduled"])
-    .lte("available_at", new Date().toISOString())
-    .order("priority")
-    .order("created_at")
-    .limit(100);
-  if (error) {
+  const availableAt = new Date().toISOString();
+  const [readyJobs, emailJobs] = await Promise.all([
+    admin
+      .from("jobs")
+      .select("id, job_type, payload, priority, created_at")
+      .contains("payload", { ready: true })
+      .in("status", ["queued", "retry_scheduled"])
+      .lte("available_at", availableAt)
+      .order("priority")
+      .order("created_at")
+      .limit(3),
+    admin
+      .from("jobs")
+      .select("id, job_type, payload, priority, created_at")
+      .eq("job_type", "send_transactional_email")
+      .in("status", ["queued", "retry_scheduled"])
+      .lte("available_at", availableAt)
+      .order("priority")
+      .order("created_at")
+      .limit(3),
+  ]);
+  if (readyJobs.error || emailJobs.error) {
     logger.error("queue.tick_failed", { errorCode: "job_list_failed" });
     return NextResponse.json({ error: "Queue unavailable" }, { status: 503 });
   }
 
+  const data = [...(readyJobs.data ?? []), ...(emailJobs.data ?? [])]
+    .filter((job, index, jobs) => jobs.findIndex((item) => item.id === job.id) === index)
+    .sort((a, b) => a.priority - b.priority || a.created_at.localeCompare(b.created_at))
+    .slice(0, 3);
+
   const results = [];
-  for (const job of data ?? []) {
-    if (results.length >= 3) break;
-    const payload = job.payload as { ready?: boolean } | null;
-    if (job.job_type !== "send_transactional_email" && payload?.ready !== true) {
-      continue;
-    }
+  for (const job of data) {
     results.push({ id: job.id, ...(await processQueuedJob(job.id)) });
   }
   logger.info("queue.consumer_completed", {
