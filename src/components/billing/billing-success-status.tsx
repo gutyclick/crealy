@@ -4,6 +4,7 @@ import { Check, LoaderCircle, RotateCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { queueGoogleAdsConversion } from "@/lib/analytics/google-ads";
 
 type BillingStatus = {
   plan: "free" | "starter" | "pro" | "business";
@@ -16,6 +17,20 @@ export function BillingSuccessStatus({ sessionId }: { sessionId?: string }) {
   const [attempts, setAttempts] = useState(0);
   const [delayed, setDelayed] = useState(false);
   const reconciliationAttempted = useRef(false);
+  const conversionQueued = useRef(false);
+
+  useEffect(() => {
+    if (
+      !conversionQueued.current &&
+      sessionId &&
+      state &&
+      state.plan !== "free" &&
+      (state.status === "active" || state.status === "trialing")
+    ) {
+      conversionQueued.current = true;
+      queueGoogleAdsConversion(`billing:${sessionId}`);
+    }
+  }, [sessionId, state]);
 
   useEffect(() => {
     let cancelled = false;

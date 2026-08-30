@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { siteConfig } from "@/config/site";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
+import { GoogleAdsProvider } from "@/components/analytics/google-ads-provider";
 
 import "./globals.css";
 
@@ -92,6 +93,7 @@ export default function RootLayout({
           {children}
         </div>
         <AnalyticsProvider />
+        <GoogleAdsProvider />
       </body>
     </html>
   );

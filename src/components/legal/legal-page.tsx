@@ -1,5 +1,6 @@
 import { Container } from "@/components/layout/container";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
+import type { ReactNode } from "react";
 import {
   LEGAL_ADDRESS,
   LEGAL_CONTACT_EMAIL,
@@ -20,11 +21,13 @@ export function LegalPage({
   summary,
   effectiveDate,
   sections,
+  children,
 }: {
   title: string;
   summary: string;
   effectiveDate?: string;
   sections: readonly LegalSection[];
+  children?: ReactNode;
 }) {
   const entity =
     process.env.NEXT_PUBLIC_LEGAL_ENTITY_NAME?.trim() ||
@@ -87,6 +90,7 @@ export function LegalPage({
               </section>
             ))}
           </div>
+          {children}
           <p className="mt-8 text-sm leading-6 text-muted">
             Ley aplicable general: {country}. Esta elección no limita los derechos
             imperativos que correspondan al consumidor por su lugar de residencia.
