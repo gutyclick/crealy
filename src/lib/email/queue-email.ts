@@ -5,6 +5,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { canSendOptionalEmail } from "@/lib/email/email-preferences";
 import type { TransactionalEmailType } from "@/lib/email/templates";
 import { getPublicSiteUrl } from "@/lib/seo/get-public-site-url";
+import { dispatchQueuedJob } from "@/lib/jobs/dispatch-job";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function queueTransactionalEmail({
@@ -52,5 +53,6 @@ export async function queueTransactionalEmail({
   if (error || !queuedDeliveryId) {
     return null;
   }
+  await dispatchQueuedJob(jobId);
   return queuedDeliveryId;
 }

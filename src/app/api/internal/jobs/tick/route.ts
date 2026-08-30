@@ -28,8 +28,7 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("jobs")
-    .select("id")
-    .contains("payload", { ready: true })
+    .select("id, job_type, payload")
     .in("status", ["queued", "retry_scheduled"])
     .lte("available_at", new Date().toISOString())
     .order("priority")
@@ -42,6 +41,10 @@ export async function GET(request: Request) {
 
   const results = [];
   for (const job of data ?? []) {
+    const payload = job.payload as { ready?: boolean } | null;
+    if (job.job_type !== "send_transactional_email" && payload?.ready !== true) {
+      continue;
+    }
     results.push({ id: job.id, ...(await processQueuedJob(job.id)) });
   }
   logger.info("queue.consumer_completed", {
