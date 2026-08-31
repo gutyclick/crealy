@@ -64,17 +64,16 @@ export default async function BillingPage() {
   return (
     <main className="py-12 sm:py-16">
       <Container>
-        <div className="mx-auto max-w-5xl">
-          <div className="text-center">
-            <p className="text-sm font-medium text-brand">Tu cuenta</p>
-            <h1 className="mt-3 text-balance text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
-              Plan y créditos, sin letra pequeña.
+        <div className="mx-auto max-w-7xl">
+          <header className="max-w-3xl">
+            <h1 className="text-balance text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+              Plan y facturación
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-muted">
-              Consulta lo disponible, revisa cada movimiento y administra el
-              cobro directamente en Stripe.
+            <p className="mt-4 max-w-2xl text-base leading-7 text-muted">
+              Revisa tus créditos, elige cuánto quieres crear y administra tus
+              pagos de forma segura en Stripe.
             </p>
-          </div>
+          </header>
 
           {state.effectivePlan.isPastDue && (
             <div className="mt-10 flex items-start gap-3 rounded-xl border border-amber-300/25 bg-amber-300/[0.06] p-4 text-amber-100">
@@ -89,65 +88,82 @@ export default async function BillingPage() {
             </div>
           )}
 
-          <section className="mt-10 grid overflow-hidden rounded-2xl border border-white/10 bg-surface md:grid-cols-2">
-            <div className="p-7 sm:p-9">
-              <p className="text-sm text-muted">Créditos disponibles</p>
-              <div className="mt-4 flex items-center gap-4">
-                <Coins aria-hidden="true" className="size-7 text-brand" />
-                <strong className="text-6xl font-semibold tracking-[-0.04em] text-brand">
-                  {state.credits.available}
-                </strong>
-              </div>
-              {state.credits.reserved > 0 && (
-                <p className="mt-4 text-sm text-muted">
-                  {state.credits.reserved} reservados por una operación en
-                  curso.
-                </p>
-              )}
-              <Button href="/create" className="mt-8" size="lg">
-                Usar créditos
-                <ArrowRight aria-hidden="true" className="size-4" />
-              </Button>
-            </div>
-
-            <div className="border-t border-white/10 p-7 sm:p-9 md:border-l md:border-t-0">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm text-muted">Plan actual</p>
-                  <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em]">
+          <section className="mt-8 rounded-2xl border border-white/10 bg-surface p-5 sm:p-7 lg:grid lg:grid-cols-[1fr_17rem] lg:items-center lg:gap-8">
+            <div className="grid gap-6 sm:grid-cols-2 sm:gap-0">
+              <div className="sm:border-r sm:border-white/10 sm:pr-7">
+                <p className="text-sm text-muted">Plan actual</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <h2 className="text-3xl font-semibold tracking-[-0.035em]">
                     {planNames[state.effectivePlan.key]}
                   </h2>
+                  <span className="rounded-full border border-white/12 px-3 py-1 font-mono text-xs text-white/65">
+                    {subscriptionStatusNames[
+                      state.subscription?.status ?? "free"
+                    ] ?? "En actualización"}
+                  </span>
                 </div>
-                <span className="rounded-full border border-white/12 px-3 py-1 font-mono text-xs text-white/65">
-                  {subscriptionStatusNames[
-                    state.subscription?.status ?? "free"
-                  ] ?? "En actualización"}
-                </span>
+                <p className="mt-2 text-sm text-muted">{periodLabel}</p>
               </div>
-              <p className="mt-5 text-sm text-muted">{periodLabel}</p>
-              <div className="mt-8">
-                {state.hasManageableSubscription ? (
-                  <>
-                    <PortalButton />
-                  </>
-                ) : state.canCheckoutPro ? (
-                  <>
-                    <Button href="/pricing" variant="secondary" size="lg">
-                      Elegir un plan
-                    </Button>
-                    <BillingSyncButton />
-                  </>
-                ) : (
-                  <p className="text-sm leading-6 text-muted">
-                    Los pagos todavía no están disponibles. Tus créditos
-                    actuales siguen funcionando.
+
+              <div className="border-t border-white/10 pt-5 sm:border-t-0 sm:pl-7 sm:pt-0">
+                <p className="text-sm text-muted">Créditos disponibles</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <Coins aria-hidden="true" className="size-5 text-brand" />
+                  <strong className="text-4xl font-semibold tracking-[-0.04em] text-brand">
+                    {state.credits.available}
+                  </strong>
+                </div>
+                {state.credits.reserved > 0 ? (
+                  <p className="mt-2 text-sm text-muted">
+                    {state.credits.reserved} reservados por un trabajo en curso.
                   </p>
-                )}
+                ) : null}
               </div>
+            </div>
+
+            <div className="mt-7 grid gap-3 border-t border-white/10 pt-6 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+              <Button href="/create" size="lg" className="w-full">
+                Crear un diseño
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </Button>
+              {state.hasManageableSubscription ? (
+                <PortalButton label="Administrar plan" />
+              ) : state.canCheckoutPro ? (
+                <>
+                  <Button href="#planes" variant="secondary" size="lg" className="w-full">
+                    Comparar planes
+                  </Button>
+                  <BillingSyncButton />
+                </>
+              ) : (
+                <p className="text-sm leading-6 text-muted">
+                  Los pagos todavía no están disponibles. Tus créditos actuales
+                  siguen funcionando.
+                </p>
+              )}
             </div>
           </section>
 
-          <section className="mt-16">
+          {state.effectivePlan.key === "free" && state.canCheckoutPro && (
+            <section id="planes" className="mt-12 scroll-mt-24 border-y border-white/10 py-10 sm:mt-16 sm:py-14">
+              <div className="mx-auto mb-8 max-w-2xl text-center">
+                <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
+                  Elige cuánto quieres crear
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-muted sm:text-base">
+                  Los tres planes incluyen todas las herramientas. Solo cambia
+                  la cantidad de créditos y la prioridad.
+                </p>
+              </div>
+              <PricingTable
+                authenticated
+                currentPlan={state.effectivePlan.key}
+                compact
+              />
+            </section>
+          )}
+
+          <section className="mt-14 sm:mt-16">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-brand">Movimientos</p>
@@ -203,24 +219,6 @@ export default async function BillingPage() {
             )}
           </section>
 
-          {state.effectivePlan.key === "free" && state.canCheckoutPro && (
-            <section className="mt-20 border-t border-white/10 pt-16 text-center">
-              <h2 className="text-balance text-3xl font-semibold tracking-[-0.035em]">
-                ¿Necesitas un saldo nuevo cada mes?
-              </h2>
-              <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted">
-                Cada plan de pago añade créditos en el ciclo confirmado por
-                Stripe.
-              </p>
-              <div className="mt-9">
-                <PricingTable
-                  authenticated
-                  currentPlan={state.effectivePlan.key}
-                  compact
-                />
-              </div>
-            </section>
-          )}
         </div>
       </Container>
     </main>

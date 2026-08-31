@@ -75,43 +75,46 @@ export function PricingTableClient({
         : currentPlan === "business"
           ? "pro"
           : currentPlan;
+  const visiblePlans = compact
+    ? PRICING_PLANS.filter((plan) => plan.id !== "free")
+    : PRICING_PLANS;
 
   return (
-    <div className="mx-auto max-w-[90rem] px-5">
-      {!compact ? (
-        <div className="mb-10 flex flex-col items-center gap-5 text-center">
-          <div
-            role="group"
-            aria-label="Periodo de facturación"
-            className="inline-grid grid-cols-2 rounded-xl border border-white/10 bg-surface p-1"
+    <div className={cn("mx-auto", compact ? "max-w-7xl" : "max-w-[90rem] px-5")}>
+      <div className={cn("flex flex-col items-center text-center", compact ? "mb-7 gap-3" : "mb-10 gap-5")}>
+        <div
+          role="group"
+          aria-label="Periodo de facturación"
+          className="inline-grid w-full max-w-sm grid-cols-2 rounded-xl border border-white/10 bg-surface p-1 sm:w-auto"
+        >
+          <button
+            type="button"
+            aria-pressed={period === "monthly"}
+            onClick={() => setPeriod("monthly")}
+            className={cn(
+              "min-h-11 rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:px-5",
+              period === "monthly"
+                ? "bg-white/10 text-foreground"
+                : "text-muted hover:text-foreground",
+            )}
           >
-            <button
-              type="button"
-              aria-pressed={period === "monthly"}
-              onClick={() => setPeriod("monthly")}
-              className={cn(
-                "min-h-11 rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
-                period === "monthly"
-                  ? "bg-white/10 text-foreground"
-                  : "text-muted hover:text-foreground",
-              )}
-            >
-              Mensual
-            </button>
-            <button
-              type="button"
-              aria-pressed={period === "annual"}
-              onClick={() => setPeriod("annual")}
-              className={cn(
-                "min-h-11 rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
-                period === "annual"
-                  ? "bg-brand text-brand-ink"
-                  : "text-muted hover:text-foreground",
-              )}
-            >
-              Anual <span className="ml-1 text-xs">Ahorra 20%</span>
-            </button>
-          </div>
+            Mensual
+          </button>
+          <button
+            type="button"
+            aria-pressed={period === "annual"}
+            onClick={() => setPeriod("annual")}
+            className={cn(
+              "min-h-11 rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:px-5",
+              period === "annual"
+                ? "bg-brand text-brand-ink"
+                : "text-muted hover:text-foreground",
+            )}
+          >
+            Anual <span className="ml-1 text-xs">Ahorra 20%</span>
+          </button>
+        </div>
+        {!compact ? (
           <div>
             <p className="font-semibold text-foreground">
               No pagas por funciones. Pagas por crear más.
@@ -121,20 +124,23 @@ export function PricingTableClient({
               Crealy.
             </p>
           </div>
-        </div>
-      ) : null}
+        ) : (
+          <p className="text-sm text-muted">Cambia o cancela desde Stripe cuando quieras.</p>
+        )}
+      </div>
 
-      <p className="mb-3 text-center text-xs text-[var(--text-meta)] md:hidden">
+      {!compact ? <p className="mb-3 text-center text-xs text-[var(--text-meta)] md:hidden">
         Desliza para comparar los planes
-      </p>
+      </p> : null}
 
       <div
         className={cn(
-          "mobile-content-rail flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto pb-4 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0 xl:grid-cols-4",
-          compact && "mx-auto max-w-6xl",
+          compact
+            ? "grid grid-cols-1 items-stretch gap-3 md:grid-cols-3 md:gap-4"
+            : "mobile-content-rail flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto pb-4 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0 xl:grid-cols-4",
         )}
       >
-        {PRICING_PLANS.map((plan) => {
+        {visiblePlans.map((plan) => {
           const price = displayPrice(plan, period);
           const active = currentPublic === plan.id;
           const hasFirmaVisual = plan.id === "creator" || plan.id === "pro";
@@ -147,9 +153,10 @@ export function PricingTableClient({
             <article
               key={plan.id}
               className={cn(
-                "relative flex min-h-full w-[84vw] shrink-0 snap-center flex-col rounded-2xl border bg-surface p-6 transition-[transform,border-color,box-shadow] duration-200 ease-out hover:-translate-y-1 sm:p-7 md:w-auto",
+                "relative flex min-h-full shrink-0 flex-col rounded-2xl border bg-surface p-5 transition-[transform,border-color,box-shadow] duration-200 ease-out hover:-translate-y-1 sm:p-6",
+                compact ? "w-full" : "w-[84vw] snap-center md:w-auto sm:p-7",
                 plan.popular
-                  ? "border-brand/70 bg-surface-elevated shadow-[0_18px_55px_rgba(221,245,39,.08)] xl:-translate-y-2 xl:hover:-translate-y-3"
+                  ? cn("border-brand/70 bg-surface-elevated shadow-[0_18px_55px_rgba(221,245,39,.08)]", !compact && "xl:-translate-y-2 xl:hover:-translate-y-3")
                   : "border-white/10 hover:border-white/20",
               )}
             >
@@ -191,7 +198,7 @@ export function PricingTableClient({
                 <div className="mt-3 flex items-end gap-2" aria-live="polite">
                   <span
                     key={`${plan.id}-${period}`}
-                    className="price-swap text-5xl font-semibold tracking-[-0.04em] text-foreground"
+                    className={cn("price-swap font-semibold tracking-[-0.04em] text-foreground", compact ? "text-4xl" : "text-5xl")}
                   >
                     {price.primary}
                   </span>
@@ -242,7 +249,14 @@ export function PricingTableClient({
                 {plan.features.map((feature, featureIndex) => (
                   <li
                     key={feature}
-                    className={cn("items-start gap-2.5 text-sm leading-5 text-muted", featureIndex < 3 ? "flex" : "hidden sm:flex")}
+                    className={cn(
+                      "items-start gap-2.5 text-sm leading-5 text-muted",
+                      featureIndex < 3
+                        ? "flex"
+                        : compact
+                          ? "hidden"
+                          : "hidden sm:flex",
+                    )}
                   >
                     <Check
                       aria-hidden="true"

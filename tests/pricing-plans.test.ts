@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -53,4 +54,22 @@ test("Creator is the only visually recommended plan", () => {
     PRICING_PLANS.filter((plan) => plan.popular).map((plan) => plan.id),
     ["creator"],
   );
+});
+
+test("embedded billing pricing keeps period selection visible and stacks on mobile", () => {
+  const pricing = readFileSync(
+    "src/components/billing/pricing-table-client.tsx",
+    "utf8",
+  );
+  const billing = readFileSync(
+    "src/app/(dashboard)/settings/billing/page.tsx",
+    "utf8",
+  );
+
+  assert.match(pricing, /visiblePlans = compact/);
+  assert.match(pricing, /plan\.id !== "free"/);
+  assert.match(pricing, /grid grid-cols-1[^\n]+md:grid-cols-3/);
+  assert.match(pricing, /aria-label="Periodo de facturación"/);
+  assert.match(billing, /id="planes"/);
+  assert.match(billing, /Elige cuánto quieres crear/);
 });
