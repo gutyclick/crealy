@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { BillingError } from "@/lib/billing/billing-errors";
+import { MANAGEABLE_SUBSCRIPTION_STATUS_LIST } from "@/lib/billing/subscription-status";
 import { getSiteUrl } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe/client";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/operations/rate-limit";
@@ -36,7 +37,23 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: customer, error } = await createAdminClient()
+    const admin = createAdminClient();
+    const { data: subscription, error: subscriptionError } = await admin
+      .from("subscriptions")
+      .select("id")
+      .eq("user_id", user.id)
+      .in("status", MANAGEABLE_SUBSCRIPTION_STATUS_LIST)
+      .limit(1)
+      .maybeSingle();
+    if (subscriptionError || !subscription) {
+      throw new BillingError(
+        "billing_subscription_missing",
+        409,
+        "Aún no tienes una suscripción para administrar. Elige un plan para continuar.",
+      );
+    }
+
+    const { data: customer, error } = await admin
       .from("billing_customers")
       .select("stripe_customer_id")
       .eq("user_id", user.id)

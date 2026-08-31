@@ -5,6 +5,7 @@ export class BillingError extends Error {
       | "invalid_plan"
       | "consent_required"
       | "billing_customer_missing"
+      | "billing_subscription_missing"
       | "subscription_already_exists"
       | "checkout_creation_failed"
       | "portal_creation_failed"

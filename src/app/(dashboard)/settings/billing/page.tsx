@@ -126,17 +126,14 @@ export default async function BillingPage() {
               </div>
               <p className="mt-5 text-sm text-muted">{periodLabel}</p>
               <div className="mt-8">
-                {state.hasBillingCustomer ? (
+                {state.hasManageableSubscription ? (
                   <>
                     <PortalButton />
-                    {state.effectivePlan.key === "free" ? (
-                      <BillingSyncButton auto />
-                    ) : null}
                   </>
                 ) : state.canCheckoutPro ? (
                   <>
                     <Button href="/pricing" variant="secondary" size="lg">
-                      Ver plan
+                      Elegir un plan
                     </Button>
                     <BillingSyncButton />
                   </>

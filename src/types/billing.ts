@@ -50,7 +50,7 @@ export type UserBillingState = {
   recentTransactions: CreditTransactionView[];
   billingEnabled: boolean;
   canCheckoutPro: boolean;
-  hasBillingCustomer: boolean;
+  hasManageableSubscription: boolean;
 };
 
 export type CreditReservationResult = {

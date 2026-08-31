@@ -1,9 +1,9 @@
 import "server-only";
 
 import { getBillingServerEnv } from "@/lib/env/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getEffectivePlan } from "@/lib/billing/get-effective-plan";
+import { isManageableSubscriptionStatus } from "@/lib/billing/subscription-status";
 import type {
   SubscriptionStatus,
   UserBillingState,
@@ -77,22 +77,13 @@ export async function getUserBillingState(
     };
   }
 
-  let hasBillingCustomer = Boolean(subscription);
-  try {
-    const admin = createAdminClient();
-    const { data } = await admin
-      .from("billing_customers")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    hasBillingCustomer = Boolean(data);
-  } catch {
-    // The billing page remains readable if privileged configuration is absent.
-  }
+  const hasManageableSubscription = isManageableSubscriptionStatus(
+    subscription?.status,
+  );
 
   return {
     effectivePlan,
-    subscription: subscription
+    subscription: subscription && hasManageableSubscription
       ? {
           status: subscription.status as SubscriptionStatus,
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
@@ -119,6 +110,6 @@ export async function getUserBillingState(
         config.priceIds.creator.monthly &&
         process.env.STRIPE_SECRET_KEY?.trim(),
     ),
-    hasBillingCustomer,
+    hasManageableSubscription,
   };
 }
