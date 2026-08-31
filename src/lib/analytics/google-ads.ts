@@ -7,7 +7,7 @@ import {
 
 export type GoogleAdsConsent = "granted" | "denied";
 
-export const GOOGLE_ADS_CONSENT_KEY = "crealy_google_ads_consent_v1";
+export const GOOGLE_ADS_CONSENT_KEY = "crealy_marketing_consent_v2";
 const GOOGLE_ADS_PENDING_KEY = "crealy_google_ads_pending_conversions_v1";
 const GOOGLE_ADS_SENT_PREFIX = "crealy_google_ads_conversion_sent:";
 export const GOOGLE_ADS_CONSENT_EVENT = "crealy:google-ads-consent";
@@ -17,8 +17,18 @@ declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
+    fbq?: MetaPixelFunction;
+    _fbq?: MetaPixelFunction;
   }
 }
+
+export type MetaPixelFunction = ((...args: unknown[]) => void) & {
+  callMethod?: (...args: unknown[]) => void;
+  push: (...args: unknown[]) => void;
+  loaded: boolean;
+  version: string;
+  queue: unknown[][];
+};
 
 function storageAvailable() {
   return typeof window !== "undefined" && Boolean(window.localStorage);

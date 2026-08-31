@@ -8,6 +8,7 @@ import { GoogleAdsProvider } from "@/components/analytics/google-ads-provider";
 import {
   GOOGLE_ADS_CONSENT_COOKIE,
   GOOGLE_TAG_MANAGER_ID,
+  META_PIXEL_ID,
 } from "@/config/google-ads";
 
 import "./globals.css";
@@ -90,15 +91,27 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {consent === "granted" ? (
-          <noscript>
-            <iframe
-              src={`https://www.googletagmanager.com/ns.html?id=${GOOGLE_TAG_MANAGER_ID}`}
-              height="0"
-              width="0"
-              title="Google Tag Manager"
-              style={{ display: "none", visibility: "hidden" }}
-            />
-          </noscript>
+          <>
+            <noscript>
+              <iframe
+                src={`https://www.googletagmanager.com/ns.html?id=${GOOGLE_TAG_MANAGER_ID}`}
+                height="0"
+                width="0"
+                title="Google Tag Manager"
+                style={{ display: "none", visibility: "hidden" }}
+              />
+            </noscript>
+            <noscript>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+                height="1"
+                width="1"
+                alt=""
+                style={{ display: "none" }}
+              />
+            </noscript>
+          </>
         ) : null}
         <a
           href="#main-content"

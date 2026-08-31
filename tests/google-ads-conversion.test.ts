@@ -13,7 +13,10 @@ test("Google Ads loads globally only after explicit consent", () => {
   assert.match(provider, /consent === "granted"/);
   assert.match(provider, /googletagmanager\.com\/gtm\.js/);
   assert.match(config, /GTM-ND5L97KW/);
+  assert.match(config, /1487981196421629/);
+  assert.match(config, /crealy_marketing_consent_v2/);
   assert.match(layout, /googletagmanager\.com\/ns\.html/);
+  assert.match(layout, /facebook\.com\/tr/);
   assert.match(layout, /consent === "granted"/);
   assert.match(config, /AW-653792266/);
   assert.match(config, /fPK1CKSKsuocEIqo4LcC/);
@@ -37,10 +40,12 @@ test("Google Ads is disclosed and permitted by CSP without unsafe inline scripts
 
   assert.match(proxy, /googletagmanager\.com/);
   assert.match(proxy, /img-src[^\n]+https:\/\/www\.googletagmanager\.com/);
+  assert.match(proxy, /script-src[^\n]+https:\/\/connect\.facebook\.net/);
+  assert.match(proxy, /img-src[^\n]+https:\/\/www\.facebook\.com/);
   assert.match(proxy, /frame-src[^\n]+googletagmanager\.com/);
   assert.doesNotMatch(proxy, /script-src[^\n]+unsafe-inline/);
-  assert.match(cookies, /Google Ads permanece desactivado hasta que aceptas/);
-  assert.match(privacy, /Google Tag Manager y Google Ads/);
+  assert.match(cookies, /Google Ads y Meta Pixel permanecen desactivados/);
+  assert.match(privacy, /Google Tag Manager, Google Ads y Meta Pixel/);
 });
 
 test("the consent prompt is compact, optional and explains its privacy boundary", () => {
@@ -49,7 +54,17 @@ test("the consent prompt is compact, optional and explains its privacy boundary"
   assert.match(provider, /Medición opcional/);
   assert.match(provider, /Solo necesarias/);
   assert.match(provider, /Permitir medición/);
-  assert.match(provider, /No compartimos tus/);
-  assert.match(provider, /diseños, prompts ni correo con Google/);
+  assert.match(provider, /No\s+compartimos con ellos tus/);
+  assert.match(provider, /diseños, prompts ni correo/);
   assert.match(provider, /max-w-md/);
+});
+
+test("Meta Pixel loads and records PageView only after marketing consent", () => {
+  const provider = read("src/components/analytics/google-ads-provider.tsx");
+
+  assert.match(provider, /consent === "granted"/);
+  assert.match(provider, /connect\.facebook\.net\/en_US\/fbevents\.js/);
+  assert.match(provider, /window\.fbq\("init", META_PIXEL_ID\)/);
+  assert.match(provider, /window\.fbq\("track", "PageView"\)/);
+  assert.match(provider, /window\.fbq\("consent", "revoke"\)/);
 });

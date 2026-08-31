@@ -3,17 +3,46 @@
 import Script from "next/script";
 import { useCallback, useEffect, useState } from "react";
 
-import { GOOGLE_ADS_ID, GOOGLE_TAG_MANAGER_ID } from "@/config/google-ads";
+import {
+  GOOGLE_ADS_ID,
+  GOOGLE_TAG_MANAGER_ID,
+  META_PIXEL_ID,
+} from "@/config/google-ads";
 import {
   flushGoogleAdsConversions,
   GOOGLE_ADS_CONSENT_EVENT,
   GOOGLE_ADS_CONVERSION_EVENT,
   type GoogleAdsConsent,
+  type MetaPixelFunction,
   readGoogleAdsConsent,
   saveGoogleAdsConsent,
 } from "@/lib/analytics/google-ads";
 
 let googleTagInitialized = false;
+let metaPixelInitialized = false;
+
+function prepareMetaPixelQueue() {
+  if (window.fbq) return;
+  const pixel = ((...args: unknown[]) => {
+    if (pixel.callMethod) pixel.callMethod(...args);
+    else pixel.queue.push(args);
+  }) as MetaPixelFunction;
+  pixel.push = pixel;
+  pixel.loaded = true;
+  pixel.version = "2.0";
+  pixel.queue = [];
+  window.fbq = pixel;
+  window._fbq = pixel;
+}
+
+function initializeMetaPixel() {
+  prepareMetaPixelQueue();
+  if (metaPixelInitialized || !window.fbq) return;
+  metaPixelInitialized = true;
+  window.fbq("init", META_PIXEL_ID);
+  window.fbq("consent", "grant");
+  window.fbq("track", "PageView");
+}
 
 function initializeGoogleTagManager() {
   if (googleTagInitialized) {
@@ -57,6 +86,9 @@ export function GoogleAdsProvider() {
           ad_personalization: "denied",
         });
       }
+      if (next === "denied" && window.fbq) {
+        window.fbq("consent", "revoke");
+      }
     };
     const flush = () => flushGoogleAdsConversions();
     window.addEventListener(GOOGLE_ADS_CONSENT_EVENT, updateConsent);
@@ -69,7 +101,10 @@ export function GoogleAdsProvider() {
   }, []);
 
   useEffect(() => {
-    if (consent === "granted") initializeGoogleTagManager();
+    if (consent === "granted") {
+      initializeGoogleTagManager();
+      prepareMetaPixelQueue();
+    }
   }, [consent]);
 
   const choose = useCallback((next: GoogleAdsConsent) => {
@@ -80,12 +115,20 @@ export function GoogleAdsProvider() {
   return (
     <>
       {consent === "granted" ? (
-        <Script
-          id="crealy-google-ads"
-          src={`https://www.googletagmanager.com/gtm.js?id=${GOOGLE_TAG_MANAGER_ID}`}
-          strategy="afterInteractive"
-          onReady={initializeGoogleTagManager}
-        />
+        <>
+          <Script
+            id="crealy-google-ads"
+            src={`https://www.googletagmanager.com/gtm.js?id=${GOOGLE_TAG_MANAGER_ID}`}
+            strategy="afterInteractive"
+            onReady={initializeGoogleTagManager}
+          />
+          <Script
+            id="crealy-meta-pixel"
+            src="https://connect.facebook.net/en_US/fbevents.js"
+            strategy="afterInteractive"
+            onReady={initializeMetaPixel}
+          />
+        </>
       ) : null}
 
       {consent === null ? (
@@ -97,8 +140,8 @@ export function GoogleAdsProvider() {
             Medición opcional
           </p>
           <p className="mt-1.5 text-sm leading-5 text-muted">
-            Nos ayuda a saber qué campañas funcionan. No compartimos tus
-            diseños, prompts ni correo con Google.
+            Google y Meta nos ayudan a saber qué campañas funcionan. No
+            compartimos con ellos tus diseños, prompts ni correo.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button

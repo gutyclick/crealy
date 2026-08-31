@@ -1,6 +1,7 @@
 export const GOOGLE_ADS_ID = "AW-653792266";
 export const GOOGLE_TAG_MANAGER_ID = "GTM-ND5L97KW";
-export const GOOGLE_ADS_CONSENT_COOKIE = "crealy_google_ads_consent_v1";
+export const META_PIXEL_ID = "1487981196421629";
+export const GOOGLE_ADS_CONSENT_COOKIE = "crealy_marketing_consent_v2";
 export const GOOGLE_ADS_CONVERSION_LABEL = "fPK1CKSKsuocEIqo4LcC";
 export const GOOGLE_ADS_CONVERSION_SEND_TO =
   `${GOOGLE_ADS_ID}/${GOOGLE_ADS_CONVERSION_LABEL}`;
