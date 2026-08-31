@@ -279,6 +279,9 @@ test("automatic thumbnail copy is contextual and presets have enforceable craft"
   assert.match(orchestrator, /textPlacement, textScale y textIntegration/);
   assert.match(orchestrator, /no uses por defecto el lado derecho/i);
   assert.match(orchestrator, /detrás del sujeto, arriba, abajo, central o integrado/i);
+  assert.match(orchestrator, /TEXT_MATERIAL_RELATIONSHIPS/);
+  assert.match(orchestrator, /soporte, textura relacionada con el tema, perspectiva, iluminación, relieve u oclusión/i);
+  assert.match(orchestrator, /bloque tipográfico plano y limpio cuando mejore la claridad/i);
   assert.match(orchestrator, /generic_text_layout/);
   assert.match(orchestrator, /weak_text_contrast/);
   assert.match(orchestrator, /transformación imposible expresada por el usuario es una instrucción literal/i);

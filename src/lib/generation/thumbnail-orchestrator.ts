@@ -157,11 +157,29 @@ const TYPOGRAPHY_LAYOUTS = [
   "titular dividido deliberadamente entre arriba y abajo para abrazar el sujeto sin convertirlo en dos bloques desconectados",
 ] as const;
 
+const TEXT_MATERIAL_RELATIONSHIPS = [
+  "convertir el titular en lettering físico sobre una superficie narrativa ya presente —pared, suelo, pantalla, objeto o señal— respetando su perspectiva, luz y desgaste",
+  "hacer que las letras compartan una textura específica del tema del video, sin perder contorno limpio ni lectura móvil",
+  "integrar el texto en la profundidad de la escena: una parte detrás del sujeto y otra delante, con oclusión controlada y sombras coherentes",
+  "construir el titular como un elemento escénico real cuya forma, material o iluminación nazca del conflicto central del brief",
+  "usar luz, proyección, pintura, relieve, grabado o señalética solo cuando el entorno los justifique; la técnica elegida debe reforzar el significado",
+  "tratar una palabra clave como evidencia visual del tema y el resto como apoyo editorial compacto, evitando que todo el titular use el mismo efecto",
+  "fundir el texto con una forma compositiva existente —entrada, marco, pantalla, camino, humo localizado u objeto— sin convertirlo en decoración abstracta",
+  "usar excepcionalmente un bloque tipográfico plano y limpio cuando mejore la claridad; debe sentirse diseñado para este encuadre, no pegado encima como plantilla",
+] as const;
+
 function resolvedTypographyLayout(input: GenerationInput) {
   const digest = createHash("sha256")
     .update(`${input.clientRequestId}|typography-layout|${input.videoTitle || input.description}`)
     .digest();
   return TYPOGRAPHY_LAYOUTS[digest[0] % TYPOGRAPHY_LAYOUTS.length];
+}
+
+function resolvedTextMaterial(input: GenerationInput) {
+  const digest = createHash("sha256")
+    .update(`${input.clientRequestId}|text-material|${input.videoTitle || input.description}`)
+    .digest();
+  return TEXT_MATERIAL_RELATIONSHIPS[digest[0] % TEXT_MATERIAL_RELATIONSHIPS.length];
 }
 
 export function thumbnailCreativeSignature(input: GenerationInput) {
@@ -173,6 +191,7 @@ export function thumbnailCreativeSignature(input: GenerationInput) {
     `Iluminación: ${LIGHTING[digest[1] % LIGHTING.length]}.`,
     `Tratamiento del texto: ${TYPE_TREATMENTS[digest[2] % TYPE_TREATMENTS.length]}.`,
     `Ubicación tipográfica obligatoria: ${resolvedTypographyLayout(input)}.`,
+    `Relación material entre texto y escena: ${resolvedTextMaterial(input)}.`,
     `Firma creativa: ${digest.subarray(0, 5).toString("hex")}. No reutilices una plantilla genérica.`,
   ];
 }
@@ -213,7 +232,7 @@ function buildFinalPrompt(input: GenerationInput, plan: Omit<ThumbnailCreativePl
         ? `People: show exactly ${input.peopleCount} distinct uploaded ${input.peopleCount === 1 ? "person" : "people"}. The first ${input.peopleCount} reference ${input.peopleCount === 1 ? "image is" : "images are"} the mandatory people; later references are labeled non-person elements. Preserve each identity; never merge, duplicate or add people.`
         : `People: generate exactly ${input.peopleCount} narratively necessary ${input.peopleCount === 1 ? "person" : "people"}. No stock posing, crowds or background faces.`,
     text ? `Thumbnail text: Render exactly "${text}". Do not add any other words, letters, labels or interface text. A brand mark is allowed only when brandMarkDirection explicitly authorizes it; it remains small and secondary.` : "Thumbnail text: Do not render editorial text, labels or interface copy. A brand mark is allowed only when brandMarkDirection explicitly authorizes it; otherwise render no letters or logos.",
-    `Typography: highly readable at mobile size. Execute this request-specific layout exactly: ${resolvedTypographyLayout(input)}. The text may sit behind the person, above, below, centered, integrated into the scene or partially occluded as directed. Do not move it into a detached right-side block merely because a person occupies the left. Preserve natural depth with deliberate front/back layering.`,
+    `Typography: highly readable at mobile size. Execute this request-specific layout exactly: ${resolvedTypographyLayout(input)}. Material integration for this request: ${resolvedTextMaterial(input)}. The text may sit behind the person, above, below, centered, integrated into the scene or partially occluded as directed. Do not move it into a detached right-side block merely because a person occupies the left. Preserve natural depth with deliberate front/back layering. Typography must belong to the visual world: derive its support, texture, perspective, lighting or controlled occlusion from the brief whenever that strengthens the concept. A clean flat title remains valid only when it is the strongest deliberate solution, not the default. Never sacrifice exact spelling or mobile readability for an effect.`,
     text ? `Text color direction: primary ${plan.brief.textPrimaryColor}; accent ${plan.brief.textAccentColor}. Reason: ${plan.brief.textColorReason}. First determine the actual local background behind every word, then assign fill, accent, outline and shadow for immediate mobile contrast. Never use the same dominant hue as the object or background behind the text. Use one dominant fill and at most one semantic accent; the outline must oppose the local luminance. Color is a hierarchy decision, not decoration.` : "",
     text ? input.colorPreference === "custom" && input.customColors?.length
       ? `The text must use only colors from the user's palette: ${input.customColors.join(", ")}. Choose the most legible roles within it.`
@@ -412,6 +431,7 @@ export async function planThumbnail(
       "Prohibido devolver ganchos intercambiables como ¿QUÉ PASÓ?, NO LO CREERÁS, INCREÍBLE, IMPACTANTE o TIENES QUE VERLO.",
       "Los tres conceptos deben diferir en metáfora, encuadre, jerarquía, texto y emoción; no son variaciones cosméticas de una plantilla.",
       `Para cada concepto decide textPlacement, textScale y textIntegration DESPUÉS de decidir sujeto, mirada, evidencia y espacio negativo. Para el concepto ganador cumple esta dirección: ${resolvedTypographyLayout(input)}. No uses por defecto el lado derecho ni texto enorme con extrusión 3D. Entre los tres conceptos debe existir variedad material: detrás del sujeto, arriba, abajo, central o integrado, lateral o superpuesto, y una solución compacta o sutil cuando corresponda.`,
+      `La integración tipográfica ganadora debe seguir esta relación material: ${resolvedTextMaterial(input)}. En al menos dos de los tres conceptos, textIntegration debe explicar cómo el texto pertenece físicamente o visualmente a la escena: soporte, textura relacionada con el tema, perspectiva, iluminación, relieve u oclusión. El tercer concepto puede usar texto editorial plano si la claridad lo justifica. No respondas solo “texto grande a la derecha/izquierda”; describe una decisión visual ejecutable y específica del brief.`,
       "COLOR TIPOGRÁFICO: predice el fondo local exacto que habrá detrás de cada palabra. Elige relleno principal, acento y contorno por contraste de luminancia y contraste cromático; evita repetir el color dominante del objeto o fondo. El acento debe destacar solo la palabra con mayor carga semántica. Blanco, amarillo, rojo y verde son candidatos prioritarios, no una combinación fija.",
       `Cumple de forma visible el preset ${preset.label}:`,
       ...THUMBNAIL_PRESET_CRAFT[preset.id],
@@ -468,6 +488,7 @@ export async function evaluateThumbnail({ buffer, mimeType, input, plan, referen
         `Colores de texto previstos: ${plan.brief.textPrimaryColor} y ${plan.brief.textAccentColor}. Evalúa contraste e intención, no una combinación fija.`,
         `Ubicación tipográfica obligatoria: ${resolvedTypographyLayout(input)}. Si el resultado vuelve al bloque habitual de la derecha, ignora la profundidad solicitada o no respeta las capas, marca generic_text_layout.`,
         "Si el texto comparte el tono dominante del fondo, pierde lectura en móvil o el acento no jerarquiza una palabra importante, marca weak_text_contrast.",
+        "Si el plan pedía texto material o integrado pero el resultado muestra un bloque plano pegado sin relación con la escena, marca generic_text_layout. Comprueba soporte, textura temática, perspectiva, iluminación, profundidad y oclusión sin perdonar errores ortográficos ni pérdida de lectura.",
         "Si el usuario expresó una propiedad visual, exageración o transformación literal y el resultado la reduce a un tinte, luz ambiental o insinuación, marca missed_explicit_transformation.",
         referenceImages.length ? "Las primeras imágenes son referencias del usuario y la última es el resultado. Compara el rostro de cada persona: debe ser inequívocamente la misma identidad, aunque la expresión pueda cambiar de forma natural." : "No hay referencias personales para comparar.",
         "Puntuación total: núcleo de impacto y evidencia visual 20, claridad visual 10, calidad técnica 10, texto contextual 15, relevancia 15, emoción y potencial de clic 15, fidelidad al preset y estilo 5, y diferenciación frente a una plantilla genérica 10.",

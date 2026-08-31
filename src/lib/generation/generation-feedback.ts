@@ -40,23 +40,14 @@ export function parseGenerationFeedbackInput(
   }
 
   const comment = optionalText(input.comment, 1000);
-  const correctionRequest = optionalText(input.correctionRequest, 1200);
-  if (comment === undefined || correctionRequest === undefined) return null;
-
-  const correctionRequested = input.correctionRequested === true;
-  if (
-    correctionRequested &&
-    (verdict !== "not_useful" || !correctionRequest || correctionRequest.length < 10)
-  ) {
-    return null;
-  }
+  if (comment === undefined) return null;
 
   return {
     verdict: verdict as GenerationFeedbackVerdict,
     reasons: reasons as GenerationFeedbackReason[],
     comment,
-    correctionRequested,
-    correctionRequest: correctionRequested ? correctionRequest : null,
+    correctionRequested: false,
+    correctionRequest: null,
   };
 }
 
@@ -85,4 +76,3 @@ export function pickAutomaticEvaluation(
       .map((key) => [key, metadata[key]]),
   );
 }
-

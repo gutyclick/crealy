@@ -6,24 +6,15 @@ import {
   MessageSquareText,
   ThumbsDown,
   ThumbsUp,
-  Wrench,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
-import { CREATION_QUEUED_EVENT } from "@/components/dashboard/creation-notification-center";
-import {
-  publishCreditBalance,
-  requestCreditBalanceRefresh,
-} from "@/lib/credits/client-credit-balance";
-import { readApiResponse } from "@/lib/uploads/read-api-response";
-import type { GenerationErrorResponse } from "@/types/generation";
 import {
   GENERATION_FEEDBACK_REASONS,
   type GenerationFeedbackReason,
   type GenerationFeedbackValue,
   type GenerationFeedbackVerdict,
 } from "@/types/generation-feedback";
-import type { QueuedGenerationResponse } from "@/types/jobs";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -43,7 +34,9 @@ export function GenerationFeedback({
   initialFeedback: GenerationFeedbackValue | null;
 }) {
   const [feedback, setFeedback] = useState<GenerationFeedbackValue>(
-    initialFeedback ?? emptyFeedback,
+    initialFeedback
+      ? { ...initialFeedback, correctionRequested: false, correctionRequest: null }
+      : emptyFeedback,
   );
   const [hasVerdict, setHasVerdict] = useState(Boolean(initialFeedback));
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -82,53 +75,13 @@ export function GenerationFeedback({
       return true;
     }
 
-    if (!quick && payload.feedback.correctionRequested && payload.feedback.correctionRequest) {
-      const correctionResponse = await fetch(`/api/generations/${generationId}/correction`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ instruction: payload.feedback.correctionRequest }),
-      }).catch(() => null);
-      if (!correctionResponse) {
-        requestCreditBalanceRefresh();
-        setSaveState("error");
-        setMessage("Guardamos tu opinión, pero no pudimos poner la corrección en cola. Inténtalo otra vez.");
-        return false;
-      }
-      const correctionPayload = await readApiResponse<
-        QueuedGenerationResponse | GenerationErrorResponse
-      >(correctionResponse, "No pudimos preparar la corrección.");
-      if (!correctionResponse.ok || "error" in correctionPayload) {
-        requestCreditBalanceRefresh();
-        setSaveState("error");
-        setMessage(
-          "error" in correctionPayload
-            ? correctionPayload.error
-            : "No pudimos preparar la corrección.",
-        );
-        return false;
-      }
-      publishCreditBalance(correctionPayload.availableCredits);
-      window.dispatchEvent(new CustomEvent(CREATION_QUEUED_EVENT, {
-        detail: {
-          jobId: correctionPayload.jobId,
-          generationId: correctionPayload.generationId,
-          label: "Corrección de diseño",
-          status: correctionPayload.status,
-          createdAt: new Date().toISOString(),
-          unread: true,
-        },
-      }));
-    }
-
     setFeedback(payload.feedback);
     setHasVerdict(true);
     setSaveState("saved");
     setMessage(
       quick
         ? "Opinión guardada. Puedes añadir detalles si quieres."
-        : payload.feedback.correctionRequested
-          ? "Corrección en cola. Te avisaremos cuando esté lista."
-          : "Gracias. Tu opinión quedó ligada a este resultado.",
+        : "Gracias. Tu opinión quedó ligada a este resultado.",
     );
     return true;
   }
@@ -224,7 +177,7 @@ export function GenerationFeedback({
             <legend className="text-sm font-semibold text-foreground">
               {feedback.verdict === "useful"
                 ? "¿Qué fue decisivo?"
-                : "¿Qué deberíamos corregir?"}
+                : "¿Qué no funcionó?"}
               <span className="ml-2 font-normal text-muted">Opcional</span>
             </legend>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -276,55 +229,6 @@ export function GenerationFeedback({
             />
           </label>
 
-          {feedback.verdict === "not_useful" ? (
-            <div className="mt-5 border-t border-white/[0.08] pt-5">
-              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-foreground">
-                <input
-                  type="checkbox"
-                  checked={feedback.correctionRequested}
-                  onChange={(event) => {
-                    editRevision.current += 1;
-                    setFeedback((current) => ({
-                      ...current,
-                      correctionRequested: event.target.checked,
-                      correctionRequest: event.target.checked
-                        ? current.correctionRequest
-                        : null,
-                    }));
-                    setSaveState("idle");
-                    setMessage(null);
-                  }}
-                  className="size-5 accent-[var(--brand)]"
-                />
-                <Wrench aria-hidden="true" className="size-4 text-brand" />
-                Crear una versión corregida
-              </label>
-              {feedback.correctionRequested ? (
-                <label className="feedback-details-enter mt-3 grid gap-2 text-sm font-semibold text-foreground">
-                  Indica exactamente qué debe cambiar
-                  <textarea
-                    required
-                    minLength={10}
-                    maxLength={1200}
-                    rows={3}
-                    value={feedback.correctionRequest ?? ""}
-                    placeholder="Ejemplo: conserva mi rostro, elimina el segundo sujeto y cambia el texto por «El error que todos cometen»."
-                    onChange={(event) => {
-                      editRevision.current += 1;
-                      setFeedback((current) => ({
-                        ...current,
-                        correctionRequest: event.target.value || null,
-                      }));
-                      setSaveState("idle");
-                      setMessage(null);
-                    }}
-                    className="min-h-24 resize-y rounded-xl border border-white/12 bg-background px-4 py-3 text-sm font-normal leading-6 text-foreground outline-none placeholder:text-white/35 focus:border-brand/60"
-                  />
-                </label>
-              ) : null}
-            </div>
-          ) : null}
-
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               type="submit"
@@ -336,9 +240,7 @@ export function GenerationFeedback({
               ) : saveState === "saved" ? (
                 <Check aria-hidden="true" className="size-4" />
               ) : null}
-              {feedback.correctionRequested
-                ? "Crear corrección"
-                : "Guardar detalles"}
+              Guardar opinión
             </button>
             {message ? (
               <p

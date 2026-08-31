@@ -53,13 +53,18 @@ export async function PUT(
     headers: request.headers,
     body: boundedBody,
   }).json().catch(() => null);
-  const input = parseGenerationFeedbackInput(raw);
-  if (!input) {
+  const parsedInput = parseGenerationFeedbackInput(raw);
+  if (!parsedInput) {
     return NextResponse.json(
       { error: "Revisa los motivos y el detalle de la corrección." },
       { status: 400 },
     );
   }
+  const input = {
+    ...parsedInput,
+    correctionRequested: false,
+    correctionRequest: null,
+  };
 
   const { id } = await params;
   const admin = createAdminClient();

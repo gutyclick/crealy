@@ -7,7 +7,7 @@ import {
   pickAutomaticEvaluation,
 } from "../src/lib/generation/generation-feedback";
 
-test("generation feedback accepts structured reasons and a concrete correction", () => {
+test("generation feedback accepts structured reasons but never requests a correction", () => {
   assert.deepEqual(
     parseGenerationFeedbackInput({
       verdict: "not_useful",
@@ -20,13 +20,13 @@ test("generation feedback accepts structured reasons and a concrete correction",
       verdict: "not_useful",
       reasons: ["identity", "text"],
       comment: "La jerarquía no coincide con mi intención.",
-      correctionRequested: true,
-      correctionRequest: "Conserva mi rostro y cambia únicamente el titular.",
+      correctionRequested: false,
+      correctionRequest: null,
     },
   );
 });
 
-test("generation feedback rejects unknown reasons and misleading corrections", () => {
+test("generation feedback rejects unknown reasons and ignores regeneration fields", () => {
   assert.equal(
     parseGenerationFeedbackInput({
       verdict: "useful",
@@ -35,24 +35,45 @@ test("generation feedback rejects unknown reasons and misleading corrections", (
     }),
     null,
   );
-  assert.equal(
+  assert.deepEqual(
     parseGenerationFeedbackInput({
       verdict: "useful",
       reasons: [],
       correctionRequested: true,
       correctionRequest: "Cambia el texto por favor.",
     }),
-    null,
+    {
+      verdict: "useful",
+      reasons: [],
+      comment: null,
+      correctionRequested: false,
+      correctionRequest: null,
+    },
   );
-  assert.equal(
+  assert.deepEqual(
     parseGenerationFeedbackInput({
       verdict: "not_useful",
       reasons: ["quality"],
       correctionRequested: true,
       correctionRequest: "Muy corto",
     }),
-    null,
+    {
+      verdict: "not_useful",
+      reasons: ["quality"],
+      comment: null,
+      correctionRequested: false,
+      correctionRequest: null,
+    },
   );
+});
+
+test("the feedback interface cannot enqueue another generation", () => {
+  const component = readFileSync(
+    new URL("../src/components/generation/generation-feedback.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(component, /\/correction|Crear corrección|versión corregida/);
+  assert.match(component, /Guardar opinión/);
 });
 
 test("automatic evaluation snapshots exclude unrelated generation metadata", () => {
@@ -89,4 +110,3 @@ test("generation feedback migration keeps analytics authoritative and private", 
   );
   assert.doesNotMatch(migration, /grant insert .* authenticated/);
 });
-

@@ -15,5 +15,5 @@ related_targets: ["src/components/generation/generation-feedback.tsx","src/app/a
 - **Proof/content:** Imagen generada, configuración real, evaluación automática y decisión persistida del usuario.
 - **Constraints:** La señal rápida se guarda primero; los detalles son progresivos y opcionales. Una respuesta de red obsoleta nunca puede presentar cambios posteriores como guardados. En 320 px los veredictos se apilan. El feedback general desaparece para evitar duplicidad.
 - **Direction:** Extensión continua de la mesa de producción mate; el juicio aparece inmediatamente debajo del resultado y usa lima solo para selección y confirmación.
-- **Memorable moment:** Al elegir un veredicto, el panel revela motivos concretos y, solo ante rechazo, una solicitud de corrección accionable.
-- **Correction flow:** La solicitud crea una nueva generación en cola usando el resultado anterior como referencia visual, aplica el cambio indicado, conserva lo no mencionado y cobra el coste normal del formato. El usuario permanece en la página y recibe el aviso global cuando termina.
+- **Memorable moment:** Al elegir un veredicto, el panel revela motivos concretos y un comentario opcional sin convertir la opinión en otra tarea de creación.
+- **Feedback boundary:** Esta superficie solo registra la opinión. Nunca ofrece regenerar, corregir ni consumir créditos; cualquier nueva creación comienza desde su flujo correspondiente.

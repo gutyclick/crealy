@@ -162,10 +162,9 @@ test.describe("flujo móvil autenticado", () => {
     await expect(
       page.getByRole("button", { name: "No me sirve", exact: true }),
     ).toBeVisible();
-    await expect(page.getByText("¿Qué deberíamos corregir?")).toBeVisible();
-    await expect(
-      page.getByLabel("Solicitar una corrección concreta"),
-    ).toBeVisible();
+    await expect(page.getByText("¿Qué no funcionó?")).toBeVisible();
+    await expect(page.getByText("Crear una versión corregida")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Crear corrección" })).toHaveCount(0);
     await expect(
       page.getByText("Enviar comentarios", { exact: true }),
     ).toHaveCount(0);
