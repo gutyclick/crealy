@@ -36,8 +36,20 @@ test("Google Ads is disclosed and permitted by CSP without unsafe inline scripts
   const privacy = read("src/app/privacy/page.tsx");
 
   assert.match(proxy, /googletagmanager\.com/);
+  assert.match(proxy, /img-src[^\n]+https:\/\/www\.googletagmanager\.com/);
   assert.match(proxy, /frame-src[^\n]+googletagmanager\.com/);
   assert.doesNotMatch(proxy, /script-src[^\n]+unsafe-inline/);
   assert.match(cookies, /Google Ads permanece desactivado hasta que aceptas/);
   assert.match(privacy, /Google Tag Manager y Google Ads/);
+});
+
+test("the consent prompt is compact, optional and explains its privacy boundary", () => {
+  const provider = read("src/components/analytics/google-ads-provider.tsx");
+
+  assert.match(provider, /Medición opcional/);
+  assert.match(provider, /Solo necesarias/);
+  assert.match(provider, /Permitir medición/);
+  assert.match(provider, /No compartimos tus/);
+  assert.match(provider, /diseños, prompts ni correo con Google/);
+  assert.match(provider, /max-w-md/);
 });

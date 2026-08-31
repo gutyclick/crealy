@@ -90,35 +90,38 @@ export function GoogleAdsProvider() {
 
       {consent === null ? (
         <aside
-          aria-label="Preferencias de medición"
-          className="fixed inset-x-4 bottom-4 z-[110] mx-auto max-w-2xl rounded-2xl border border-white/14 bg-surface-elevated p-4 shadow-[var(--shadow-tooltip)] sm:flex sm:items-center sm:gap-5 sm:p-5"
+          aria-label="Preferencias de privacidad"
+          className="fixed inset-x-3 bottom-3 z-[110] max-w-md rounded-[var(--radius-panel)] border border-white/10 bg-surface-elevated/95 p-4 shadow-[var(--shadow-tooltip)] backdrop-blur-md sm:bottom-5 sm:left-5 sm:right-auto sm:p-5"
         >
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-foreground">Ayúdanos a medir qué funciona</p>
-            <p className="mt-1 text-sm leading-6 text-muted">
-              Google Ads puede medir visitas y compras para evaluar nuestras campañas.
-              Solo se activa si aceptas. Consulta la {" "}
-              <a href="/cookies" className="text-foreground underline hover:text-brand">
-                Política de cookies
-              </a>.
-            </p>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-0 sm:shrink-0">
+          <p className="text-sm font-semibold text-foreground">
+            Medición opcional
+          </p>
+          <p className="mt-1.5 text-sm leading-5 text-muted">
+            Nos ayuda a saber qué campañas funcionan. No compartimos tus
+            diseños, prompts ni correo con Google.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => choose("denied")}
-              className="h-11 rounded-[var(--radius-control)] border border-white/18 px-4 text-sm font-semibold text-foreground transition-colors hover:bg-white/[0.06]"
+              className="min-h-11 rounded-[var(--radius-control)] border border-white/14 px-3 text-sm font-semibold text-foreground transition-colors hover:border-white/25 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
-              Rechazar
+              Solo necesarias
             </button>
             <button
               type="button"
               onClick={() => choose("granted")}
-              className="h-11 rounded-[var(--radius-control)] bg-brand px-4 text-sm font-bold text-brand-ink transition-colors hover:bg-[var(--brand-hover)]"
+              className="min-h-11 rounded-[var(--radius-control)] bg-brand px-3 text-sm font-bold text-brand-ink transition-colors hover:bg-[var(--brand-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated"
             >
-              Aceptar medición
+              Permitir medición
             </button>
           </div>
+          <a
+            href="/cookies"
+            className="mt-3 inline-flex min-h-11 items-center text-xs font-medium text-muted underline decoration-white/20 underline-offset-4 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            Ver política de cookies
+          </a>
         </aside>
       ) : null}
     </>
