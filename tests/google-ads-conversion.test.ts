@@ -11,7 +11,10 @@ test("Google Ads loads globally only after explicit consent", () => {
 
   assert.match(layout, /<GoogleAdsProvider \/>/);
   assert.match(provider, /consent === "granted"/);
-  assert.match(provider, /googletagmanager\.com\/gtag\/js/);
+  assert.match(provider, /googletagmanager\.com\/gtm\.js/);
+  assert.match(config, /GTM-ND5L97KW/);
+  assert.match(layout, /googletagmanager\.com\/ns\.html/);
+  assert.match(layout, /consent === "granted"/);
   assert.match(config, /AW-653792266/);
   assert.match(config, /fPK1CKSKsuocEIqo4LcC/);
 });
@@ -33,8 +36,8 @@ test("Google Ads is disclosed and permitted by CSP without unsafe inline scripts
   const privacy = read("src/app/privacy/page.tsx");
 
   assert.match(proxy, /googletagmanager\.com/);
+  assert.match(proxy, /frame-src[^\n]+googletagmanager\.com/);
   assert.doesNotMatch(proxy, /script-src[^\n]+unsafe-inline/);
   assert.match(cookies, /Google Ads permanece desactivado hasta que aceptas/);
-  assert.match(privacy, /Google Ads para atribución y medición/);
+  assert.match(privacy, /Google Tag Manager y Google Ads/);
 });
-

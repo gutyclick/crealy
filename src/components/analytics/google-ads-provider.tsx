@@ -3,7 +3,7 @@
 import Script from "next/script";
 import { useCallback, useEffect, useState } from "react";
 
-import { GOOGLE_ADS_ID } from "@/config/google-ads";
+import { GOOGLE_ADS_ID, GOOGLE_TAG_MANAGER_ID } from "@/config/google-ads";
 import {
   flushGoogleAdsConversions,
   GOOGLE_ADS_CONSENT_EVENT,
@@ -13,8 +13,20 @@ import {
   saveGoogleAdsConsent,
 } from "@/lib/analytics/google-ads";
 
-function initializeGoogleTag() {
+let googleTagInitialized = false;
+
+function initializeGoogleTagManager() {
+  if (googleTagInitialized) {
+    flushGoogleAdsConversions();
+    return;
+  }
+  googleTagInitialized = true;
   window.dataLayer = window.dataLayer || [];
+  if (!window.dataLayer.some((entry) =>
+    typeof entry === "object" && entry !== null && "gtm.start" in entry
+  )) {
+    window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+  }
   window.gtag = window.gtag || ((...args: unknown[]) => window.dataLayer?.push(args));
   window.gtag("consent", "default", {
     ad_storage: "granted",
@@ -56,6 +68,10 @@ export function GoogleAdsProvider() {
     };
   }, []);
 
+  useEffect(() => {
+    if (consent === "granted") initializeGoogleTagManager();
+  }, [consent]);
+
   const choose = useCallback((next: GoogleAdsConsent) => {
     saveGoogleAdsConsent(next);
     setConsent(next);
@@ -66,9 +82,9 @@ export function GoogleAdsProvider() {
       {consent === "granted" ? (
         <Script
           id="crealy-google-ads"
-          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
+          src={`https://www.googletagmanager.com/gtm.js?id=${GOOGLE_TAG_MANAGER_ID}`}
           strategy="afterInteractive"
-          onReady={initializeGoogleTag}
+          onReady={initializeGoogleTagManager}
         />
       ) : null}
 

@@ -1,6 +1,9 @@
 "use client";
 
-import { GOOGLE_ADS_CONVERSION_SEND_TO } from "@/config/google-ads";
+import {
+  GOOGLE_ADS_CONSENT_COOKIE,
+  GOOGLE_ADS_CONVERSION_SEND_TO,
+} from "@/config/google-ads";
 
 export type GoogleAdsConsent = "granted" | "denied";
 
@@ -12,7 +15,7 @@ export const GOOGLE_ADS_CONVERSION_EVENT = "crealy:google-ads-conversion";
 
 declare global {
   interface Window {
-    dataLayer?: unknown[][];
+    dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
   }
 }
@@ -24,12 +27,20 @@ function storageAvailable() {
 export function readGoogleAdsConsent(): GoogleAdsConsent | null {
   if (!storageAvailable()) return null;
   const value = window.localStorage.getItem(GOOGLE_ADS_CONSENT_KEY);
-  return value === "granted" || value === "denied" ? value : null;
+  if (value === "granted" || value === "denied") return value;
+  const cookieValue = document.cookie
+    .split("; ")
+    .find((entry) => entry.startsWith(`${GOOGLE_ADS_CONSENT_COOKIE}=`))
+    ?.split("=")[1];
+  return cookieValue === "granted" || cookieValue === "denied"
+    ? cookieValue
+    : null;
 }
 
 export function saveGoogleAdsConsent(consent: GoogleAdsConsent) {
   if (!storageAvailable()) return;
   window.localStorage.setItem(GOOGLE_ADS_CONSENT_KEY, consent);
+  document.cookie = `${GOOGLE_ADS_CONSENT_COOKIE}=${consent}; Max-Age=31536000; Path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
   window.dispatchEvent(
     new CustomEvent(GOOGLE_ADS_CONSENT_EVENT, { detail: consent }),
   );
@@ -88,4 +99,3 @@ export function flushGoogleAdsConversions() {
   }
   writePendingConversions(remaining);
 }
-

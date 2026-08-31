@@ -1,9 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 
 import { siteConfig } from "@/config/site";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
 import { GoogleAdsProvider } from "@/components/analytics/google-ads-provider";
+import {
+  GOOGLE_ADS_CONSENT_COOKIE,
+  GOOGLE_TAG_MANAGER_ID,
+} from "@/config/google-ads";
 
 import "./globals.css";
 
@@ -72,17 +77,29 @@ export const viewport: Viewport = {
   themeColor: "#080808",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const consent = (await cookies()).get(GOOGLE_ADS_CONSENT_COOKIE)?.value;
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {consent === "granted" ? (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${GOOGLE_TAG_MANAGER_ID}`}
+              height="0"
+              width="0"
+              title="Google Tag Manager"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        ) : null}
         <a
           href="#main-content"
           className="fixed top-3 left-3 z-[100] -translate-y-20 rounded-lg bg-brand px-4 py-2 text-sm font-bold text-brand-ink focus:translate-y-0"

@@ -68,7 +68,7 @@ export async function proxy(request: NextRequest) {
     "img-src 'self' blob: data: https://*.supabase.co https://*.r2.cloudflarestorage.com https://*.google.com https://*.google-analytics.com https://*.googleadservices.com https://*.doubleclick.net",
     "font-src 'self' data:",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com https://api.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://*.ingest.sentry.io https://*.google-analytics.com https://*.googleadservices.com https://*.googletagmanager.com https://*.doubleclick.net",
-    "frame-src https://checkout.stripe.com https://js.stripe.com",
+    "frame-src https://checkout.stripe.com https://js.stripe.com https://www.googletagmanager.com",
     ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
   response.headers.set("Content-Security-Policy", csp);
