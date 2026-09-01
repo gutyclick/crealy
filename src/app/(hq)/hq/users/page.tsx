@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { randomUUID } from "node:crypto";
 
+import { HqCreditGrantForm } from "@/components/hq/hq-credit-grant-form";
 import { HqEmptyRow, HqPageHeader, HqStatus, HqTableRegion, formatDate, shortId } from "@/components/hq/hq-ui";
 import { requireHqAdmin } from "@/lib/hq/access";
 import { getHqIdentities } from "@/lib/hq/data";
@@ -29,9 +31,19 @@ export default async function HqUsersPage() {
   const credits = creditsResult.data;
   const subscriptionByUser = new Map((subscriptions || []).map((item) => [item.user_id, item]));
   const creditsByUser = new Map((credits || []).map((item) => [item.user_id, item]));
+  const grantOptions = (profiles || []).map((profile) => {
+    const identity = identities.get(profile.id);
+    return {
+      id: profile.id,
+      label: profile.full_name || identity?.name || "Usuario",
+      email: identity?.email || shortId(profile.id),
+      credits: creditsByUser.get(profile.id)?.available_balance ?? 0,
+    };
+  });
 
   return <div className="space-y-8">
-    <HqPageHeader title="Usuarios" description="Las 100 cuentas más recientes, su acceso, plan y consumo. Los cambios administrativos llegarán en una fase controlada y auditada." />
+    <HqPageHeader title="Usuarios" description="Consulta acceso, plan y consumo de las cuentas recientes. Las entregas manuales de créditos quedan registradas en el libro mayor." />
+    <HqCreditGrantForm users={grantOptions} requestId={randomUUID()} />
     <HqTableRegion label="Cuentas más recientes"><table className="hq-table"><thead><tr><th scope="col">Usuario</th><th scope="col">Plan</th><th scope="col">Créditos</th><th scope="col">Consumidos</th><th scope="col">Último acceso</th><th scope="col">Registro</th></tr></thead><tbody>
       {(profiles || []).map((profile) => {
         const identity = identities.get(profile.id);

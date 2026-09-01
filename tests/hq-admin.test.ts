@@ -40,13 +40,18 @@ test("HQ requires AAL2 and every data page repeats the server boundary", () => {
   for (const page of pages) assert.match(read(page), /await requireHqAdmin\(\)/);
 });
 
-test("HQ stays private, read-only and responsive in its first release", () => {
+test("HQ stays private and responsive, and credit mutations are guarded and idempotent", () => {
   const layout = read("src/app/(hq)/hq/layout.tsx");
   const styles = read("src/app/globals.css");
+  const creditAction = read("src/app/(hq)/hq/users/actions.ts");
 
   assert.match(layout, /index: false/);
   assert.match(layout, /follow: false/);
   assert.match(styles, /@media \(max-width: 760px\)/);
   assert.match(styles, /\.hq-mobile-nav/);
   assert.doesNotMatch(layout, /createAdminClient/);
+  assert.match(creditAction, /await requireHqAdmin\(\)/);
+  assert.match(creditAction, /p_source_type: "manual_adjustment"/);
+  assert.match(creditAction, /p_source_reference: `hq:\$\{administrator\.id\}:\$\{requestId\}`/);
+  assert.match(creditAction, /amount > 1_000/);
 });
