@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 
 import { inspectImage } from "@/lib/editing/image-metadata";
 import type { getEditingServerEnv } from "@/lib/env/server";
@@ -47,10 +48,28 @@ export async function loadGenerationReferences(
         throw new Error("invalid_reference");
       }
 
+      let normalized: Buffer;
+      try {
+        normalized = await sharp(buffer, { failOn: "error" })
+          .rotate()
+          .toColorspace("srgb")
+          .ensureAlpha()
+          .png({ compressionLevel: 9 })
+          .toBuffer();
+      } catch {
+        throw new Error("invalid_reference");
+      }
+      if (
+        !normalized.length ||
+        normalized.length > limits.maxReferenceImageBytes * 4
+      ) {
+        throw new Error("invalid_reference");
+      }
+
       return {
-        buffer,
-        mimeType: metadata.mimeType,
-        filename: `reference-${index + 1}.${metadata.extension}`,
+        buffer: normalized,
+        mimeType: "image/png" as const,
+        filename: `reference-${index + 1}.png`,
       };
     }),
   );

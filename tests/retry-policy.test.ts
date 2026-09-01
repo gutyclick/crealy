@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { classifyJobError } from "../src/lib/jobs/retry-policy";
@@ -60,4 +61,30 @@ test("non-Error provider-shaped failures are not collapsed to unknown", () => {
     1,
   );
   assert.equal(result.errorCode, "provider_rejected_request");
+});
+
+test("invalid provider reference images are not reported as moderation", () => {
+  const source = readFileSync(
+    new URL("../src/lib/generation/generation-errors.ts", import.meta.url),
+    "utf8",
+  );
+  const invalidReferenceBranch = source.indexOf('detail.includes("invalid image file")');
+  const genericBadRequestBranch = source.indexOf(
+    'error.status === 400 || error.status === 422',
+  );
+
+  assert.ok(invalidReferenceBranch >= 0);
+  assert.ok(genericBadRequestBranch > invalidReferenceBranch);
+  assert.match(source, /"invalid_reference"/);
+});
+
+test("stored reference images are normalized before reaching the provider", () => {
+  const source = readFileSync(
+    new URL("../src/lib/generation/load-generation-references.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /\.toColorspace\("srgb"\)/);
+  assert.match(source, /\.ensureAlpha\(\)/);
+  assert.match(source, /\.png\(\{ compressionLevel: 9 \}\)/);
 });

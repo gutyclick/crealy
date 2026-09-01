@@ -8,7 +8,8 @@ export type TransactionalEmailType =
   | "payment_failed"
   | "credit_gift"
   | "support_received"
-  | "support_internal";
+  | "support_internal"
+  | "generation_feedback_internal";
 
 type TemplateData = Record<string, string | number | boolean | null | undefined>;
 
@@ -219,6 +220,16 @@ export function renderEmailTemplate(
           body: `<p>Categoría: ${escapeHtml(data.category)}</p><p>Asunto: ${escapeHtml(data.subject)}</p><p>Contacto: ${escapeHtml(data.email)}</p><p>Referencia: ${escapeHtml(data.reference)}</p><p style="white-space:pre-wrap">${escapeHtml(data.message)}</p>`,
           ctaLabel: "Abrir Crealy",
           ctaUrl: siteUrl,
+        }),
+      };
+    case "generation_feedback_internal":
+      return {
+        subject: `Opinión sobre una generación: ${String(data.verdict || "nueva")}`,
+        preheader: "Un usuario dejó detalles sobre un resultado de Crealy.",
+        ...layout({
+          preheader: "Un usuario dejó detalles sobre un resultado de Crealy.",
+          title: "Nueva opinión sobre una generación.",
+          body: `<p>Resultado: <strong style="color:#F7F7F5">${escapeHtml(data.generationId)}</strong></p><p>Formato: ${escapeHtml(data.format || "No indicado")}</p><p>Valoración: ${escapeHtml(data.verdict)}</p><p>Motivos: ${escapeHtml(data.reasons || "Sin motivos adicionales")}</p><p>Usuario: ${escapeHtml(data.email || "No disponible")}</p><p style="white-space:pre-wrap">${escapeHtml(data.comment || "Sin comentario adicional")}</p>`,
         }),
       };
   }

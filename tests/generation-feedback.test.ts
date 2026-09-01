@@ -110,3 +110,27 @@ test("generation feedback migration keeps analytics authoritative and private", 
   );
   assert.doesNotMatch(migration, /grant insert .* authenticated/);
 });
+
+test("detailed generation feedback is persisted and queued for support email", () => {
+  const route = readFileSync(
+    new URL("../src/app/api/generations/[id]/feedback/route.ts", import.meta.url),
+    "utf8",
+  );
+  const worker = readFileSync(
+    new URL("../src/lib/jobs/worker.ts", import.meta.url),
+    "utf8",
+  );
+  const migration = readFileSync(
+    new URL(
+      "../supabase/migrations/20260901010000_add_generation_feedback_email.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(route, /type: "generation_feedback_internal"/);
+  assert.match(route, /data: \{ feedbackId: saved\.id \}/);
+  assert.match(worker, /generation_feedback_unavailable/);
+  assert.match(worker, /from\("generation_feedback"\)/);
+  assert.match(migration, /'generation_feedback_internal'/);
+});

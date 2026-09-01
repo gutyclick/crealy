@@ -1100,6 +1100,35 @@ async function processTransactionalEmail(job: JobRecord, startedAt: number) {
       message: supportRequest.message,
       email: supportRequest.requester_email,
     };
+  } else if (payload.type === "generation_feedback_internal") {
+    const feedbackId =
+      typeof templateData.feedbackId === "string"
+        ? templateData.feedbackId
+        : "";
+    const { data: feedback } = await admin
+      .from("generation_feedback")
+      .select("generation_id, user_id, verdict, reasons, comment")
+      .eq("id", feedbackId)
+      .maybeSingle();
+    if (!feedback) throw new Error("generation_feedback_unavailable");
+    const [{ data: generation }, { data: authData }] = await Promise.all([
+      admin
+        .from("generations")
+        .select("content_type, requested_format")
+        .eq("id", feedback.generation_id)
+        .eq("user_id", feedback.user_id)
+        .maybeSingle(),
+      admin.auth.admin.getUserById(feedback.user_id),
+    ]);
+    templateData = {
+      generationId: feedback.generation_id,
+      verdict: feedback.verdict === "useful" ? "Me sirve" : "No me sirve",
+      reasons: feedback.reasons.join(", ") || "Sin motivos adicionales",
+      comment: feedback.comment || "Sin comentario adicional",
+      format:
+        generation?.requested_format || generation?.content_type || "No indicado",
+      email: authData.user?.email || "No disponible",
+    };
   }
 
   await admin

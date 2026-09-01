@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 import { recordGenerationEvent } from "@/lib/analytics/generation-telemetry";
+import { queueTransactionalEmail } from "@/lib/email/queue-email";
 
 export const runtime = "nodejs";
 
@@ -143,7 +144,7 @@ export async function PUT(
       },
       { onConflict: "user_id,generation_id" },
     )
-    .select("verdict, reasons, comment, correction_requested, correction_request, updated_at")
+    .select("id, verdict, reasons, comment, correction_requested, correction_request, updated_at")
     .single();
 
   if (saveError || !saved) {
@@ -177,6 +178,15 @@ export async function PUT(
       type: "correction_requested",
       idempotencyKey: `feedback:${saved.updated_at}:correction`,
       properties: { reasons: input.reasons },
+    }).catch(() => null);
+  }
+  if (input.comment || input.reasons.length > 0) {
+    await queueTransactionalEmail({
+      userId: user.id,
+      type: "generation_feedback_internal",
+      audience: "support",
+      idempotencyKey: `generation-feedback:${saved.updated_at}`,
+      data: { feedbackId: saved.id },
     }).catch(() => null);
   }
 

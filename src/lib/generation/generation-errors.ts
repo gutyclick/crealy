@@ -52,6 +52,18 @@ export function mapOpenAIError(error: unknown) {
   }
 
   if (error instanceof OpenAI.APIError) {
+    const detail = `${error.code ?? ""} ${error.message}`.toLowerCase();
+    if (
+      detail.includes("invalid image file") ||
+      detail.includes("invalid image mode") ||
+      detail.includes("unsupported image")
+    ) {
+      return new GenerationError(
+        "invalid_reference",
+        400,
+        "Una imagen de referencia no es compatible. Vuelve a subirla como PNG, JPG o WebP.",
+      );
+    }
     if (error.code === "moderation_blocked") {
       return new GenerationError(
         "provider_safety_rejection",
