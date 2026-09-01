@@ -16,11 +16,19 @@ export default async function MfaChallengePage({ searchParams }: { searchParams:
   const assurance = await getMfaAssurance();
   if (assurance.currentLevel === "aal2") redirect(nextPath);
   const factorId = assurance.verifiedFactorIds[0];
-  if (!factorId) redirect(`/settings/security?mfaSetup=optional&next=${encodeURIComponent(nextPath)}`);
+  const required = nextPath === "/hq";
+  if (!factorId) redirect(`/settings/security?mfaSetup=${required ? "required" : "optional"}&next=${encodeURIComponent(nextPath)}`);
 
   return (
-    <AuthShell title="Una comprobación adicional." description="Usa tu app de autenticación para elevar la seguridad de esta sesión. Puedes omitir este paso.">
-      <MfaChallengeForm factorId={factorId} nextPath={nextPath} />
+    <AuthShell
+      title={required ? "Confirma tu acceso a Crealy HQ." : "Una comprobación adicional."}
+      description={
+        required
+          ? "Introduce el código de tu app de autenticación. Esta verificación es obligatoria para abrir el panel administrativo."
+          : "Usa tu app de autenticación para elevar la seguridad de esta sesión. Puedes omitir este paso."
+      }
+    >
+      <MfaChallengeForm factorId={factorId} nextPath={nextPath} required={required} />
     </AuthShell>
   );
 }

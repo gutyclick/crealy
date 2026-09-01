@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
-export function MfaChallengeForm({ factorId, nextPath }: { factorId: string; nextPath: string }) {
+export function MfaChallengeForm({ factorId, nextPath, required = false }: { factorId: string; nextPath: string; required?: boolean }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -34,7 +34,11 @@ export function MfaChallengeForm({ factorId, nextPath }: { factorId: string; nex
         <span className="grid size-9 shrink-0 place-items-center rounded-[0.65rem] bg-brand/10 text-brand">
           <ShieldCheck aria-hidden="true" className="size-5" />
         </span>
-        <span>Esta verificación es opcional y solo confirma que tienes acceso a tu segundo factor.</span>
+        <span>
+          {required
+            ? "Crealy HQ contiene información operativa sensible. Debes confirmar tu segundo factor cada vez que la sesión lo requiera."
+            : "Esta verificación es opcional y solo confirma que tienes acceso a tu segundo factor."}
+        </span>
       </div>
       <label htmlFor="mfa-code" className="text-sm font-semibold text-foreground">
         Código de autenticación
@@ -58,9 +62,11 @@ export function MfaChallengeForm({ factorId, nextPath }: { factorId: string; nex
       <button disabled={busy} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.7rem] bg-brand px-5 text-sm font-bold text-brand-ink transition-colors hover:bg-[var(--brand-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 disabled:cursor-not-allowed disabled:opacity-55">
         {busy ? <><LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> Verificando</> : "Verificar y continuar"}
       </button>
-      <Link href={nextPath} className="inline-flex min-h-11 items-center justify-center rounded-[0.7rem] text-sm font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70">
-        Omitir por ahora
-      </Link>
+      {!required ? (
+        <Link href={nextPath} className="inline-flex min-h-11 items-center justify-center rounded-[0.7rem] text-sm font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70">
+          Omitir por ahora
+        </Link>
+      ) : null}
     </form>
   );
 }

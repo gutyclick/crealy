@@ -19,6 +19,8 @@ test("HQ is a private host-aware route with an administrative allowlist", () => 
 
 test("HQ requires AAL2 and every data page repeats the server boundary", () => {
   const access = read("src/lib/hq/access.ts");
+  const challengePage = read("src/app/(auth)/mfa-challenge/page.tsx");
+  const challengeForm = read("src/components/auth/mfa-challenge-form.tsx");
   const pages = [
     "src/app/(hq)/hq/page.tsx",
     "src/app/(hq)/hq/users/page.tsx",
@@ -31,6 +33,10 @@ test("HQ requires AAL2 and every data page repeats the server boundary", () => {
   assert.match(access, /assurance\.currentLevel !== "aal2"/);
   assert.doesNotMatch(access, /HQ_REQUIRE_MFA/);
   assert.match(access, /mfa-challenge/);
+  assert.match(challengePage, /required = nextPath === "\/hq"/);
+  assert.match(challengePage, /mfaSetup=\$\{required \? "required" : "optional"\}/);
+  assert.match(challengeForm, /!required \?/);
+  assert.match(challengePage, /obligatoria para abrir el panel administrativo/);
   for (const page of pages) assert.match(read(page), /await requireHqAdmin\(\)/);
 });
 
