@@ -63,6 +63,11 @@ export async function getHqOverview() {
     admin.from("generation_feedback").select("id,user_id,generation_id,verdict,reasons,comment,updated_at").order("updated_at", { ascending: false }).limit(6),
   ]);
 
+  const responses = [users, newUsers, generations, completed, failed, activeJobs, failedJobs, feedback, activeSubscriptions, recentGenerations, recentFeedback];
+  if (responses.some((response) => response.error)) {
+    throw new Error("hq_overview_unavailable");
+  }
+
   const total = generations.count || 0;
   const completedCount = completed.count || 0;
   const failedCount = failed.count || 0;

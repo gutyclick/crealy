@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { HqPageHeader, HqStatus, formatDate, shortId } from "@/components/hq/hq-ui";
+import { HqEmptyRow, HqPageHeader, HqStatus, HqTableRegion, formatDate, shortId } from "@/components/hq/hq-ui";
 import { requireHqAdmin } from "@/lib/hq/access";
 import { getHqIdentities } from "@/lib/hq/data";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,23 +10,29 @@ export const metadata: Metadata = { title: "Usuarios" };
 export default async function HqUsersPage() {
   await requireHqAdmin();
   const admin = createAdminClient();
-  const [{ data: profiles }, identities] = await Promise.all([
+  const [profilesResult, identities] = await Promise.all([
     admin.from("profiles").select("id,full_name,created_at").order("created_at", { ascending: false }).limit(100),
     getHqIdentities(),
   ]);
+  if (profilesResult.error) throw new Error("hq_users_unavailable");
+  const profiles = profilesResult.data;
   const ids = (profiles || []).map((profile) => profile.id);
-  const [{ data: subscriptions }, { data: credits }] = ids.length
+  const [subscriptionsResult, creditsResult] = ids.length
     ? await Promise.all([
         admin.from("subscriptions").select("user_id,plan_key,status,current_period_end").in("user_id", ids).order("updated_at", { ascending: false }),
         admin.from("credit_accounts").select("user_id,available_balance,reserved_balance,lifetime_consumed").in("user_id", ids),
       ])
     : [{ data: [] }, { data: [] }];
+  if ("error" in subscriptionsResult && subscriptionsResult.error) throw new Error("hq_subscriptions_unavailable");
+  if ("error" in creditsResult && creditsResult.error) throw new Error("hq_credits_unavailable");
+  const subscriptions = subscriptionsResult.data;
+  const credits = creditsResult.data;
   const subscriptionByUser = new Map((subscriptions || []).map((item) => [item.user_id, item]));
   const creditsByUser = new Map((credits || []).map((item) => [item.user_id, item]));
 
   return <div className="space-y-8">
     <HqPageHeader title="Usuarios" description="Las 100 cuentas más recientes, su acceso, plan y consumo. Los cambios administrativos llegarán en una fase controlada y auditada." />
-    <div className="hq-table-wrap"><table className="hq-table"><thead><tr><th>Usuario</th><th>Plan</th><th>Créditos</th><th>Consumidos</th><th>Último acceso</th><th>Registro</th></tr></thead><tbody>
+    <HqTableRegion label="Cuentas más recientes"><table className="hq-table"><thead><tr><th scope="col">Usuario</th><th scope="col">Plan</th><th scope="col">Créditos</th><th scope="col">Consumidos</th><th scope="col">Último acceso</th><th scope="col">Registro</th></tr></thead><tbody>
       {(profiles || []).map((profile) => {
         const identity = identities.get(profile.id);
         const subscription = subscriptionByUser.get(profile.id);
@@ -38,7 +44,7 @@ export default async function HqUsersPage() {
           <td>{account?.lifetime_consumed ?? 0}</td>
           <td>{formatDate(identity?.lastSignInAt || null)}</td><td>{formatDate(profile.created_at)}</td>
         </tr>;
-      })}
-    </tbody></table></div>
+      })}{!profiles?.length ? <HqEmptyRow columns={6} message="Todavía no hay usuarios para mostrar." /> : null}
+    </tbody></table></HqTableRegion>
   </div>;
 }

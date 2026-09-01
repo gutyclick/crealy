@@ -29,6 +29,7 @@ test("HQ requires AAL2 and every data page repeats the server boundary", () => {
   ];
 
   assert.match(access, /assurance\.currentLevel !== "aal2"/);
+  assert.doesNotMatch(access, /HQ_REQUIRE_MFA/);
   assert.match(access, /mfa-challenge/);
   for (const page of pages) assert.match(read(page), /await requireHqAdmin\(\)/);
 });

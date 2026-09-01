@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CircleAlert, MessageSquareText } from "lucide-react";
 
-import { HqMetric, HqPageHeader, HqStatus, formatDate, shortId } from "@/components/hq/hq-ui";
+import { HqEmptyRow, HqMetric, HqPageHeader, HqStatus, HqTableRegion, formatDate, shortId } from "@/components/hq/hq-ui";
 import { requireHqAdmin } from "@/lib/hq/access";
 import { getHqIdentities, getHqOverview } from "@/lib/hq/data";
 
@@ -38,15 +38,15 @@ export default async function HqOverviewPage() {
       <div className="grid gap-8 xl:grid-cols-[1.35fr_.85fr]">
         <section>
           <div className="hq-section-heading"><div><h2>Actividad de creación</h2><p>Últimas solicitudes recibidas por el sistema.</p></div><Link href="/hq/generations">Ver todas</Link></div>
-          <div className="hq-table-wrap">
+          <HqTableRegion label="Actividad de creación más reciente">
             <table className="hq-table">
-              <thead><tr><th>Resultado</th><th>Usuario</th><th>Formato</th><th>Estado</th><th>Hora</th></tr></thead>
+              <thead><tr><th scope="col">Resultado</th><th scope="col">Usuario</th><th scope="col">Formato</th><th scope="col">Estado</th><th scope="col">Hora</th></tr></thead>
               <tbody>{overview.recentGenerations.map((item) => {
                 const identity = identities.get(item.user_id);
                 return <tr key={item.id}><td className="font-mono text-xs text-white/66">{shortId(item.id)}</td><td><strong>{identity?.name || "Usuario"}</strong><span>{identity?.email || shortId(item.user_id)}</span></td><td>{item.requested_format}</td><td><HqStatus value={item.status} /></td><td>{formatDate(item.created_at)}</td></tr>;
-              })}</tbody>
+              })}{!overview.recentGenerations.length ? <HqEmptyRow columns={5} message="Todavía no hay actividad de creación." /> : null}</tbody>
             </table>
-          </div>
+          </HqTableRegion>
         </section>
 
         <section>

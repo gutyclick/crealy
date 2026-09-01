@@ -31,6 +31,14 @@ export function HqStatus({ value }: { value: string }) {
   return <span className={cn("hq-status", good && "hq-status-good", danger && "hq-status-danger", warning && "hq-status-warning")}>{statusLabel(value)}</span>;
 }
 
+export function HqTableRegion({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="hq-table-wrap" role="region" aria-label={label} tabIndex={0}>{children}</div>;
+}
+
+export function HqEmptyRow({ columns, message }: { columns: number; message: string }) {
+  return <tr><td colSpan={columns}><div className="hq-empty-row">{message}</div></td></tr>;
+}
+
 export function statusLabel(value: string) {
   const labels: Record<string, string> = {
     completed: "Completado", failed: "Falló", queued: "En cola", claimed: "Asignado",

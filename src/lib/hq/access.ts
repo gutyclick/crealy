@@ -35,14 +35,12 @@ export async function requireHqAdmin() {
     notFound();
   }
 
-  if (process.env.HQ_REQUIRE_MFA !== "false") {
-    const assurance = await getMfaAssurance();
-    if (assurance.currentLevel !== "aal2") {
-      if (assurance.verifiedFactorIds.length > 0) {
-        redirect("/mfa-challenge?next=%2Fhq");
-      }
-      redirect("/settings/security?mfaSetup=required&next=%2Fhq");
+  const assurance = await getMfaAssurance();
+  if (assurance.currentLevel !== "aal2") {
+    if (assurance.verifiedFactorIds.length > 0) {
+      redirect("/mfa-challenge?next=%2Fhq");
     }
+    redirect("/settings/security?mfaSetup=required&next=%2Fhq");
   }
 
   return user;
