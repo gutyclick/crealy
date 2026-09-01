@@ -12,6 +12,7 @@ const privateRoutes = [
   "/settings",
   "/billing",
   "/onboarding",
+  "/hq",
 ];
 const guestOnlyRoutes = ["/login", "/signup", "/forgot-password"];
 

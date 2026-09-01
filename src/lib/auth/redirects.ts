@@ -10,6 +10,7 @@ const allowedDestinations = new Set([
   "/settings/security",
   "/settings/billing",
   "/settings/account",
+  "/hq",
 ]);
 
 const paidPlans = new Set(["starter", "creator", "pro"]);

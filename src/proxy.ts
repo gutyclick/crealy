@@ -56,7 +56,18 @@ export async function proxy(request: NextRequest) {
 
   const nonce = randomBytes(16).toString("base64");
   request.headers.set("x-nonce", nonce);
-  const response = await updateSession(request);
+  let response = await updateSession(request);
+  const hqHost = (process.env.HQ_HOST || "hq.crealy.app").toLowerCase();
+  if (
+    request.nextUrl.hostname.toLowerCase() === hqHost &&
+    request.nextUrl.pathname === "/"
+  ) {
+    const destination = request.nextUrl.clone();
+    destination.pathname = "/hq";
+    const rewrite = NextResponse.rewrite(destination);
+    response.cookies.getAll().forEach((cookie) => rewrite.cookies.set(cookie));
+    response = rewrite;
+  }
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
