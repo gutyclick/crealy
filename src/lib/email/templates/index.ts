@@ -188,12 +188,12 @@ export function renderEmailTemplate(
       };
     case "credit_gift":
       return {
-        subject: `Tienes ${escapeHtml(data.credits || 5)} créditos de regalo en Crealy`,
-        preheader: "Gracias por ser una de las primeras personas en formar parte de Crealy.",
+        subject: "¡Has recibido créditos!",
+        preheader: `${escapeHtml(data.credits || 5)} créditos ya están disponibles en tu cuenta de Crealy.`,
         ...layout({
-          preheader: "Gracias por ser una de las primeras personas en formar parte de Crealy.",
-          title: `Te regalamos ${escapeHtml(data.credits || 5)} créditos para seguir creando.`,
-          body: `<p style="margin:0 0 18px">Gracias por ser una de las primeras personas en formar parte de Crealy.</p><p style="margin:0 0 22px">Queremos que sigas poniendo a prueba tus ideas, así que añadimos este regalo a tu cuenta:</p><table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 22px;background-color:#191A15;border:1px solid #34372A;border-radius:14px"><tr><td style="padding:22px 24px"><strong style="display:block;color:#DDF527;font-size:28px;line-height:32px">+${escapeHtml(data.credits || 5)} créditos</strong><span style="display:block;margin-top:5px;color:#F7F7F5;font-size:14px;line-height:20px">Ya están disponibles en tu saldo.</span></td></tr></table><p style="margin:0">Úsalos para crear una miniatura, un post o probar Recreate. Son tuyos y puedes utilizarlos cuando quieras.</p>`,
+          preheader: `${escapeHtml(data.credits || 5)} créditos ya están disponibles en tu cuenta de Crealy.`,
+          title: "¡Has recibido créditos!",
+          body: `<p style="margin:0 0 22px">El equipo de Crealy añadió créditos a tu cuenta:</p><table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 22px;background-color:#191A15;border:1px solid #34372A;border-radius:14px"><tr><td style="padding:22px 24px"><strong style="display:block;color:#DDF527;font-size:28px;line-height:32px">+${escapeHtml(data.credits || 5)} créditos</strong><span style="display:block;margin-top:5px;color:#F7F7F5;font-size:14px;line-height:20px">Ya están disponibles en tu saldo.</span></td></tr></table>${data.reason ? `<p style="margin:0 0 22px"><strong style="color:#F7F7F5">Motivo:</strong> ${escapeHtml(data.reason)}</p>` : ""}<p style="margin:0">Puedes utilizarlos cuando quieras para crear una miniatura, un post o probar Recreate.</p>`,
           ctaLabel: "Seguir creando",
           ctaUrl: `${siteUrl}/create`,
         }),

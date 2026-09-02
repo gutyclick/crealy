@@ -54,4 +54,6 @@ test("HQ stays private and responsive, and credit mutations are guarded and idem
   assert.match(creditAction, /p_source_type: "manual_adjustment"/);
   assert.match(creditAction, /p_source_reference: `hq:\$\{administrator\.id\}:\$\{requestId\}`/);
   assert.match(creditAction, /amount > 1_000/);
+  assert.match(creditAction, /sendCreditGrantEmail/);
+  assert.match(creditAction, /idempotencyKey: `hq-credit-grant:\$\{requestId\}`/);
 });

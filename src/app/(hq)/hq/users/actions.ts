@@ -2,10 +2,26 @@
 
 import { revalidatePath } from "next/cache";
 
+import { queueTransactionalEmail } from "@/lib/email/queue-email";
 import { requireHqAdmin } from "@/lib/hq/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type CreditGrantState = { status: "idle" | "success" | "error"; message: string };
+export type CreditGrantState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  grant?: {
+    userId: string;
+    email: string;
+    amount: number;
+    reason: string;
+    requestId: string;
+  };
+};
+
+export type CreditEmailState = {
+  status: "success" | "error";
+  message: string;
+};
 
 export async function grantUserCredits(
   _previousState: CreditGrantState,
@@ -61,5 +77,53 @@ export async function grantUserCredits(
   return {
     status: "success",
     message: `${amount.toLocaleString("es-PA")} ${amount === 1 ? "crédito acreditado" : "créditos acreditados"} a ${target.user.email || "la cuenta"}.`,
+    grant: {
+      userId,
+      email: target.user.email || "Sin correo disponible",
+      amount,
+      reason,
+      requestId,
+    },
   };
+}
+
+export async function sendCreditGrantEmail({
+  userId,
+  requestId,
+}: {
+  userId: string;
+  requestId: string;
+}): Promise<CreditEmailState> {
+  const administrator = await requireHqAdmin();
+  if (!/^[0-9a-f-]{36}$/i.test(userId) || !/^[0-9a-f-]{36}$/i.test(requestId)) {
+    return { status: "error", message: "No pudimos validar esta entrega de créditos." };
+  }
+
+  const admin = createAdminClient();
+  const idempotencyKey = `grant:manual_adjustment:hq:${administrator.id}:${requestId}`;
+  const { data: transaction, error } = await admin
+    .from("credit_transactions")
+    .select("amount,description")
+    .eq("user_id", userId)
+    .eq("transaction_type", "grant")
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+
+  if (error || !transaction || transaction.amount < 1) {
+    return { status: "error", message: "No encontramos el movimiento acreditado. No se envió ningún correo." };
+  }
+
+  const parts = transaction.description.split(" · ");
+  const reason = parts.length >= 3 ? parts.slice(1, -1).join(" · ") : "Créditos añadidos por el equipo de Crealy";
+  const deliveryId = await queueTransactionalEmail({
+    userId,
+    type: "credit_gift",
+    idempotencyKey: `hq-credit-grant:${requestId}`,
+    data: { credits: transaction.amount, reason },
+  });
+
+  if (!deliveryId) {
+    return { status: "error", message: "Los créditos están acreditados, pero el correo no pudo ponerse en cola." };
+  }
+  return { status: "success", message: "Correo puesto en cola para envío." };
 }

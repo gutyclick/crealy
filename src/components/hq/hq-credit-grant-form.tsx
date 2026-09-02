@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
-import { BadgePlus, CheckCircle2, LoaderCircle, ShieldAlert } from "lucide-react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { BadgePlus, CheckCircle2, LoaderCircle, Mail, ShieldAlert, X } from "lucide-react";
 
-import { grantUserCredits, type CreditGrantState } from "@/app/(hq)/hq/users/actions";
+import { grantUserCredits, sendCreditGrantEmail, type CreditEmailState, type CreditGrantState } from "@/app/(hq)/hq/users/actions";
 
 type UserOption = { id: string; label: string; email: string; credits: number };
 const initialCreditGrantState: CreditGrantState = { status: "idle", message: "" };
@@ -60,6 +60,65 @@ export function HqCreditGrantForm({ users, requestId }: { users: UserOption[]; r
           {state.message}
         </p>
       ) : null}
+      {state.status === "success" && state.grant ? <CreditEmailDialog key={state.grant.requestId} grant={state.grant} /> : null}
     </section>
+  );
+}
+
+function CreditEmailDialog({ grant }: { grant: NonNullable<CreditGrantState["grant"]> }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [sending, startSending] = useTransition();
+  const [emailState, setEmailState] = useState<CreditEmailState | null>(null);
+
+  useEffect(() => {
+    dialogRef.current?.showModal();
+  }, []);
+
+  function closeDialog() {
+    dialogRef.current?.close();
+  }
+
+  function sendEmail() {
+    startSending(async () => {
+      const result = await sendCreditGrantEmail({ userId: grant.userId, requestId: grant.requestId });
+      setEmailState(result);
+    });
+  }
+
+  return (
+    <dialog ref={dialogRef} className="hq-credit-dialog" aria-labelledby="credit-email-title" aria-describedby="credit-email-description">
+      <div className="hq-credit-dialog-head">
+        <span className="grid size-10 place-items-center rounded-[0.7rem] bg-brand/10 text-brand"><Mail aria-hidden="true" className="size-5" /></span>
+        <button type="button" onClick={closeDialog} aria-label="Cerrar sin enviar correo"><X aria-hidden="true" className="size-5" /></button>
+      </div>
+      <h2 id="credit-email-title">¿Avisamos al usuario?</h2>
+      <p id="credit-email-description">Los créditos ya fueron acreditados. Puedes enviar una confirmación a <strong>{grant.email}</strong> o continuar sin correo.</p>
+      <dl className="hq-credit-dialog-summary">
+        <div><dt>Monto</dt><dd>+{grant.amount.toLocaleString("es-PA")} créditos</dd></div>
+        <div><dt>Motivo</dt><dd>{grant.reason}</dd></div>
+        <div><dt>Asunto</dt><dd>¡Has recibido créditos!</dd></div>
+      </dl>
+
+      {emailState ? (
+        <p className={`hq-credit-email-state hq-credit-email-state-${emailState.status}`} role={emailState.status === "error" ? "alert" : "status"}>
+          {emailState.status === "success" ? <CheckCircle2 aria-hidden="true" className="size-4" /> : <ShieldAlert aria-hidden="true" className="size-4" />}
+          {emailState.message}
+        </p>
+      ) : null}
+
+      <div className="hq-credit-dialog-actions">
+        {emailState?.status === "success" ? (
+          <button type="button" className="hq-credit-dialog-primary" onClick={closeDialog}>Cerrar</button>
+        ) : (
+          <>
+            <button type="button" className="hq-credit-dialog-secondary" onClick={closeDialog} disabled={sending}>Omitir correo</button>
+            <button type="button" className="hq-credit-dialog-primary" onClick={sendEmail} disabled={sending}>
+              {sending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Mail aria-hidden="true" className="size-4" />}
+              {sending ? "Enviando" : emailState?.status === "error" ? "Reintentar envío" : "Enviar correo"}
+            </button>
+          </>
+        )}
+      </div>
+    </dialog>
   );
 }

@@ -40,14 +40,15 @@ test("transactional templates escape user-controlled text", () => {
   assert.ok(email.text.length > 20);
 });
 
-test("the early-user credit gift is a transactional, actionable email", () => {
+test("the credit grant is a transactional, actionable email", () => {
   const email = renderEmailTemplate("credit_gift", {
     credits: 5,
+    reason: "Cortesía por incidencia",
     siteUrl: "https://www.crealy.app",
   });
 
-  assert.match(email.subject, /5 créditos de regalo/);
-  assert.match(email.html, /Gracias por ser una de las primeras personas/);
+  assert.equal(email.subject, "¡Has recibido créditos!");
+  assert.match(email.html, /Cortesía por incidencia/);
   assert.match(email.html, /https:\/\/www\.crealy\.app\/create/);
 });
 

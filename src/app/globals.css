@@ -217,6 +217,29 @@ a {
 .hq-credit-result { display: flex; min-height: 2.75rem; align-items: center; gap: 0.55rem; margin-top: 0.85rem; font-size: 0.75rem; }
 .hq-credit-result-success { color: #b9f5aa; }
 .hq-credit-result-error { color: #ffaaaa; }
+.hq-credit-dialog { width: min(32rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 1rem; background: #151610; padding: 1.5rem; color: var(--foreground); box-shadow: 0 28px 90px rgba(0, 0, 0, 0.7); }
+.hq-credit-dialog::backdrop { background: rgba(3, 3, 3, 0.78); }
+.hq-credit-dialog-head { display: flex; align-items: center; justify-content: space-between; }
+.hq-credit-dialog-head > button { display: grid; min-height: 2.75rem; min-width: 2.75rem; place-items: center; border-radius: 0.7rem; color: rgba(247, 247, 245, 0.58); cursor: pointer; }
+.hq-credit-dialog-head > button:hover { background: rgba(255, 255, 255, 0.055); color: var(--foreground); }
+.hq-credit-dialog h2 { margin-top: 1.5rem; font-size: clamp(1.55rem, 5vw, 2rem); font-weight: 680; letter-spacing: -0.035em; }
+.hq-credit-dialog > p { margin-top: 0.75rem; color: rgba(247, 247, 245, 0.62); font-size: 0.86rem; line-height: 1.65; overflow-wrap: anywhere; }
+.hq-credit-dialog > p strong { color: var(--foreground); }
+.hq-credit-dialog-summary { margin-top: 1.25rem; border-block: 1px solid rgba(255, 255, 255, 0.09); }
+.hq-credit-dialog-summary > div { display: grid; grid-template-columns: 5rem 1fr; gap: 1rem; padding: 0.8rem 0; }
+.hq-credit-dialog-summary > div + div { border-top: 1px solid rgba(255, 255, 255, 0.065); }
+.hq-credit-dialog-summary dt { color: rgba(247, 247, 245, 0.48); font-size: 0.72rem; }
+.hq-credit-dialog-summary dd { min-width: 0; color: rgba(247, 247, 245, 0.82); font-size: 0.78rem; font-weight: 620; overflow-wrap: anywhere; }
+.hq-credit-email-state { display: flex; min-height: 2.75rem; align-items: center; gap: 0.55rem; }
+.hq-credit-email-state-success { color: #b9f5aa !important; }
+.hq-credit-email-state-error { color: #ffaaaa !important; }
+.hq-credit-dialog-actions { display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1.5rem; }
+.hq-credit-dialog-actions button { display: inline-flex; min-height: 2.9rem; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 0.7rem; padding: 0 1rem; font-size: 0.78rem; font-weight: 740; cursor: pointer; }
+.hq-credit-dialog-actions button:disabled { cursor: not-allowed; opacity: 0.5; }
+.hq-credit-dialog-primary { background: var(--brand); color: var(--brand-ink); }
+.hq-credit-dialog-primary:hover { background: var(--brand-hover); }
+.hq-credit-dialog-secondary { border: 1px solid rgba(255, 255, 255, 0.14); color: rgba(247, 247, 245, 0.72); }
+.hq-credit-dialog-secondary:hover { background: rgba(255, 255, 255, 0.045); color: var(--foreground); }
 
 .hq-status { display: inline-flex; min-height: 1.55rem; align-items: center; border-radius: 999px; background: rgba(255, 255, 255, 0.06); padding: 0 0.55rem; color: rgba(247, 247, 245, 0.64); font-size: 0.65rem; font-weight: 700; white-space: nowrap; }
 .hq-status-good { background: rgba(142, 232, 117, 0.09); color: #b9f5aa; }
@@ -283,6 +306,9 @@ a {
   .hq-metric::after { inset-inline: 0.9rem; }
   .hq-credit-form { grid-template-columns: 1fr; }
   .hq-credit-reason, .hq-credit-form button { grid-column: auto; }
+  .hq-credit-dialog { padding: 1.2rem; }
+  .hq-credit-dialog-actions { flex-direction: column-reverse; }
+  .hq-credit-dialog-actions button { width: 100%; }
 }
 
 /* Micro typography is reserved for scaled social-network preview mockups. */
