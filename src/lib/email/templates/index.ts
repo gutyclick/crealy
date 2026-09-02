@@ -55,9 +55,25 @@ function layout({
   <meta name="supported-color-schemes" content="dark">
   <title>${escapeHtml(title)}</title>
   <style>
+    :root { color-scheme:only dark; supported-color-schemes:only dark; }
     body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
     table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
     img { -ms-interpolation-mode:bicubic; border:0; display:block; height:auto; line-height:100%; outline:none; text-decoration:none; }
+    body, .email-canvas { background-color:#080808 !important; color:#F7F7F5 !important; }
+    .email-card, .email-header, .email-content { background-color:#11120E !important; }
+    .email-title { color:#F7F7F5 !important; }
+    .email-copy, .email-copy p, .email-copy td, .email-copy span { color:#BFC0B9 !important; }
+    .email-footer { color:#7E8078 !important; }
+    [data-ogsc] .email-canvas { background-color:#080808 !important; }
+    [data-ogsc] .email-card, [data-ogsc] .email-header, [data-ogsc] .email-content { background-color:#11120E !important; }
+    [data-ogsc] .email-title { color:#F7F7F5 !important; }
+    [data-ogsc] .email-copy, [data-ogsc] .email-copy p, [data-ogsc] .email-copy td, [data-ogsc] .email-copy span { color:#BFC0B9 !important; }
+    @media (prefers-color-scheme:dark) {
+      body, .email-canvas { background-color:#080808 !important; color:#F7F7F5 !important; }
+      .email-card, .email-header, .email-content { background-color:#11120E !important; }
+      .email-title { color:#F7F7F5 !important; }
+      .email-copy, .email-copy p, .email-copy td, .email-copy span { color:#BFC0B9 !important; }
+    }
     @media only screen and (max-width:620px) {
       .email-shell { padding:16px 10px 28px !important; }
       .email-card { border-radius:16px !important; }
@@ -71,15 +87,15 @@ function layout({
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:#080808;color:#F7F7F5;font-family:Arial,Helvetica,sans-serif">
+<body class="email-canvas" style="margin:0;padding:0;background-color:#080808;color:#F7F7F5;font-family:Arial,Helvetica,sans-serif">
   <div style="display:none;font-size:1px;color:#080808;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">${escapeHtml(preheader)}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
-  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="width:100%;background-color:#080808">
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" class="email-canvas" bgcolor="#080808" style="width:100%;background-color:#080808">
     <tr><td align="center" class="email-shell" style="padding:42px 18px 34px">
-      <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" class="email-card" style="width:100%;max-width:600px;background-color:#11120E;border:1px solid #292A25;border-radius:18px;overflow:hidden">
-        <tr><td class="email-header" style="padding:28px 42px 24px;border-bottom:1px solid #292A25">
+      <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" class="email-card" bgcolor="#11120E" style="width:100%;max-width:600px;background-color:#11120E;border:1px solid #292A25;border-radius:18px;overflow:hidden">
+        <tr><td class="email-header" bgcolor="#11120E" style="padding:28px 42px 24px;background-color:#11120E;border-bottom:1px solid #292A25">
           <a href="${escapeHtml(brandOrigin)}" aria-label="Crealy" style="display:inline-block;text-decoration:none"><img src="${escapeHtml(logoUrl)}" width="132" alt="Crealy" style="width:132px;max-width:132px;height:auto"></a>
         </td></tr>
-        <tr><td class="email-content" style="padding:46px 42px 40px">
+        <tr><td class="email-content" bgcolor="#11120E" style="padding:46px 42px 40px;background-color:#11120E">
           <div style="width:44px;height:4px;background-color:#DDF527;border-radius:4px;margin:0 0 26px"></div>
           <h1 class="email-title" style="margin:0 0 20px;color:#F7F7F5;font-size:38px;font-weight:700;letter-spacing:-1.1px;line-height:42px">${escapeHtml(title)}</h1>
           <div class="email-copy" style="color:#BFC0B9;font-size:17px;line-height:28px">${body}</div>

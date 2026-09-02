@@ -50,6 +50,8 @@ test("the credit grant is a transactional, actionable email", () => {
   assert.equal(email.subject, "¡Has recibido créditos!");
   assert.match(email.html, /Cortesía por incidencia/);
   assert.match(email.html, /https:\/\/www\.crealy\.app\/create/);
+  assert.match(email.html, /color-scheme:only dark/);
+  assert.match(email.html, /class="email-canvas" bgcolor="#080808"/);
 });
 
 test("email delivery, job and outbox are created atomically", () => {
